@@ -10,6 +10,7 @@
 #include <d3d11.h>
 #include <tchar.h>
 
+#include "../MyEngine/MyEngineAPI.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
@@ -30,6 +31,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
 int main(int, char**) {
+  my::InitEngine();
+  my::SetRenderTargetSize(512, 512);
+  my::DeinitEngine();
+
   // Create application window
   // ImGui_ImplWin32_EnableDpiAwareness();
   WNDCLASSEXW wc = {sizeof(wc),
