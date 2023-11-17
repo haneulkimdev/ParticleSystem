@@ -14,6 +14,7 @@
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
+#include "spdlog/spdlog.h"
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
@@ -29,9 +30,13 @@ void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+auto g_apiLogger = spdlog::default_logger();
+
 // Main code
 int main(int, char**) {
-  my::InitEngine();
+  g_apiLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+
+  my::InitEngine(g_apiLogger.get());
   my::SetRenderTargetSize(512, 512);
   my::DeinitEngine();
 

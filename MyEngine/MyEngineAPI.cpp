@@ -3,9 +3,11 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
-#include <iostream>
+#include "spdlog/spdlog.h"
 
 using Microsoft::WRL::ComPtr;
+
+std::shared_ptr<spdlog::logger> g_apiLogger;
 
 static ComPtr<ID3D11Device> g_device;
 static ComPtr<ID3D11DeviceContext> g_context;
@@ -13,7 +15,9 @@ static ComPtr<ID3D11DeviceContext> g_context;
 static ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 static ComPtr<ID3D11RenderTargetView> g_renderTargetView;
 
-bool my::InitEngine() {
+bool my::InitEngine(spdlog::logger* spdlogPtr) {
+  g_apiLogger = std::make_shared<spdlog::logger>(*spdlogPtr);
+
   // Create the device and device context.
 
   UINT createDeviceFlags = 0;
@@ -31,12 +35,12 @@ bool my::InitEngine() {
                                  &featureLevel, g_context.GetAddressOf());
 
   if (FAILED(hr)) {
-    std::cout << "D3D11CreateDevice Failed." << std::endl;
+    g_apiLogger->error("D3D11CreateDevice Failed.");
     return false;
   }
 
   if (featureLevel != D3D_FEATURE_LEVEL_11_0) {
-    std::cout << "Direct3D Feature Level 11 unsupported." << std::endl;
+    g_apiLogger->error("Direct3D Feature Level 11 unsupported.");
     return false;
   }
 
@@ -64,7 +68,7 @@ bool my::SetRenderTargetSize(int w, int h) {
                                  g_renderTargetBuffer.GetAddressOf());
 
   if (FAILED(hr)) {
-    std::cout << "CreateTexture2D Failed." << std::endl;
+    g_apiLogger->error("CreateTexture2D Failed.");
     return false;
   }
 
@@ -79,7 +83,7 @@ bool my::SetRenderTargetSize(int w, int h) {
                                         g_renderTargetView.GetAddressOf());
 
   if (FAILED(hr)) {
-    std::cout << "CreateRenderTargetView Failed." << std::endl;
+    g_apiLogger->error("CreateRenderTargetView Failed.");
     return false;
   }
 
