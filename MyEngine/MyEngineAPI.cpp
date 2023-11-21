@@ -357,6 +357,33 @@ bool my::DoTest() {
 
   g_context->Draw(3, 0);
 
+  D3D11_TEXTURE2D_DESC readbackBufferDesc;
+  g_renderTargetBuffer->GetDesc(&readbackBufferDesc);
+  readbackBufferDesc.Usage = D3D11_USAGE_STAGING;
+  readbackBufferDesc.BindFlags = 0;
+  readbackBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+  readbackBufferDesc.MiscFlags = 0;
+
+  ComPtr<ID3D11Texture2D> readbackBuffer;
+  hr = g_device->CreateTexture2D(&readbackBufferDesc, nullptr,
+                                 readbackBuffer.GetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateTexture2D Failed.");
+    return false;
+  }
+
+  g_context->CopyResource(readbackBuffer.Get(), g_renderTargetBuffer.Get());
+
+  ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+  g_context->Map(readbackBuffer.Get(), 0, D3D11_MAP_READ, 0, &mappedResource);
+  UINT8* pReadbackBufferData = reinterpret_cast<UINT8*>(mappedResource.pData);
+
+  // Code goes here to access the data via pReadbackBufferData.
+
+  g_context->Unmap(readbackBuffer.Get(), 0);
+  readbackBuffer.Reset();
+
   return true;
 }
 
