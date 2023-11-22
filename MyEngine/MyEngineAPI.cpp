@@ -55,13 +55,13 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
 #endif
 
   D3D_FEATURE_LEVEL featureLevel;
-  HRESULT hr = D3D11CreateDevice(nullptr,  // default adapter
-                                 D3D_DRIVER_TYPE_HARDWARE,
-                                 nullptr,  // no software device
-                                 createDeviceFlags, nullptr,
-                                 0,  // default feature level array
-                                 D3D11_SDK_VERSION, g_device.GetAddressOf(),
-                                 &featureLevel, g_context.GetAddressOf());
+  HRESULT hr = D3D11CreateDevice(
+      nullptr,  // default adapter
+      D3D_DRIVER_TYPE_HARDWARE,
+      nullptr,                        // no software device
+      createDeviceFlags, nullptr, 0,  // default feature level array
+      D3D11_SDK_VERSION, g_device.ReleaseAndGetAddressOf(), &featureLevel,
+      g_context.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("D3D11CreateDevice Failed.");
@@ -95,7 +95,7 @@ bool my::SetRenderTargetSize(int w, int h) {
   renderTargetBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
   hr = g_device->CreateTexture2D(&renderTargetBufferDesc, nullptr,
-                                 g_renderTargetBuffer.GetAddressOf());
+                                 g_renderTargetBuffer.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateTexture2D Failed.");
@@ -108,9 +108,9 @@ bool my::SetRenderTargetSize(int w, int h) {
   renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
   renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-  hr = g_device->CreateRenderTargetView(g_renderTargetBuffer.Get(),
-                                        &renderTargetViewDesc,
-                                        g_renderTargetView.GetAddressOf());
+  hr = g_device->CreateRenderTargetView(
+      g_renderTargetBuffer.Get(), &renderTargetViewDesc,
+      g_renderTargetView.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateRenderTargetView Failed.");
@@ -133,16 +133,18 @@ bool my::SetRenderTargetSize(int w, int h) {
   depthStencilBufferDesc.CPUAccessFlags = 0;
   depthStencilBufferDesc.MiscFlags = 0;
 
-  hr = (g_device->CreateTexture2D(&depthStencilBufferDesc, nullptr,
-                                  g_depthStencilBuffer.GetAddressOf()));
+  hr = (g_device->CreateTexture2D(
+      &depthStencilBufferDesc, nullptr,
+      g_depthStencilBuffer.ReleaseAndGetAddressOf()));
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateTexture2D Failed.");
     return false;
   }
 
-  hr = (g_device->CreateDepthStencilView(g_depthStencilBuffer.Get(), nullptr,
-                                         g_depthStencilView.GetAddressOf()));
+  hr = (g_device->CreateDepthStencilView(
+      g_depthStencilBuffer.Get(), nullptr,
+      g_depthStencilView.ReleaseAndGetAddressOf()));
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateDepthStencilView Failed.");
@@ -155,8 +157,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   rasterizerDesc.FrontCounterClockwise = false;
   rasterizerDesc.DepthClipEnable = true;
 
-  hr = g_device->CreateRasterizerState(&rasterizerDesc,
-                                       g_rasterizerState.GetAddressOf());
+  hr = g_device->CreateRasterizerState(
+      &rasterizerDesc, g_rasterizerState.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateRasterizerState Failed.");
@@ -168,8 +170,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
   depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 
-  hr = g_device->CreateDepthStencilState(&depthStencilDesc,
-                                         g_depthStencilState.GetAddressOf());
+  hr = g_device->CreateDepthStencilState(
+      &depthStencilDesc, g_depthStencilState.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateDepthStencilState Failed.");
@@ -218,7 +220,7 @@ bool my::DoTest() {
   vertexBufferData.SysMemSlicePitch = 0;
 
   hr = g_device->CreateBuffer(&vertexBufferDesc, &vertexBufferData,
-                              g_vertexBuffer.GetAddressOf());
+                              g_vertexBuffer.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateBuffer Failed.");
@@ -238,7 +240,7 @@ bool my::DoTest() {
   constantBufferData.SysMemSlicePitch = 0;
 
   hr = g_device->CreateBuffer(&constantBufferDesc, &constantBufferData,
-                              g_constantBuffer.GetAddressOf());
+                              g_constantBuffer.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateBuffer Failed.");
@@ -284,7 +286,7 @@ bool my::DoTest() {
 
   hr = g_device->CreateVertexShader(byteCode->GetBufferPointer(),
                                     byteCode->GetBufferSize(), nullptr,
-                                    g_vertexShader.GetAddressOf());
+                                    g_vertexShader.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateVertexShader Failed.");
@@ -302,7 +304,7 @@ bool my::DoTest() {
   // Create the input layout
   hr = g_device->CreateInputLayout(vertexDesc, 2, byteCode->GetBufferPointer(),
                                    byteCode->GetBufferSize(),
-                                   g_inputLayout.GetAddressOf());
+                                   g_inputLayout.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateInputLayout Failed.");
@@ -323,7 +325,7 @@ bool my::DoTest() {
 
   hr = g_device->CreatePixelShader(byteCode->GetBufferPointer(),
                                    byteCode->GetBufferSize(), nullptr,
-                                   g_pixelShader.GetAddressOf());
+                                   g_pixelShader.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreatePixelShader Failed.");
@@ -371,7 +373,7 @@ bool my::GetRenderTarget(ID3D11Device* device, ID3D11Texture2D** texture) {
 
   hr = g_renderTargetBuffer->QueryInterface(
       __uuidof(IDXGIResource),
-      reinterpret_cast<void**>(dxgiResource.GetAddressOf()));
+      reinterpret_cast<void**>(dxgiResource.ReleaseAndGetAddressOf()));
 
   if (FAILED(hr)) {
     g_apiLogger->error("QueryInterface Failed.");
