@@ -366,7 +366,8 @@ bool my::DoTest() {
   return true;
 }
 
-bool my::GetRenderTarget(ID3D11Device* device, ID3D11Texture2D** texture) {
+bool my::GetRenderTarget(ID3D11Device* device,
+                         ID3D11ShaderResourceView** textureView) {
   HRESULT hr = S_OK;
 
   ComPtr<IDXGIResource> dxgiResource;
@@ -390,13 +391,36 @@ bool my::GetRenderTarget(ID3D11Device* device, ID3D11Texture2D** texture) {
     return false;
   }
 
-  hr = device->OpenSharedResource(sharedHandle, __uuidof(ID3D11Texture2D),
-                                  reinterpret_cast<void**>(texture));
+  ComPtr<ID3D11Texture2D> texture;
+
+  hr = device->OpenSharedResource(
+      sharedHandle, __uuidof(ID3D11Texture2D),
+      reinterpret_cast<void**>(texture.ReleaseAndGetAddressOf()));
 
   if (FAILED(hr)) {
     g_apiLogger->error("OpenSharedResource Failed.");
     return false;
   }
+
+  D3D11_TEXTURE2D_DESC desc = {};
+  texture->GetDesc(&desc);
+
+  // Create texture view
+  D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+  ZeroMemory(&SRVDesc, sizeof(SRVDesc));
+  SRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+  SRVDesc.Texture2D.MipLevels = desc.MipLevels;
+  SRVDesc.Texture2D.MostDetailedMip = 0;
+
+  device->CreateShaderResourceView(texture.Get(), &SRVDesc, textureView);
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateShaderResourceView Failed.");
+    return false;
+  }
+
+  texture.Reset();
 
   return true;
 }

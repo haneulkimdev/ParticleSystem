@@ -72,23 +72,8 @@ int main(int, char**) {
     return 1;
   }
 
-  ComPtr<ID3D11Texture2D> texture;
-  my::GetRenderTarget(g_pd3dDevice, texture.GetAddressOf());
-
-  D3D11_TEXTURE2D_DESC desc = {};
-  texture->GetDesc(&desc);
-
-  // Create texture view
-  D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-  ZeroMemory(&SRVDesc, sizeof(SRVDesc));
-  SRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-  SRVDesc.Texture2D.MipLevels = desc.MipLevels;
-  SRVDesc.Texture2D.MostDetailedMip = 0;
-
   ComPtr<ID3D11ShaderResourceView> textureView;
-  g_pd3dDevice->CreateShaderResourceView(texture.Get(), &SRVDesc,
-                                         textureView.GetAddressOf());
+  my::GetRenderTarget(g_pd3dDevice, textureView.ReleaseAndGetAddressOf());
 
   // Show the window
   ::ShowWindow(hwnd, SW_SHOWDEFAULT);
