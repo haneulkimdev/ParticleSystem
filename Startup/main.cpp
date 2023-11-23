@@ -12,12 +12,14 @@
 #include <wrl/client.h>
 
 #include "../MyEngine/MyEngineAPI.h"
+#include "SimpleMath.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 #include "spdlog/spdlog.h"
 
 using Microsoft::WRL::ComPtr;
+using namespace DirectX::SimpleMath;
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
@@ -44,7 +46,6 @@ int main(int, char**) {
 
   my::InitEngine(g_apiLogger.get());
   my::SetRenderTargetSize(g_renderTargetWidth, g_renderTargetHeight);
-  my::DoTest();
 
   // Create application window
   // ImGui_ImplWin32_EnableDpiAwareness();
@@ -210,6 +211,20 @@ int main(int, char**) {
     ImGui::Begin("DirectX11 Texture Test");
     ImGui::Text("pointer = %p", textureView.Get());
     ImGui::Text("size = %d x %d", g_renderTargetWidth, g_renderTargetHeight);
+    ImVec2 cursorPos = ImGui::GetCursorPos();
+    ImVec2 mouseDragDeltaLeft, mouseDragDeltaRight;
+    if (ImGui::InvisibleButton(
+            "Invisible Button",
+            ImVec2(g_renderTargetWidth, g_renderTargetHeight),
+            ImGuiButtonFlags_MouseButtonLeft |
+                ImGuiButtonFlags_MouseButtonRight)) {
+      mouseDragDeltaLeft = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+      mouseDragDeltaRight = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+    }
+    my::DoTest(Vector2(mouseDragDeltaLeft.x, mouseDragDeltaLeft.y),
+               Vector2(mouseDragDeltaRight.x, mouseDragDeltaRight.y));
+    ImGui::SetItemAllowOverlap();
+    ImGui::SetCursorPos(cursorPos);
     ImGui::Image((void*)textureView.Get(),
                  ImVec2(g_renderTargetWidth, g_renderTargetHeight));
     ImGui::End();

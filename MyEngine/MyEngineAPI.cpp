@@ -334,7 +334,7 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-bool my::DoTest() {
+bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
   HRESULT hr = S_OK;
 
   D3D11_MAPPED_SUBRESOURCE mappedResource;
