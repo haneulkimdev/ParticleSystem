@@ -44,6 +44,9 @@ static ComPtr<ID3D11InputLayout> g_inputLayout;
 
 static ObjectConstants g_objConstants;
 
+static int g_renderTargetWidth;
+static int g_renderTargetHeight;
+
 bool my::InitEngine(spdlog::logger* spdlogPtr) {
   g_apiLogger = std::make_shared<spdlog::logger>(*spdlogPtr);
 
@@ -207,12 +210,15 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
 }
 
 bool my::SetRenderTargetSize(int w, int h) {
+  g_renderTargetWidth = w;
+  g_renderTargetHeight = h;
+
   HRESULT hr = S_OK;
 
   D3D11_TEXTURE2D_DESC renderTargetBufferDesc = {};
 
-  renderTargetBufferDesc.Width = w;
-  renderTargetBufferDesc.Height = h;
+  renderTargetBufferDesc.Width = g_renderTargetWidth;
+  renderTargetBufferDesc.Height = g_renderTargetHeight;
   renderTargetBufferDesc.MipLevels = 0;
   renderTargetBufferDesc.ArraySize = 1;
   renderTargetBufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -251,8 +257,8 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
 
-  depthStencilBufferDesc.Width = w;
-  depthStencilBufferDesc.Height = h;
+  depthStencilBufferDesc.Width = g_renderTargetWidth;
+  depthStencilBufferDesc.Height = g_renderTargetHeight;
   depthStencilBufferDesc.MipLevels = 1;
   depthStencilBufferDesc.ArraySize = 1;
   depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -317,8 +323,8 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   g_viewport.TopLeftX = 0.0f;
   g_viewport.TopLeftY = 0.0f;
-  g_viewport.Width = static_cast<float>(w);
-  g_viewport.Height = static_cast<float>(h);
+  g_viewport.Width = static_cast<float>(g_renderTargetWidth);
+  g_viewport.Height = static_cast<float>(g_renderTargetHeight);
   g_viewport.MinDepth = 0.0f;
   g_viewport.MaxDepth = 1.0f;
 
@@ -328,7 +334,9 @@ bool my::SetRenderTargetSize(int w, int h) {
   // matrix.
   g_objConstants.projection =
       Matrix::CreatePerspectiveFieldOfView(
-          0.25f * XM_PI, static_cast<float>(w) / h, 1.0f, 1000.0f)
+          0.25f * XM_PI,
+          static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight, 1.0f,
+          1000.0f)
           .Transpose();
 
   return true;
