@@ -9,12 +9,15 @@
 
 #include <d3d11.h>
 #include <tchar.h>
+#include <wrl/client.h>
 
 #include "../MyEngine/MyEngineAPI.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 #include "spdlog/spdlog.h"
+
+using Microsoft::WRL::ComPtr;
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
@@ -32,14 +35,16 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 auto g_apiLogger = spdlog::default_logger();
 
+static int g_renderTargetWidth = 512;
+static int g_renderTargetHeight = 512;
+
 // Main code
 int main(int, char**) {
   g_apiLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 
   my::InitEngine(g_apiLogger.get());
-  my::SetRenderTargetSize(512, 512);
+  my::SetRenderTargetSize(g_renderTargetWidth, g_renderTargetHeight);
   my::DoTest();
-  my::DeinitEngine();
 
   // Create application window
   // ImGui_ImplWin32_EnableDpiAwareness();
@@ -67,10 +72,27 @@ int main(int, char**) {
     return 1;
   }
 
+  ComPtr<ID3D11Texture2D> texture;
+  my::GetRenderTarget(g_pd3dDevice, texture.GetAddressOf());
+
+  D3D11_TEXTURE2D_DESC desc = {};
+  texture->GetDesc(&desc);
+
+  // Create texture view
+  D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
+  ZeroMemory(&SRVDesc, sizeof(SRVDesc));
+  SRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+  SRVDesc.Texture2D.MipLevels = desc.MipLevels;
+  SRVDesc.Texture2D.MostDetailedMip = 0;
+
+  ComPtr<ID3D11ShaderResourceView> textureView;
+  g_pd3dDevice->CreateShaderResourceView(texture.Get(), &SRVDesc,
+                                         textureView.GetAddressOf());
+
   // Show the window
   ::ShowWindow(hwnd, SW_SHOWDEFAULT);
   ::UpdateWindow(hwnd);
-
   // Setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -200,6 +222,13 @@ int main(int, char**) {
       ImGui::End();
     }
 
+    ImGui::Begin("DirectX11 Texture Test");
+    ImGui::Text("pointer = %p", textureView.Get());
+    ImGui::Text("size = %d x %d", g_renderTargetWidth, g_renderTargetHeight);
+    ImGui::Image((void*)textureView.Get(),
+                 ImVec2(g_renderTargetWidth, g_renderTargetHeight));
+    ImGui::End();
+
     // Rendering
     ImGui::Render();
     const float clear_color_with_alpha[4] = {
@@ -219,6 +248,8 @@ int main(int, char**) {
   ImGui_ImplDX11_Shutdown();
   ImGui_ImplWin32_Shutdown();
   ImGui::DestroyContext();
+
+  my::DeinitEngine();
 
   CleanupDeviceD3D();
   ::DestroyWindow(hwnd);

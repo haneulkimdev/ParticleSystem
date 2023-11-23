@@ -87,7 +87,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   renderTargetBufferDesc.SampleDesc.Count = 1;
   renderTargetBufferDesc.SampleDesc.Quality = 0;
   renderTargetBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-  renderTargetBufferDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+  renderTargetBufferDesc.BindFlags =
+      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
   renderTargetBufferDesc.CPUAccessFlags = 0;
   renderTargetBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
@@ -359,7 +360,40 @@ bool my::DoTest() {
   return true;
 }
 
-bool my::GetRenderTarget() { return false; }
+bool my::GetRenderTarget(ID3D11Device* device, ID3D11Texture2D** texture) {
+  HRESULT hr = S_OK;
+
+  ComPtr<IDXGIResource> dxgiResource;
+
+  hr = g_renderTargetBuffer->QueryInterface(
+      __uuidof(IDXGIResource),
+      reinterpret_cast<void**>(dxgiResource.GetAddressOf()));
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("QueryInterface Failed.");
+    return false;
+  }
+
+  HANDLE sharedHandle;
+
+  hr = dxgiResource->GetSharedHandle(&sharedHandle);
+  dxgiResource.Reset();
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("GetSharedHandle Failed.");
+    return false;
+  }
+
+  hr = device->OpenSharedResource(sharedHandle, __uuidof(ID3D11Texture2D),
+                                  reinterpret_cast<void**>(texture));
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("OpenSharedResource Failed.");
+    return false;
+  }
+
+  return true;
+}
 
 void my::DeinitEngine() {
   g_vertexBuffer.Reset();
