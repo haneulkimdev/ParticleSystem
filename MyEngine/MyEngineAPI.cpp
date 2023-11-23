@@ -1,24 +1,25 @@
 #include "MyEngineAPI.h"
 
-#include <DirectXMath.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 
+#include "SimpleMath.h"
 #include "spdlog/spdlog.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+using namespace DirectX::SimpleMath;
 
 struct Vertex {
-  XMFLOAT3 position;
-  XMFLOAT3 color;
+  Vector3 position;
+  Color color;
 };
 
 struct ObjectConstants {
-  XMFLOAT4X4 world;
-  XMFLOAT4X4 view;
-  XMFLOAT4X4 projection;
+  Matrix world;
+  Matrix view;
+  Matrix projection;
 };
 
 std::shared_ptr<spdlog::logger> g_apiLogger;
@@ -185,9 +186,10 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   // The window resized, so update the aspect ratio and recompute the projection
   // matrix.
-  XMMATRIX projection = XMMatrixPerspectiveFovLH(
-      0.25f * XM_PI, static_cast<float>(w) / h, 1.0f, 1000.0f);
-  XMStoreFloat4x4(&g_objConstants.projection, XMMatrixTranspose(projection));
+  g_objConstants.projection =
+      Matrix::CreatePerspectiveFieldOfView(
+          0.25f * XM_PI, static_cast<float>(w) / h, 1.0f, 1000.0f)
+          .Transpose();
 
   return true;
 }
@@ -197,9 +199,9 @@ bool my::DoTest() {
 
   // Create vertex buffer
   Vertex vertices[] = {
-      {XMFLOAT3(0.0f, 0.5f, 0.5f), XMFLOAT3(0.0f, 0.0f, 0.5f)},
-      {XMFLOAT3(0.5f, -0.5f, 0.5f), XMFLOAT3(0.5f, 0.0f, 0.0f)},
-      {XMFLOAT3(-0.5f, -0.5f, 0.5f), XMFLOAT3(0.0f, 0.5f, 0.0f)},
+      {Vector3(0.0f, 0.5f, 0.5f), Color(0.0f, 0.0f, 0.5f)},
+      {Vector3(0.5f, -0.5f, 0.5f), Color(0.5f, 0.0f, 0.0f)},
+      {Vector3(-0.5f, -0.5f, 0.5f), Color(0.0f, 0.5f, 0.0f)},
   };
 
   D3D11_BUFFER_DESC vertexBufferDesc = {};
@@ -242,16 +244,15 @@ bool my::DoTest() {
     return false;
   }
 
-  XMMATRIX world = XMMatrixIdentity();
-  XMStoreFloat4x4(&g_objConstants.world, XMMatrixTranspose(world));
+  g_objConstants.world = Matrix().Transpose();
 
   // Build the view matrix.
-  XMVECTOR pos = XMVectorSet(0.0f, 0.0f, -1.0f, 1.0f);
-  XMVECTOR target = XMVectorZero();
-  XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f);
+  Vector3 pos(0.0f, 0.0f, -1.0f);
+  Vector3 forward(0.0f, 0.0f, 1.0f);
+  Vector3 up(0.0f, 1.0f, 0.0f);
 
-  XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-  XMStoreFloat4x4(&g_objConstants.view, XMMatrixTranspose(view));
+  g_objConstants.view =
+      Matrix::CreateLookAt(pos, pos + forward, up).Transpose();
 
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
