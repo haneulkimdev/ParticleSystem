@@ -345,6 +345,20 @@ bool my::SetRenderTargetSize(int w, int h) {
 bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
   HRESULT hr = S_OK;
 
+  g_objConstants.world = g_objConstants.world.Transpose();
+
+  mouseDragDeltaRight.x /= g_renderTargetWidth;
+  mouseDragDeltaRight.y /= g_renderTargetHeight;
+
+  mouseDragDeltaRight = -mouseDragDeltaRight;
+
+  mouseDragDeltaRight *= 1.5f;
+
+  g_objConstants.world *=
+      Matrix::CreateTranslation(Vector3(mouseDragDeltaRight));
+
+  g_objConstants.world = g_objConstants.world.Transpose();
+
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
   g_context->Map(g_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
