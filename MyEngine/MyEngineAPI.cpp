@@ -9,11 +9,12 @@
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+using namespace DirectX::PackedVector;
 using namespace DirectX::SimpleMath;
 
 struct Vertex {
   Vector3 position;
-  Color color;
+  XMCOLOR color;
 };
 
 struct ObjectConstants {
@@ -199,9 +200,9 @@ bool my::DoTest() {
 
   // Create vertex buffer
   Vertex vertices[] = {
-      {Vector3(0.0f, 0.5f, 0.5f), Color(0.0f, 0.0f, 0.5f)},
-      {Vector3(0.5f, -0.5f, 0.5f), Color(0.5f, 0.0f, 0.0f)},
-      {Vector3(-0.5f, -0.5f, 0.5f), Color(0.0f, 0.5f, 0.0f)},
+      {Vector3(0.0f, 0.5f, 0.5f), XMCOLOR(0.0f, 0.0f, 0.5f, 1.0f)},
+      {Vector3(0.5f, -0.5f, 0.5f), XMCOLOR(0.5f, 0.0f, 0.0f, 1.0f)},
+      {Vector3(-0.5f, -0.5f, 0.5f), XMCOLOR(0.0f, 0.5f, 0.0f, 1.0f)},
   };
 
   D3D11_BUFFER_DESC vertexBufferDesc = {};
@@ -294,7 +295,7 @@ bool my::DoTest() {
   D3D11_INPUT_ELEMENT_DESC vertexDesc[] = {
       {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
        D3D11_INPUT_PER_VERTEX_DATA, 0},
-      {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12,
+      {"COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12,
        D3D11_INPUT_PER_VERTEX_DATA, 0},
   };
 
