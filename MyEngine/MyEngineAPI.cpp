@@ -4,7 +4,7 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 
-#include "SimpleMath.h"
+#include "GeometryGenerator.h"
 #include "spdlog/spdlog.h"
 
 using Microsoft::WRL::ComPtr;
@@ -38,10 +38,13 @@ static ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 static D3D11_VIEWPORT g_viewport;
 
 static ComPtr<ID3D11Buffer> g_vertexBuffer;
+static ComPtr<ID3D11Buffer> g_indexBuffer;
 static ComPtr<ID3D11Buffer> g_constantBuffer;
 static ComPtr<ID3D11VertexShader> g_vertexShader;
 static ComPtr<ID3D11PixelShader> g_pixelShader;
 static ComPtr<ID3D11InputLayout> g_inputLayout;
+
+static UINT g_indexCount;
 
 static ObjectConstants g_objConstants;
 
@@ -77,30 +80,57 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
     return false;
   }
 
-  // Create vertex buffer
-  Vertex vertices[] = {
-      {Vector3(0.0f, 0.5f, 0.5f), XMCOLOR(0.0f, 0.0f, 0.5f, 1.0f),
-       Vector3(0.0f, 0.0f, -1.0f)},
-      {Vector3(0.5f, -0.5f, 0.5f), XMCOLOR(0.5f, 0.0f, 0.0f, 1.0f),
-       Vector3(0.0f, 0.0f, -1.0f)},
-      {Vector3(-0.5f, -0.5f, 0.5f), XMCOLOR(0.0f, 0.5f, 0.0f, 1.0f),
-       Vector3(0.0f, 0.0f, -1.0f)},
-  };
+  GeometryGenerator geoGen;
+  GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
+
+  g_indexCount = sphere.indices.size();
+
+  std::vector<Vertex> vertices(sphere.vertices.size());
+  for (size_t i = 0; i < sphere.vertices.size(); i++) {
+    vertices[i].position = sphere.vertices[i].position;
+
+    float r = (sphere.vertices[i].normal.x + 1.0f) * 0.5f;
+    float g = (sphere.vertices[i].normal.y + 1.0f) * 0.5f;
+    float b = (sphere.vertices[i].normal.z + 1.0f) * 0.5f;
+
+    vertices[i].color = XMCOLOR(r, g, b, 1.0f);
+    vertices[i].normal = sphere.vertices[i].normal;
+  }
 
   D3D11_BUFFER_DESC vertexBufferDesc = {};
-  vertexBufferDesc.ByteWidth = sizeof(Vertex) * 3;
+  vertexBufferDesc.ByteWidth = sizeof(Vertex) * vertices.size();
   vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
   vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
   vertexBufferDesc.CPUAccessFlags = 0;
   vertexBufferDesc.MiscFlags = 0;
 
   D3D11_SUBRESOURCE_DATA vertexBufferData = {};
-  vertexBufferData.pSysMem = vertices;
+  vertexBufferData.pSysMem = &vertices[0];
   vertexBufferData.SysMemPitch = 0;
   vertexBufferData.SysMemSlicePitch = 0;
 
   hr = g_device->CreateBuffer(&vertexBufferDesc, &vertexBufferData,
                               g_vertexBuffer.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateBuffer Failed.");
+    return false;
+  }
+
+  D3D11_BUFFER_DESC indexBufferDesc = {};
+  indexBufferDesc.ByteWidth = sizeof(UINT) * g_indexCount;
+  indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+  indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+  indexBufferDesc.CPUAccessFlags = 0;
+  indexBufferDesc.MiscFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA indexBufferData = {};
+  indexBufferData.pSysMem = &sphere.indices[0];
+  indexBufferData.SysMemPitch = 0;
+  indexBufferData.SysMemSlicePitch = 0;
+
+  hr = g_device->CreateBuffer(&indexBufferDesc, &indexBufferData,
+                              g_indexBuffer.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
     g_apiLogger->error("CreateBuffer Failed.");
@@ -205,7 +235,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
   g_objConstants.world = Matrix().Transpose();
 
   // Build the view matrix.
-  Vector3 pos(0.0f, 0.0f, -1.0f);
+  Vector3 pos(0.0f, 0.0f, -5.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
@@ -358,7 +388,7 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
 
   mouseDragDeltaRight = -mouseDragDeltaRight;
 
-  mouseDragDeltaRight *= 1.5f;
+  mouseDragDeltaRight *= 5.0f;
 
   g_objConstants.world *=
       Matrix::CreateTranslation(Vector3(mouseDragDeltaRight));
@@ -383,6 +413,7 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
   g_context->IASetInputLayout(g_inputLayout.Get());
   g_context->IASetVertexBuffers(0, 1, g_vertexBuffer.GetAddressOf(), &stride,
                                 &offset);
+  g_context->IASetIndexBuffer(g_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
   g_context->VSSetConstantBuffers(0, 1, g_constantBuffer.GetAddressOf());
@@ -391,7 +422,7 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
   g_context->RSSetState(g_rasterizerState.Get());
 
-  g_context->Draw(3, 0);
+  g_context->DrawIndexed(g_indexCount, 0, 0);
 
   g_context->Flush();
 
@@ -459,6 +490,7 @@ bool my::GetRenderTarget(ID3D11Device* device,
 
 void my::DeinitEngine() {
   g_vertexBuffer.Reset();
+  g_indexBuffer.Reset();
   g_constantBuffer.Reset();
   g_vertexShader.Reset();
   g_pixelShader.Reset();
