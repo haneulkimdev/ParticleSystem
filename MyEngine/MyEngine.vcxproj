@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="MyEngineAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="MyEngineAPI.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
