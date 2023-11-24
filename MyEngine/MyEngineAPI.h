@@ -1,8 +1,10 @@
 #pragma once
 
 #include <d3d11.h>
-#include <d3dcompiler.h>
 #include <wrl/client.h>
+
+#include <fstream>
+#include <vector>
 
 #include "GeometryGenerator.h"
 #include "spdlog/spdlog.h"
@@ -20,4 +22,6 @@ MY_API bool GetRenderTarget(ID3D11Device* device,
                             ID3D11ShaderResourceView** textureView);
 
 MY_API void DeinitEngine();
+
+bool ReadData(const char* name, std::vector<BYTE>& blob);
 }  // namespace my

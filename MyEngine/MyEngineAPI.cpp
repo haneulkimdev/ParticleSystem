@@ -150,31 +150,11 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
     return false;
   }
 
-  UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#if defined(DEBUG) || defined(_DEBUG)
-  compileFlags |= D3DCOMPILE_DEBUG;
-#endif
-
-  ComPtr<ID3DBlob> byteCode;
-  ComPtr<ID3DBlob> errors;
-
-  // Compile vertex shader
-  hr = D3DCompileFromFile(L"../MyEngine/hlsl/color_vs.hlsl", nullptr, nullptr,
-                          "main", "vs_5_0", compileFlags, 0,
-                          byteCode.ReleaseAndGetAddressOf(),
-                          errors.ReleaseAndGetAddressOf());
-
-  if (errors != nullptr) g_apiLogger->error((char*)errors->GetBufferPointer());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("D3DCompileFromFile Failed.");
-    return false;
-  }
-
-  hr = g_device->CreateVertexShader(byteCode->GetBufferPointer(),
-                                    byteCode->GetBufferSize(), nullptr,
+  std::vector<BYTE> vsByteCode;
+  my::ReadData("../MyEngine/hlsl/color_vs.cso", vsByteCode);
+  hr = g_device->CreateVertexShader(vsByteCode.data(), vsByteCode.size(),
+                                    nullptr,
                                     g_vertexShader.ReleaseAndGetAddressOf());
-
   if (FAILED(hr)) {
     g_apiLogger->error("CreateVertexShader Failed.");
     return false;
@@ -191,39 +171,23 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
   };
 
   // Create the input layout
-  hr = g_device->CreateInputLayout(vertexDesc, 3, byteCode->GetBufferPointer(),
-                                   byteCode->GetBufferSize(),
+  hr = g_device->CreateInputLayout(vertexDesc, 3, vsByteCode.data(),
+                                   vsByteCode.size(),
                                    g_inputLayout.ReleaseAndGetAddressOf());
-
   if (FAILED(hr)) {
     g_apiLogger->error("CreateInputLayout Failed.");
     return false;
   }
 
-  // Compile pixel shader
-  hr = D3DCompileFromFile(L"../MyEngine/hlsl/color_ps.hlsl", nullptr, nullptr,
-                          "main", "ps_5_0", compileFlags, 0,
-                          byteCode.ReleaseAndGetAddressOf(),
-                          errors.ReleaseAndGetAddressOf());
-
-  if (errors != nullptr) g_apiLogger->error((char*)errors->GetBufferPointer());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("D3DCompileFromFile Failed.");
-    return false;
-  }
-
-  hr = g_device->CreatePixelShader(byteCode->GetBufferPointer(),
-                                   byteCode->GetBufferSize(), nullptr,
-                                   g_pixelShader.ReleaseAndGetAddressOf());
-
+  std::vector<BYTE> psByteCode;
+  my::ReadData("../MyEngine/hlsl/color_ps.cso", psByteCode);
+  hr =
+      g_device->CreatePixelShader(psByteCode.data(), psByteCode.size(), nullptr,
+                                  g_pixelShader.ReleaseAndGetAddressOf());
   if (FAILED(hr)) {
     g_apiLogger->error("CreatePixelShader Failed.");
     return false;
   }
-
-  byteCode.Reset();
-  errors.Reset();
 
   g_objConstants.world = Matrix().Transpose();
 
@@ -500,4 +464,20 @@ void my::DeinitEngine() {
 
   g_context.Reset();
   g_device.Reset();
+}
+
+bool my::ReadData(const char* name, std::vector<BYTE>& blob) {
+  std::ifstream fin(name, std::ios::binary);
+
+  if (!fin) {
+    g_apiLogger->error("{} not found.", name);
+    return false;
+  }
+
+  blob.assign((std::istreambuf_iterator<char>(fin)),
+              std::istreambuf_iterator<char>());
+
+  fin.close();
+
+  return true;
 }
