@@ -15,6 +15,7 @@ using namespace DirectX::SimpleMath;
 struct Vertex {
   Vector3 position;
   XMCOLOR color;
+  Vector3 normal;
 };
 
 struct ObjectConstants {
@@ -78,9 +79,12 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
 
   // Create vertex buffer
   Vertex vertices[] = {
-      {Vector3(0.0f, 0.5f, 0.5f), XMCOLOR(0.0f, 0.0f, 0.5f, 1.0f)},
-      {Vector3(0.5f, -0.5f, 0.5f), XMCOLOR(0.5f, 0.0f, 0.0f, 1.0f)},
-      {Vector3(-0.5f, -0.5f, 0.5f), XMCOLOR(0.0f, 0.5f, 0.0f, 1.0f)},
+      {Vector3(0.0f, 0.5f, 0.5f), XMCOLOR(0.0f, 0.0f, 0.5f, 1.0f),
+       Vector3(0.0f, 0.0f, -1.0f)},
+      {Vector3(0.5f, -0.5f, 0.5f), XMCOLOR(0.5f, 0.0f, 0.0f, 1.0f),
+       Vector3(0.0f, 0.0f, -1.0f)},
+      {Vector3(-0.5f, -0.5f, 0.5f), XMCOLOR(0.0f, 0.5f, 0.0f, 1.0f),
+       Vector3(0.0f, 0.0f, -1.0f)},
   };
 
   D3D11_BUFFER_DESC vertexBufferDesc = {};
@@ -159,10 +163,12 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
        D3D11_INPUT_PER_VERTEX_DATA, 0},
       {"COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12,
        D3D11_INPUT_PER_VERTEX_DATA, 0},
+      {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 16,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
   };
 
   // Create the input layout
-  hr = g_device->CreateInputLayout(vertexDesc, 2, byteCode->GetBufferPointer(),
+  hr = g_device->CreateInputLayout(vertexDesc, 3, byteCode->GetBufferPointer(),
                                    byteCode->GetBufferSize(),
                                    g_inputLayout.ReleaseAndGetAddressOf());
 
