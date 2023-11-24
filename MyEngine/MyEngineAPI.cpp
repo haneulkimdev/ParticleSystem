@@ -1,12 +1,5 @@
 #include "MyEngineAPI.h"
 
-#include <d3d11.h>
-#include <d3dcompiler.h>
-#include <wrl/client.h>
-
-#include "GeometryGenerator.h"
-#include "spdlog/spdlog.h"
-
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::PackedVector;

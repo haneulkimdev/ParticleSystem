@@ -1,19 +1,13 @@
 #pragma once
 
+#include <d3d11.h>
+#include <d3dcompiler.h>
+#include <wrl/client.h>
+
+#include "GeometryGenerator.h"
+#include "spdlog/spdlog.h"
+
 #define MY_API extern "C" __declspec(dllexport)
-
-namespace spdlog {
-class logger;
-}
-
-namespace DirectX {
-namespace SimpleMath {
-struct Vector2;
-}
-}  // namespace DirectX
-
-struct ID3D11Device;
-struct ID3D11ShaderResourceView;
 
 namespace my {
 MY_API bool InitEngine(spdlog::logger* spdlogPtr);
