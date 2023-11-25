@@ -38,6 +38,7 @@ int main(int, char**) {
 
   my::InitEngine(g_apiLogger.get());
   my::SetRenderTargetSize(512, 512);
+  my::DoTest();
   my::DeinitEngine();
 
   // Create application window
