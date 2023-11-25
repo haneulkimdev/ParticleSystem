@@ -13,6 +13,7 @@ struct Vertex {
 
 struct ObjectConstants {
   Matrix world;
+  Matrix worldInvTranspose;
   Matrix view;
   Matrix projection;
 };
@@ -416,6 +417,7 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
       Matrix::CreateTranslation(Vector3(mouseDragDeltaRight));
 
   g_objConstants.world = g_objConstants.world.Transpose();
+  g_objConstants.worldInvTranspose = g_objConstants.world.Invert();
 
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));

@@ -1,6 +1,7 @@
 cbuffer cbPerObject : register(b0)
 {
     float4x4 g_world;
+    float4x4 g_worldInvTranspose;
     float4x4 g_view;
     float4x4 g_projection;
 };
