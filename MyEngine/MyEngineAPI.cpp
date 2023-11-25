@@ -22,6 +22,12 @@ std::shared_ptr<spdlog::logger> g_apiLogger;
 static ComPtr<ID3D11Device> g_device;
 static ComPtr<ID3D11DeviceContext> g_context;
 
+static ComPtr<ID3D11RenderTargetView> g_posColorRTV;
+static ComPtr<ID3D11ShaderResourceView> g_posColorSRV;
+
+static ComPtr<ID3D11RenderTargetView> g_normalRTV;
+static ComPtr<ID3D11ShaderResourceView> g_normalSRV;
+
 static ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 static ComPtr<ID3D11Texture2D> g_depthStencilBuffer;
 static ComPtr<ID3D11RenderTargetView> g_renderTargetView;
@@ -207,6 +213,65 @@ bool my::SetRenderTargetSize(int w, int h) {
   g_renderTargetHeight = h;
 
   HRESULT hr = S_OK;
+
+  D3D11_TEXTURE2D_DESC texDesc = {};
+  texDesc.Width = g_renderTargetWidth;
+  texDesc.Height = g_renderTargetHeight;
+  texDesc.MipLevels = 1;
+  texDesc.ArraySize = 1;
+  texDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  texDesc.SampleDesc.Count = 1;
+  texDesc.SampleDesc.Quality = 0;
+  texDesc.Usage = D3D11_USAGE_DEFAULT;
+  texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+  texDesc.CPUAccessFlags = 0;
+  texDesc.MiscFlags = 0;
+
+  ComPtr<ID3D11Texture2D> posColorTex;
+  hr = g_device->CreateTexture2D(&texDesc, 0,
+                                 posColorTex.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateTexture2D Failed.");
+    return false;
+  }
+  hr = g_device->CreateRenderTargetView(posColorTex.Get(), 0,
+                                        g_posColorRTV.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateRenderTargetView Failed.");
+    return false;
+  }
+  hr = g_device->CreateShaderResourceView(
+      posColorTex.Get(), 0, g_posColorSRV.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateShaderResourceView Failed.");
+    return false;
+  }
+
+  // view saves a reference.
+  posColorTex.Reset();
+
+  ComPtr<ID3D11Texture2D> normalTex;
+  hr = g_device->CreateTexture2D(&texDesc, 0,
+                                 normalTex.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateTexture2D Failed.");
+    return false;
+  }
+  hr = g_device->CreateRenderTargetView(normalTex.Get(), 0,
+                                        g_normalRTV.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateRenderTargetView Failed.");
+    return false;
+  }
+  hr = g_device->CreateShaderResourceView(normalTex.Get(), 0,
+                                          g_normalSRV.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateShaderResourceView Failed.");
+    return false;
+  }
+
+  // view saves a reference.
+  normalTex.Reset();
 
   D3D11_TEXTURE2D_DESC renderTargetBufferDesc = {};
 
@@ -446,6 +511,12 @@ bool my::GetRenderTarget(ID3D11Device* device,
 }
 
 void my::DeinitEngine() {
+  g_posColorRTV.Reset();
+  g_posColorSRV.Reset();
+
+  g_normalRTV.Reset();
+  g_normalSRV.Reset();
+
   g_vertexBuffer.Reset();
   g_indexBuffer.Reset();
   g_constantBuffer.Reset();
