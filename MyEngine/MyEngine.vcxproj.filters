@@ -8,4 +8,17 @@
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="GeometryGenerator.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="hlsl">
+      <UniqueIdentifier>{5fad83e8-417c-4f52-beee-7b00e7395b5e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="hlsl\color_ps.hlsl">
+      <Filter>hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="hlsl\color_vs.hlsl">
+      <Filter>hlsl</Filter>
+    </FxCompile>
+  </ItemGroup>
 </Project>
