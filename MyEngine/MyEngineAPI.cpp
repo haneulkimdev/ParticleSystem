@@ -6,9 +6,10 @@ using namespace DirectX::PackedVector;
 using namespace DirectX::SimpleMath;
 
 struct Vertex {
-  Vector3 position;
+  Vector3 pos;
   XMCOLOR color;
   Vector3 normal;
+  Vector2 tex;
 };
 
 struct ObjectConstants {
@@ -87,7 +88,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
 
   std::vector<Vertex> vertices(sphere.vertices.size());
   for (size_t i = 0; i < sphere.vertices.size(); i++) {
-    vertices[i].position = sphere.vertices[i].position;
+    vertices[i].pos = sphere.vertices[i].position;
 
     float r = (sphere.vertices[i].normal.x + 1.0f) * 0.5f;
     float g = (sphere.vertices[i].normal.y + 1.0f) * 0.5f;
@@ -95,6 +96,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
 
     vertices[i].color = XMCOLOR(r, g, b, 1.0f);
     vertices[i].normal = sphere.vertices[i].normal;
+    vertices[i].tex = sphere.vertices[i].texC;
   }
 
   D3D11_BUFFER_DESC vertexBufferDesc = {};
@@ -175,10 +177,12 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
        D3D11_INPUT_PER_VERTEX_DATA, 0},
       {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 16,
        D3D11_INPUT_PER_VERTEX_DATA, 0},
+      {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
   };
 
   // Create the input layout
-  hr = g_device->CreateInputLayout(vertexDesc, 3, vsByteCode.data(),
+  hr = g_device->CreateInputLayout(vertexDesc, 4, vsByteCode.data(),
                                    vsByteCode.size(),
                                    g_inputLayout.ReleaseAndGetAddressOf());
   if (FAILED(hr)) {
