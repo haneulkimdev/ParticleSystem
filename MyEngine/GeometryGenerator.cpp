@@ -8,8 +8,10 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius,
                                                             UINT stackCount) {
   MeshData meshData;
 
-  Vertex topVertex{Vector3(0.0f, +radius, 0.0f), Vector3(0.0f, +1.0f, 0.0f)};
-  Vertex bottomVertex{Vector3(0.0f, -radius, 0.0f), Vector3(0.0f, -1.0f, 0.0f)};
+  Vertex topVertex{Vector3(0.0f, +radius, 0.0f), Vector3(0.0f, +1.0f, 0.0f),
+                   Vector2(0.0f, 0.0f)};
+  Vertex bottomVertex{Vector3(0.0f, -radius, 0.0f), Vector3(0.0f, -1.0f, 0.0f),
+                      Vector2(0.0f, 1.0f)};
 
   meshData.vertices.push_back(topVertex);
 
@@ -30,6 +32,9 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius,
 
       v.normal = v.position;
       v.normal.Normalize();
+
+      v.texC.x = theta / XM_2PI;
+      v.texC.y = phi / XM_PI;
 
       meshData.vertices.push_back(v);
     }

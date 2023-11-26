@@ -7,6 +7,7 @@ class GeometryGenerator {
   struct Vertex {
     DirectX::SimpleMath::Vector3 position;
     DirectX::SimpleMath::Vector3 normal;
+    DirectX::SimpleMath::Vector2 texC;
   };
 
   struct MeshData {
