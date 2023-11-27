@@ -229,8 +229,8 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
-  g_objConstants.view =
-      Matrix::CreateLookAt(pos, pos + forward, up).Transpose();
+  g_objConstants.view = XMMatrixLookAtLH(pos, pos + forward, up);
+  g_objConstants.view = g_objConstants.view.Transpose();
 
   return true;
 }
@@ -417,12 +417,11 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   // The window resized, so update the aspect ratio and recompute the projection
   // matrix.
-  g_objConstants.projection =
-      Matrix::CreatePerspectiveFieldOfView(
-          0.25f * XM_PI,
-          static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight, 1.0f,
-          1000.0f)
-          .Transpose();
+  g_objConstants.projection = XMMatrixPerspectiveFovLH(
+      0.25f * XM_PI,
+      static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight, 1.0f,
+      1000.0f);
+  g_objConstants.projection = g_objConstants.projection.Transpose();
 
   return true;
 }
