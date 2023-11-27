@@ -27,6 +27,9 @@ static ComPtr<ID3D11DeviceContext> g_context;
 static ComPtr<ID3D11VertexShader> g_geometryVS;
 static ComPtr<ID3D11PixelShader> g_geometryPS;
 
+static ComPtr<ID3D11Buffer> g_screenQuadVB;
+static ComPtr<ID3D11Buffer> g_screenQuadIB;
+
 static ComPtr<ID3D11RenderTargetView> g_posColorRTV;
 static ComPtr<ID3D11ShaderResourceView> g_posColorSRV;
 
@@ -221,6 +224,8 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
     g_apiLogger->error("CreatePixelShader Failed.");
     return false;
   }
+
+  my::BuildScreenQuadGeometryBuffers();
 
   g_objConstants.world = Matrix().Transpose();
 
@@ -544,6 +549,9 @@ bool my::GetRenderTarget(ID3D11Device* device,
 }
 
 void my::DeinitEngine() {
+  g_screenQuadVB.Reset();
+  g_screenQuadIB.Reset();
+
   g_posColorRTV.Reset();
   g_posColorSRV.Reset();
 
@@ -585,6 +593,64 @@ bool my::ReadData(const char* name, std::vector<BYTE>& blob) {
               std::istreambuf_iterator<char>());
 
   fin.close();
+
+  return true;
+}
+
+bool my::BuildScreenQuadGeometryBuffers() {
+  HRESULT hr = S_OK;
+
+  GeometryGenerator geoGen;
+  GeometryGenerator::MeshData quad =
+      geoGen.CreateQuad(-1.0f, 1.0f, 2.0f, 2.0f, 0.0f);
+
+  std::vector<Vertex> vertices(quad.vertices.size());
+
+  for (UINT i = 0; i < quad.vertices.size(); i++) {
+    vertices[i].pos = quad.vertices[i].position;
+    vertices[i].normal = quad.vertices[i].normal;
+    vertices[i].tex = quad.vertices[i].texC;
+  }
+
+  D3D11_BUFFER_DESC vertexBufferDesc = {};
+  vertexBufferDesc.ByteWidth = sizeof(Vertex) * vertices.size();
+  vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+  vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+  vertexBufferDesc.CPUAccessFlags = 0;
+  vertexBufferDesc.MiscFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA vertexBufferData;
+  vertexBufferData.pSysMem = &vertices[0];
+  vertexBufferData.SysMemPitch = 0;
+  vertexBufferData.SysMemSlicePitch = 0;
+
+  hr = g_device->CreateBuffer(&vertexBufferDesc, &vertexBufferData,
+                              g_screenQuadVB.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateBuffer Failed.");
+    return false;
+  }
+
+  D3D11_BUFFER_DESC indexBufferDesc = {};
+  indexBufferDesc.ByteWidth = sizeof(UINT) * quad.indices.size();
+  indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+  indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+  indexBufferDesc.CPUAccessFlags = 0;
+  indexBufferDesc.MiscFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA indexBufferData = {};
+  indexBufferData.pSysMem = &quad.indices[0];
+  indexBufferData.SysMemPitch = 0;
+  indexBufferData.SysMemSlicePitch = 0;
+
+  hr = g_device->CreateBuffer(&indexBufferDesc, &indexBufferData,
+                              g_screenQuadIB.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateBuffer Failed.");
+    return false;
+  }
 
   return true;
 }
