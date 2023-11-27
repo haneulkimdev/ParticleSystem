@@ -434,7 +434,7 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
   mouseDragDeltaRight.x /= g_renderTargetWidth;
   mouseDragDeltaRight.y /= g_renderTargetHeight;
 
-  mouseDragDeltaRight = -mouseDragDeltaRight;
+  mouseDragDeltaRight.y = -mouseDragDeltaRight.y;
 
   mouseDragDeltaRight *= 5.0f;
 
