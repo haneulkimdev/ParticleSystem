@@ -47,8 +47,8 @@ static D3D11_VIEWPORT g_viewport;
 static ComPtr<ID3D11Buffer> g_vertexBuffer;
 static ComPtr<ID3D11Buffer> g_indexBuffer;
 static ComPtr<ID3D11Buffer> g_constantBuffer;
-static ComPtr<ID3D11VertexShader> g_vertexShader;
-static ComPtr<ID3D11PixelShader> g_pixelShader;
+static ComPtr<ID3D11VertexShader> g_lightVS;
+static ComPtr<ID3D11PixelShader> g_lightPS;
 static ComPtr<ID3D11InputLayout> g_inputLayout;
 
 static UINT g_indexCount;
@@ -207,19 +207,18 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
     return false;
   }
 
-  my::ReadData("../MyEngine/hlsl/color_vs.cso", vsByteCode);
-  hr = g_device->CreateVertexShader(vsByteCode.data(), vsByteCode.size(),
-                                    nullptr,
-                                    g_vertexShader.ReleaseAndGetAddressOf());
+  my::ReadData("../MyEngine/hlsl/Light_VS.cso", vsByteCode);
+  hr =
+      g_device->CreateVertexShader(vsByteCode.data(), vsByteCode.size(),
+                                   nullptr, g_lightVS.ReleaseAndGetAddressOf());
   if (FAILED(hr)) {
     g_apiLogger->error("CreateVertexShader Failed.");
     return false;
   }
 
-  my::ReadData("../MyEngine/hlsl/color_ps.cso", psByteCode);
-  hr =
-      g_device->CreatePixelShader(psByteCode.data(), psByteCode.size(), nullptr,
-                                  g_pixelShader.ReleaseAndGetAddressOf());
+  my::ReadData("../MyEngine/hlsl/Light_PS.cso", psByteCode);
+  hr = g_device->CreatePixelShader(psByteCode.data(), psByteCode.size(),
+                                   nullptr, g_lightPS.ReleaseAndGetAddressOf());
   if (FAILED(hr)) {
     g_apiLogger->error("CreatePixelShader Failed.");
     return false;
@@ -456,6 +455,9 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
   memcpy(mappedResource.pData, &g_objConstants, sizeof(g_objConstants));
   g_context->Unmap(g_constantBuffer.Get(), 0);
 
+  ID3D11ShaderResourceView* nullSRV[2] = {nullptr, nullptr};
+  g_context->PSSetShaderResources(0, 2, nullSRV);
+
   ID3D11RenderTargetView* renderTargets[2] = {g_posColorRTV.Get(),
                                               g_normalRTV.Get()};
   g_context->OMSetRenderTargets(2, renderTargets, g_depthStencilView.Get());
@@ -483,6 +485,29 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
   g_context->RSSetState(g_rasterizerState.Get());
 
   g_context->DrawIndexed(g_indexCount, 0, 0);
+
+  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
+                                g_depthStencilView.Get());
+
+  g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
+  g_context->ClearDepthStencilView(g_depthStencilView.Get(),
+                                   D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+                                   1.0f, 0);
+
+  g_context->IASetVertexBuffers(0, 1, g_screenQuadVB.GetAddressOf(), &stride,
+                                &offset);
+  g_context->IASetIndexBuffer(g_screenQuadIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+  g_context->VSSetShader(g_lightVS.Get(), nullptr, 0);
+
+  ID3D11ShaderResourceView* textures[2] = {g_posColorSRV.Get(),
+                                           g_normalSRV.Get()};
+  g_context->PSSetShaderResources(0, 2, textures);
+  g_context->PSSetShader(g_lightPS.Get(), nullptr, 0);
+
+  g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
+  g_context->RSSetState(g_rasterizerState.Get());
+
+  g_context->DrawIndexed(6, 0, 0);
 
   g_context->Flush();
 
@@ -564,8 +589,8 @@ void my::DeinitEngine() {
   g_vertexBuffer.Reset();
   g_indexBuffer.Reset();
   g_constantBuffer.Reset();
-  g_vertexShader.Reset();
-  g_pixelShader.Reset();
+  g_lightVS.Reset();
+  g_lightPS.Reset();
 
   g_inputLayout.Reset();
 
