@@ -73,6 +73,136 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
     return false;
   }
 
+  // Create vertex buffer
+  Vertex vertices[] = {
+      {Vector3(0.0f, 0.5f, 0.5f), XMCOLOR(0.0f, 0.0f, 0.5f, 1.0f)},
+      {Vector3(0.5f, -0.5f, 0.5f), XMCOLOR(0.5f, 0.0f, 0.0f, 1.0f)},
+      {Vector3(-0.5f, -0.5f, 0.5f), XMCOLOR(0.0f, 0.5f, 0.0f, 1.0f)},
+  };
+
+  D3D11_BUFFER_DESC vertexBufferDesc = {};
+  vertexBufferDesc.ByteWidth = sizeof(Vertex) * 3;
+  vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+  vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+  vertexBufferDesc.CPUAccessFlags = 0;
+  vertexBufferDesc.MiscFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA vertexBufferData = {};
+  vertexBufferData.pSysMem = vertices;
+  vertexBufferData.SysMemPitch = 0;
+  vertexBufferData.SysMemSlicePitch = 0;
+
+  hr = g_device->CreateBuffer(&vertexBufferDesc, &vertexBufferData,
+                              g_vertexBuffer.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateBuffer Failed.");
+    return false;
+  }
+
+  D3D11_BUFFER_DESC constantBufferDesc = {};
+  constantBufferDesc.ByteWidth = sizeof(ObjectConstants);
+  constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+  constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+  constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+  constantBufferDesc.MiscFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA constantBufferData = {};
+  constantBufferData.pSysMem = &g_objConstants;
+  constantBufferData.SysMemPitch = 0;
+  constantBufferData.SysMemSlicePitch = 0;
+
+  hr = g_device->CreateBuffer(&constantBufferDesc, &constantBufferData,
+                              g_constantBuffer.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateBuffer Failed.");
+    return false;
+  }
+
+  UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined(DEBUG) || defined(_DEBUG)
+  compileFlags |= D3DCOMPILE_DEBUG;
+#endif
+
+  ComPtr<ID3DBlob> byteCode;
+  ComPtr<ID3DBlob> errors;
+
+  // Compile vertex shader
+  hr = D3DCompileFromFile(L"../MyEngine/hlsl/color_vs.hlsl", nullptr, nullptr,
+                          "main", "vs_5_0", compileFlags, 0,
+                          byteCode.ReleaseAndGetAddressOf(),
+                          errors.ReleaseAndGetAddressOf());
+
+  if (errors != nullptr) g_apiLogger->error((char*)errors->GetBufferPointer());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("D3DCompileFromFile Failed.");
+    return false;
+  }
+
+  hr = g_device->CreateVertexShader(byteCode->GetBufferPointer(),
+                                    byteCode->GetBufferSize(), nullptr,
+                                    g_vertexShader.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateVertexShader Failed.");
+    return false;
+  }
+
+  // Create the vertex input layout.
+  D3D11_INPUT_ELEMENT_DESC vertexDesc[] = {
+      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
+      {"COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
+  };
+
+  // Create the input layout
+  hr = g_device->CreateInputLayout(vertexDesc, 2, byteCode->GetBufferPointer(),
+                                   byteCode->GetBufferSize(),
+                                   g_inputLayout.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateInputLayout Failed.");
+    return false;
+  }
+
+  // Compile pixel shader
+  hr = D3DCompileFromFile(L"../MyEngine/hlsl/color_ps.hlsl", nullptr, nullptr,
+                          "main", "ps_5_0", compileFlags, 0,
+                          byteCode.ReleaseAndGetAddressOf(),
+                          errors.ReleaseAndGetAddressOf());
+
+  if (errors != nullptr) g_apiLogger->error((char*)errors->GetBufferPointer());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("D3DCompileFromFile Failed.");
+    return false;
+  }
+
+  hr = g_device->CreatePixelShader(byteCode->GetBufferPointer(),
+                                   byteCode->GetBufferSize(), nullptr,
+                                   g_pixelShader.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreatePixelShader Failed.");
+    return false;
+  }
+
+  byteCode.Reset();
+  errors.Reset();
+
+  g_objConstants.world = Matrix().Transpose();
+
+  // Build the view matrix.
+  Vector3 pos(0.0f, 0.0f, -1.0f);
+  Vector3 forward(0.0f, 0.0f, 1.0f);
+  Vector3 up(0.0f, 1.0f, 0.0f);
+
+  g_objConstants.view =
+      Matrix::CreateLookAt(pos, pos + forward, up).Transpose();
+
   return true;
 }
 
@@ -178,6 +308,11 @@ bool my::SetRenderTargetSize(int w, int h) {
     return false;
   }
 
+  // Bind the render target view and depth/stencil view to the pipeline.
+
+  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
+                                g_depthStencilView.Get());
+
   // Set the viewport transform.
 
   g_viewport.TopLeftX = 0.0f;
@@ -186,6 +321,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   g_viewport.Height = static_cast<float>(h);
   g_viewport.MinDepth = 0.0f;
   g_viewport.MaxDepth = 1.0f;
+
+  g_context->RSSetViewports(1, &g_viewport);
 
   // The window resized, so update the aspect ratio and recompute the projection
   // matrix.
@@ -200,63 +337,6 @@ bool my::SetRenderTargetSize(int w, int h) {
 bool my::DoTest() {
   HRESULT hr = S_OK;
 
-  // Create vertex buffer
-  Vertex vertices[] = {
-      {Vector3(0.0f, 0.5f, 0.5f), XMCOLOR(0.0f, 0.0f, 0.5f, 1.0f)},
-      {Vector3(0.5f, -0.5f, 0.5f), XMCOLOR(0.5f, 0.0f, 0.0f, 1.0f)},
-      {Vector3(-0.5f, -0.5f, 0.5f), XMCOLOR(0.0f, 0.5f, 0.0f, 1.0f)},
-  };
-
-  D3D11_BUFFER_DESC vertexBufferDesc = {};
-  vertexBufferDesc.ByteWidth = sizeof(Vertex) * 3;
-  vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-  vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-  vertexBufferDesc.CPUAccessFlags = 0;
-  vertexBufferDesc.MiscFlags = 0;
-
-  D3D11_SUBRESOURCE_DATA vertexBufferData = {};
-  vertexBufferData.pSysMem = vertices;
-  vertexBufferData.SysMemPitch = 0;
-  vertexBufferData.SysMemSlicePitch = 0;
-
-  hr = g_device->CreateBuffer(&vertexBufferDesc, &vertexBufferData,
-                              g_vertexBuffer.ReleaseAndGetAddressOf());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateBuffer Failed.");
-    return false;
-  }
-
-  D3D11_BUFFER_DESC constantBufferDesc = {};
-  constantBufferDesc.ByteWidth = sizeof(ObjectConstants);
-  constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-  constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-  constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  constantBufferDesc.MiscFlags = 0;
-
-  D3D11_SUBRESOURCE_DATA constantBufferData = {};
-  constantBufferData.pSysMem = &g_objConstants;
-  constantBufferData.SysMemPitch = 0;
-  constantBufferData.SysMemSlicePitch = 0;
-
-  hr = g_device->CreateBuffer(&constantBufferDesc, &constantBufferData,
-                              g_constantBuffer.ReleaseAndGetAddressOf());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateBuffer Failed.");
-    return false;
-  }
-
-  g_objConstants.world = Matrix().Transpose();
-
-  // Build the view matrix.
-  Vector3 pos(0.0f, 0.0f, -1.0f);
-  Vector3 forward(0.0f, 0.0f, 1.0f);
-  Vector3 up(0.0f, 1.0f, 0.0f);
-
-  g_objConstants.view =
-      Matrix::CreateLookAt(pos, pos + forward, up).Transpose();
-
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
   g_context->Map(g_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
@@ -264,87 +344,11 @@ bool my::DoTest() {
   memcpy(mappedResource.pData, &g_objConstants, sizeof(g_objConstants));
   g_context->Unmap(g_constantBuffer.Get(), 0);
 
-  UINT compileFlags = D3DCOMPILE_ENABLE_STRICTNESS;
-#if defined(DEBUG) || defined(_DEBUG)
-  compileFlags |= D3DCOMPILE_DEBUG;
-#endif
-
-  ComPtr<ID3DBlob> byteCode;
-  ComPtr<ID3DBlob> errors;
-
-  // Compile vertex shader
-  hr = D3DCompileFromFile(L"../MyEngine/hlsl/color_vs.hlsl", nullptr, nullptr,
-                          "main", "vs_5_0", compileFlags, 0,
-                          byteCode.GetAddressOf(), errors.GetAddressOf());
-
-  if (errors != nullptr) g_apiLogger->error((char*)errors->GetBufferPointer());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("D3DCompileFromFile Failed.");
-    return false;
-  }
-
-  hr = g_device->CreateVertexShader(byteCode->GetBufferPointer(),
-                                    byteCode->GetBufferSize(), nullptr,
-                                    g_vertexShader.ReleaseAndGetAddressOf());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateVertexShader Failed.");
-    return false;
-  }
-
-  // Create the vertex input layout.
-  D3D11_INPUT_ELEMENT_DESC vertexDesc[] = {
-      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-       D3D11_INPUT_PER_VERTEX_DATA, 0},
-      {"COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12,
-       D3D11_INPUT_PER_VERTEX_DATA, 0},
-  };
-
-  // Create the input layout
-  hr = g_device->CreateInputLayout(vertexDesc, 2, byteCode->GetBufferPointer(),
-                                   byteCode->GetBufferSize(),
-                                   g_inputLayout.ReleaseAndGetAddressOf());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateInputLayout Failed.");
-    return false;
-  }
-
-  // Compile pixel shader
-  hr = D3DCompileFromFile(L"../MyEngine/hlsl/color_ps.hlsl", nullptr, nullptr,
-                          "main", "ps_5_0", compileFlags, 0,
-                          byteCode.GetAddressOf(), errors.GetAddressOf());
-
-  if (errors != nullptr) g_apiLogger->error((char*)errors->GetBufferPointer());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("D3DCompileFromFile Failed.");
-    return false;
-  }
-
-  hr = g_device->CreatePixelShader(byteCode->GetBufferPointer(),
-                                   byteCode->GetBufferSize(), nullptr,
-                                   g_pixelShader.ReleaseAndGetAddressOf());
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreatePixelShader Failed.");
-    return false;
-  }
-
-  byteCode.Reset();
-  errors.Reset();
-
-  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
-                                g_depthStencilView.Get());
-
   float clearColor[] = {0.0f, 0.0f, 0.0f, 1.0f};
   g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
   g_context->ClearDepthStencilView(g_depthStencilView.Get(),
                                    D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
                                    1.0f, 0);
-
-  g_context->RSSetViewports(1, &g_viewport);
 
   UINT stride = sizeof(Vertex);
   UINT offset = 0;
