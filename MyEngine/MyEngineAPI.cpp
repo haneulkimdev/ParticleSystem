@@ -430,9 +430,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
-  HRESULT hr = S_OK;
-
+void my::UpdateScene(DirectX::SimpleMath::Vector2 mouseDragDeltaLeft,
+                     DirectX::SimpleMath::Vector2 mouseDragDeltaRight) {
   g_objConstants.world = g_objConstants.world.Transpose();
 
   mouseDragDeltaRight.x /= g_renderTargetWidth;
@@ -446,6 +445,11 @@ bool my::DoTest(Vector2 mouseDragDeltaLeft, Vector2 mouseDragDeltaRight) {
       Matrix::CreateTranslation(Vector3(mouseDragDeltaRight));
 
   g_objConstants.world = g_objConstants.world.Transpose();
+}
+
+bool my::DoTest() {
+  HRESULT hr = S_OK;
+
   g_objConstants.worldInvTranspose = g_objConstants.world.Invert();
 
   D3D11_MAPPED_SUBRESOURCE mappedResource;

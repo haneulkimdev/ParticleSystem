@@ -221,8 +221,9 @@ int main(int, char**) {
       mouseDragDeltaLeft = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
       mouseDragDeltaRight = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
     }
-    my::DoTest(Vector2(mouseDragDeltaLeft.x, mouseDragDeltaLeft.y),
-               Vector2(mouseDragDeltaRight.x, mouseDragDeltaRight.y));
+    my::UpdateScene(Vector2(mouseDragDeltaLeft.x, mouseDragDeltaLeft.y),
+                    Vector2(mouseDragDeltaRight.x, mouseDragDeltaRight.y));
+    my::DoTest();
     ImGui::SetItemAllowOverlap();
     ImGui::SetCursorPos(cursorPos);
     ImGui::Image((void*)textureView.Get(),
