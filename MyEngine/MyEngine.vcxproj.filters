@@ -14,6 +14,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="hlsl\Geometry_PS.hlsl">
+      <Filter>hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="hlsl\Geometry_VS.hlsl">
+      <Filter>hlsl</Filter>
+    </FxCompile>
     <FxCompile Include="hlsl\color_ps.hlsl">
       <Filter>hlsl</Filter>
     </FxCompile>
