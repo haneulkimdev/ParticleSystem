@@ -33,4 +33,7 @@ DirectX::SimpleMath::Vector2 GetMouseNDC(DirectX::SimpleMath::Vector2 mousePos);
 DirectX::SimpleMath::Vector3 UnprojectOnTbPlane(
     DirectX::SimpleMath::Vector3 cameraPos,
     DirectX::SimpleMath::Vector2 mousePos);
+DirectX::SimpleMath::Vector3 UnprojectOnTbSurface(
+    DirectX::SimpleMath::Vector3 cameraPos,
+    DirectX::SimpleMath::Vector2 mousePos, float tbRadius);
 }  // namespace my
