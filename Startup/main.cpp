@@ -128,6 +128,9 @@ int main(int, char**) {
   bool show_another_window = false;
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+  int mouseButton = -1;
+  Vector2 lastMousePos = Vector2(-1, -1);
+
   // Main loop
   bool done = false;
   while (!done) {
@@ -211,18 +214,22 @@ int main(int, char**) {
     ImGui::Begin("DirectX11 Texture Test");
     ImGui::Text("pointer = %p", textureView.Get());
     ImGui::Text("size = %d x %d", g_renderTargetWidth, g_renderTargetHeight);
+    ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 cursorPos = ImGui::GetCursorPos();
-    ImVec2 mouseDragDeltaLeft, mouseDragDeltaRight;
-    if (ImGui::InvisibleButton(
-            "Invisible Button",
-            ImVec2(g_renderTargetWidth, g_renderTargetHeight),
-            ImGuiButtonFlags_MouseButtonLeft |
-                ImGuiButtonFlags_MouseButtonRight)) {
-      mouseDragDeltaLeft = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-      mouseDragDeltaRight = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+    Vector2 mousePos = Vector2(io.MousePos.x - windowPos.x - cursorPos.x,
+                               io.MousePos.y - windowPos.y - cursorPos.y);
+    ImGui::InvisibleButton(
+        "Invisible Button", ImVec2(g_renderTargetWidth, g_renderTargetHeight),
+        ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+    if (ImGui::IsItemActivated()) {
+      mouseButton = ImGui::IsMouseDown(ImGuiMouseButton_Left)
+                        ? ImGuiMouseButton_Left
+                        : ImGuiMouseButton_Right;
+      lastMousePos = mousePos;
+    } else if (ImGui::IsItemActive()) {
+      my::UpdateScene(mouseButton, lastMousePos, mousePos);
+      lastMousePos = mousePos;
     }
-    my::UpdateScene(Vector2(mouseDragDeltaLeft.x, mouseDragDeltaLeft.y),
-                    Vector2(mouseDragDeltaRight.x, mouseDragDeltaRight.y));
     my::DoTest();
     ImGui::SetItemAllowOverlap();
     ImGui::SetCursorPos(cursorPos);

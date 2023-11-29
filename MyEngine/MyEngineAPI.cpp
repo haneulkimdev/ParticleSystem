@@ -430,21 +430,29 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-void my::UpdateScene(DirectX::SimpleMath::Vector2 mouseDragDeltaLeft,
-                     DirectX::SimpleMath::Vector2 mouseDragDeltaRight) {
+void my::UpdateScene(int mouseButton, Vector2 lastMousePos, Vector2 mousePos) {
   g_objConstants.world = g_objConstants.world.Transpose();
+  g_objConstants.view = g_objConstants.view.Transpose();
+  g_objConstants.projection = g_objConstants.projection.Transpose();
 
-  mouseDragDeltaRight.x /= g_renderTargetWidth;
-  mouseDragDeltaRight.y /= g_renderTargetHeight;
+  switch (mouseButton) {
+    case 1: {
+      Vector3 p0 = UnprojectOnTbPlane(Vector3(0.0f, 0.0f, -5.0f), lastMousePos);
+      Vector3 p1 = UnprojectOnTbPlane(Vector3(0.0f, 0.0f, -5.0f), mousePos);
 
-  mouseDragDeltaRight.y = -mouseDragDeltaRight.y;
+      Vector3 movement = p1 - p0;
 
-  mouseDragDeltaRight *= 5.0f;
-
-  g_objConstants.world *=
-      Matrix::CreateTranslation(Vector3(mouseDragDeltaRight));
+      g_objConstants.world *= Matrix::CreateTranslation(movement);
+      break;
+    }
+    default:
+      g_apiLogger->critical("Invalid value in switch statement: {}",
+                            mouseButton);
+  }
 
   g_objConstants.world = g_objConstants.world.Transpose();
+  g_objConstants.view = g_objConstants.view.Transpose();
+  g_objConstants.projection = g_objConstants.projection.Transpose();
 }
 
 bool my::DoTest() {
@@ -682,4 +690,55 @@ bool my::BuildScreenQuadGeometryBuffers() {
   }
 
   return true;
+}
+
+Vector2 my::GetMouseNDC(Vector2 mousePos) {
+  return Vector2(+2.0f * mousePos.x / g_renderTargetWidth - 1.0f,
+                 -2.0f * mousePos.y / g_renderTargetHeight + 1.0f);
+}
+
+Vector3 my::UnprojectOnTbPlane(Vector3 cameraPos, Vector2 mousePos) {
+  Vector2 mouseNDC = my::GetMouseNDC(mousePos);
+
+  // unproject cursor on the near plane
+  Vector3 rayDir(mouseNDC.x, mouseNDC.y, -1.0f);
+  rayDir = Vector3::Transform(rayDir, g_objConstants.projection.Invert());
+
+  rayDir.Normalize();  // unprojected ray direction
+
+  //	  camera
+  //		|\
+  //		| \
+  //		|  \
+  //	h	|	\
+  //		| 	 \
+  //		| 	  \
+  //	_ _ | _ _ _\ _ _  near plane
+  //			l
+
+  float h = rayDir.z;
+  float l = sqrtf(rayDir.x * rayDir.x + rayDir.y * rayDir.y);
+  float cameraSpehreDistance = Vector3::Distance(cameraPos, Vector3());
+
+  /*
+   * calculate intersection point between unprojected ray and the plane
+   *|y = mx + q
+   *|y = 0
+   *
+   * x = -q/m
+   */
+  if (l == 0.0f) {
+    // ray aligned with camera
+    rayDir = Vector3();
+    return rayDir;
+  }
+
+  float m = h / l;
+  float q = cameraSpehreDistance;
+  float x = -q / m;
+
+  float rayLength = sqrtf(q * q + x * x);
+  rayDir *= rayLength;
+  rayDir.z = 0.0f;
+  return rayDir;
 }
