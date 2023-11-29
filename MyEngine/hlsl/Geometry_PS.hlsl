@@ -18,8 +18,8 @@ PS_OUTPUT main(PS_INPUT input)
     
     input.color *= 255.0f;
 
-    uint color = (uint(input.color.a) << 24) | (uint(input.color.r) << 16) |
-                 (uint(input.color.g) << 8) | uint(input.color.b);
+    uint color = (uint(input.color.a) << 24) | (uint(input.color.b) << 16) |
+                 (uint(input.color.g) << 8) | uint(input.color.r);
 
     output.posColor = float4(input.posW, asfloat(color));
     

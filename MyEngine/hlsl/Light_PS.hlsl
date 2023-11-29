@@ -13,11 +13,16 @@ float4 main(PS_INPUT input) : SV_TARGET
     uint height;
     g_posColor.GetDimensions(width, height);
     
-    uint color = asuint(
-        g_posColor.Load(int3(input.texC.x * width, input.texC.y * height, 0)).a);
-
-    return float4(float((color >> 16) & 0xFF) * (1.0f / 255.0f),
-                  float((color >> 8) & 0xFF) * (1.0f / 255.0f),
-                  float(color & 0xFF) * (1.0f / 255.0f),
-                  float((color >> 24) & 0xFF) * (1.0f / 255.0f));
+    float4 posColor =
+        g_posColor.Load(int3(input.texC.x * width, input.texC.y * height, 0));
+    
+    uint color = asuint(posColor.a);
+    
+    if (color)
+        return float4(float(color & 0xFF) * (1.0f / 255.0f),
+                      float((color >> 8) & 0xFF) * (1.0f / 255.0f),
+                      float((color >> 16) & 0xFF) * (1.0f / 255.0f),
+                      float((color >> 24) & 0xFF) * (1.0f / 255.0f));
+    else
+        return float4(0.0f, 0.0f, 0.0f, 1.0f);
 }
