@@ -165,64 +165,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
     return false;
   }
 
-  std::vector<BYTE> vsByteCode;
-  std::vector<BYTE> psByteCode;
-
-  my::ReadData("../MyEngine/hlsl/Geometry_VS.cso", vsByteCode);
-  hr = g_device->CreateVertexShader(vsByteCode.data(), vsByteCode.size(),
-                                    nullptr,
-                                    g_geometryVS.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateVertexShader Failed.");
-    return false;
-  }
-
-  // Create the vertex input layout.
-  D3D11_INPUT_ELEMENT_DESC vertexDesc[] = {
-      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-       D3D11_INPUT_PER_VERTEX_DATA, 0},
-      {"COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12,
-       D3D11_INPUT_PER_VERTEX_DATA, 0},
-      {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 16,
-       D3D11_INPUT_PER_VERTEX_DATA, 0},
-      {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28,
-       D3D11_INPUT_PER_VERTEX_DATA, 0},
-  };
-
-  // Create the input layout
-  hr = g_device->CreateInputLayout(vertexDesc, 4, vsByteCode.data(),
-                                   vsByteCode.size(),
-                                   g_inputLayout.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateInputLayout Failed.");
-    return false;
-  }
-
-  my::ReadData("../MyEngine/hlsl/Geometry_PS.cso", psByteCode);
-  hr =
-      g_device->CreatePixelShader(psByteCode.data(), psByteCode.size(), nullptr,
-                                  g_geometryPS.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreatePixelShader Failed.");
-    return false;
-  }
-
-  my::ReadData("../MyEngine/hlsl/Light_VS.cso", vsByteCode);
-  hr =
-      g_device->CreateVertexShader(vsByteCode.data(), vsByteCode.size(),
-                                   nullptr, g_lightVS.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateVertexShader Failed.");
-    return false;
-  }
-
-  my::ReadData("../MyEngine/hlsl/Light_PS.cso", psByteCode);
-  hr = g_device->CreatePixelShader(psByteCode.data(), psByteCode.size(),
-                                   nullptr, g_lightPS.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreatePixelShader Failed.");
-    return false;
-  }
+  my::LoadShaders();
 
   my::BuildScreenQuadGeometryBuffers();
 
@@ -496,7 +439,7 @@ bool my::DoTest() {
                                               g_normalRTV.Get()};
   g_context->OMSetRenderTargets(2, renderTargets, g_depthStencilView.Get());
 
-  float clearColor[] = {0.0f, 0.0f, 0.0f, 1.0f};
+  float clearColor[] = {0.0f, 0.0f, 0.0f, 0.0f};
   for (int i = 0; i < 2; i++)
     g_context->ClearRenderTargetView(renderTargets[i], clearColor);
 
@@ -520,13 +463,7 @@ bool my::DoTest() {
 
   g_context->DrawIndexed(g_indexCount, 0, 0);
 
-  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
-                                g_depthStencilView.Get());
-
-  g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
-  g_context->ClearDepthStencilView(g_depthStencilView.Get(),
-                                   D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-                                   1.0f, 0);
+  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
 
   g_context->IASetVertexBuffers(0, 1, g_screenQuadVB.GetAddressOf(), &stride,
                                 &offset);
@@ -638,6 +575,69 @@ void my::DeinitEngine() {
 
   g_context.Reset();
   g_device.Reset();
+}
+
+bool my::LoadShaders() {
+  HRESULT hr = S_OK;
+
+  std::vector<BYTE> vsByteCode;
+  std::vector<BYTE> psByteCode;
+
+  my::ReadData("../MyEngine/hlsl/Geometry_VS.cso", vsByteCode);
+  hr = g_device->CreateVertexShader(vsByteCode.data(), vsByteCode.size(),
+                                    nullptr,
+                                    g_geometryVS.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateVertexShader Failed.");
+    return false;
+  }
+
+  // Create the vertex input layout.
+  D3D11_INPUT_ELEMENT_DESC vertexDesc[] = {
+      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
+      {"COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
+      {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 16,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
+      {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28,
+       D3D11_INPUT_PER_VERTEX_DATA, 0},
+  };
+
+  // Create the input layout
+  hr = g_device->CreateInputLayout(vertexDesc, 4, vsByteCode.data(),
+                                   vsByteCode.size(),
+                                   g_inputLayout.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateInputLayout Failed.");
+    return false;
+  }
+
+  my::ReadData("../MyEngine/hlsl/Geometry_PS.cso", psByteCode);
+  hr =
+      g_device->CreatePixelShader(psByteCode.data(), psByteCode.size(), nullptr,
+                                  g_geometryPS.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreatePixelShader Failed.");
+    return false;
+  }
+
+  my::ReadData("../MyEngine/hlsl/Light_VS.cso", vsByteCode);
+  hr =
+      g_device->CreateVertexShader(vsByteCode.data(), vsByteCode.size(),
+                                   nullptr, g_lightVS.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreateVertexShader Failed.");
+    return false;
+  }
+
+  my::ReadData("../MyEngine/hlsl/Light_PS.cso", psByteCode);
+  hr = g_device->CreatePixelShader(psByteCode.data(), psByteCode.size(),
+                                   nullptr, g_lightPS.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) {
+    g_apiLogger->error("CreatePixelShader Failed.");
+    return false;
+  }
 }
 
 bool my::ReadData(const char* name, std::vector<BYTE>& blob) {

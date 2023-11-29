@@ -214,6 +214,7 @@ int main(int, char**) {
     ImGui::Begin("DirectX11 Texture Test");
     ImGui::Text("pointer = %p", textureView.Get());
     ImGui::Text("size = %d x %d", g_renderTargetWidth, g_renderTargetHeight);
+    if (ImGui::Button("Reload Shaders")) my::LoadShaders();
     ImVec2 windowPos = ImGui::GetWindowPos();
     ImVec2 cursorPos = ImGui::GetCursorPos();
     Vector2 mousePos = Vector2(io.MousePos.x - windowPos.x - cursorPos.x,

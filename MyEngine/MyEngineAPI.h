@@ -25,6 +25,8 @@ MY_API bool GetRenderTarget(ID3D11Device* device,
 
 MY_API void DeinitEngine();
 
+MY_API bool LoadShaders();
+
 bool ReadData(const char* name, std::vector<BYTE>& blob);
 
 bool BuildScreenQuadGeometryBuffers();
