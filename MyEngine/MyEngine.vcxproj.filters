@@ -20,10 +20,10 @@
     <FxCompile Include="hlsl\Geometry_VS.hlsl">
       <Filter>hlsl</Filter>
     </FxCompile>
-    <FxCompile Include="hlsl\color_ps.hlsl">
+    <FxCompile Include="hlsl\Light_PS.hlsl">
       <Filter>hlsl</Filter>
     </FxCompile>
-    <FxCompile Include="hlsl\color_vs.hlsl">
+    <FxCompile Include="hlsl\Light_VS.hlsl">
       <Filter>hlsl</Filter>
     </FxCompile>
   </ItemGroup>
