@@ -723,7 +723,7 @@ Vector3 my::UnprojectOnTbPlane(Vector3 cameraPos, Vector2 mousePos) {
   Vector2 mouseNDC = my::GetMouseNDC(mousePos);
 
   // unproject cursor on the near plane
-  Vector3 rayDir(mouseNDC.x, mouseNDC.y, -1.0f);
+  Vector3 rayDir(mouseNDC.x, mouseNDC.y, 0.0f);
   rayDir = Vector3::Transform(rayDir, g_objConstants.projection.Invert());
 
   rayDir.Normalize();  // unprojected ray direction
@@ -770,7 +770,7 @@ Vector3 my::UnprojectOnTbSurface(Vector3 cameraPos, Vector2 mousePos,
   // unproject cursor on the near plane
   Vector2 mouseNDC = my::GetMouseNDC(mousePos);
 
-  Vector3 rayDir(mouseNDC.x, mouseNDC.y, -1.0f);
+  Vector3 rayDir(mouseNDC.x, mouseNDC.y, 0.0f);
   rayDir = Vector3::Transform(rayDir, g_objConstants.projection.Invert());
 
   rayDir.Normalize();  // unprojected ray direction
