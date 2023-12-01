@@ -16,7 +16,7 @@ struct ObjectConstants {
   Matrix world;
   Matrix worldInvTranspose;
   Matrix view;
-  Matrix projection;
+  Matrix proj;
 };
 
 std::shared_ptr<spdlog::logger> g_apiLogger;
@@ -51,9 +51,13 @@ static ComPtr<ID3D11VertexShader> g_lightVS;
 static ComPtr<ID3D11PixelShader> g_lightPS;
 static ComPtr<ID3D11InputLayout> g_inputLayout;
 
-static UINT g_indexCount;
+// Define transformations from local spaces to world space.
+static Matrix g_sphereWorld;
 
-static ObjectConstants g_objConstants;
+static Matrix g_view;
+static Matrix g_proj;
+
+static UINT g_sphereIndexCount;
 
 static int g_renderTargetWidth;
 static int g_renderTargetHeight;
@@ -90,7 +94,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
   GeometryGenerator geoGen;
   GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
 
-  g_indexCount = sphere.indices.size();
+  g_sphereIndexCount = sphere.indices.size();
 
   std::vector<Vertex> vertices(sphere.vertices.size());
   for (size_t i = 0; i < sphere.vertices.size(); i++) {
@@ -126,7 +130,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
   }
 
   D3D11_BUFFER_DESC indexBufferDesc = {};
-  indexBufferDesc.ByteWidth = sizeof(UINT) * g_indexCount;
+  indexBufferDesc.ByteWidth = sizeof(UINT) * g_sphereIndexCount;
   indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
   indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
   indexBufferDesc.CPUAccessFlags = 0;
@@ -152,12 +156,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
   constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
   constantBufferDesc.MiscFlags = 0;
 
-  D3D11_SUBRESOURCE_DATA constantBufferData = {};
-  constantBufferData.pSysMem = &g_objConstants;
-  constantBufferData.SysMemPitch = 0;
-  constantBufferData.SysMemSlicePitch = 0;
-
-  hr = g_device->CreateBuffer(&constantBufferDesc, &constantBufferData,
+  hr = g_device->CreateBuffer(&constantBufferDesc, nullptr,
                               g_constantBuffer.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) {
@@ -169,15 +168,12 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
 
   my::BuildScreenQuadGeometryBuffers();
 
-  g_objConstants.world = Matrix().Transpose();
-
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -5.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
-  g_objConstants.view = XMMatrixLookAtLH(pos, pos + forward, up);
-  g_objConstants.view = g_objConstants.view.Transpose();
+  g_view = XMMatrixLookAtLH(pos, pos + forward, up);
 
   return true;
 }
@@ -364,20 +360,15 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   // The window resized, so update the aspect ratio and recompute the projection
   // matrix.
-  g_objConstants.projection = XMMatrixPerspectiveFovLH(
+  g_proj = XMMatrixPerspectiveFovLH(
       0.25f * XM_PI,
       static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight, 1.0f,
       1000.0f);
-  g_objConstants.projection = g_objConstants.projection.Transpose();
 
   return true;
 }
 
 void my::UpdateScene(int mouseButton, Vector2 lastMousePos, Vector2 mousePos) {
-  g_objConstants.world = g_objConstants.world.Transpose();
-  g_objConstants.view = g_objConstants.view.Transpose();
-  g_objConstants.projection = g_objConstants.projection.Transpose();
-
   switch (mouseButton) {
     case 0: {
       float tbRadius = 1.0f;
@@ -398,7 +389,7 @@ void my::UpdateScene(int mouseButton, Vector2 lastMousePos, Vector2 mousePos) {
 
       if (angle < 0.01f) break;
 
-      g_objConstants.world *= Matrix::CreateFromAxisAngle(axis, -angle);
+      g_sphereWorld *= Matrix::CreateFromAxisAngle(axis, -angle);
       break;
     }
     case 1: {
@@ -407,30 +398,17 @@ void my::UpdateScene(int mouseButton, Vector2 lastMousePos, Vector2 mousePos) {
 
       Vector3 movement = p1 - p0;
 
-      g_objConstants.world *= Matrix::CreateTranslation(movement);
+      g_sphereWorld *= Matrix::CreateTranslation(movement);
       break;
     }
     default:
       g_apiLogger->critical("Invalid value in switch statement: {}",
                             mouseButton);
   }
-
-  g_objConstants.world = g_objConstants.world.Transpose();
-  g_objConstants.view = g_objConstants.view.Transpose();
-  g_objConstants.projection = g_objConstants.projection.Transpose();
 }
 
 bool my::DoTest() {
   HRESULT hr = S_OK;
-
-  g_objConstants.worldInvTranspose = g_objConstants.world.Invert();
-
-  D3D11_MAPPED_SUBRESOURCE mappedResource;
-  ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
-  g_context->Map(g_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
-                 &mappedResource);
-  memcpy(mappedResource.pData, &g_objConstants, sizeof(g_objConstants));
-  g_context->Unmap(g_constantBuffer.Get(), 0);
 
   ID3D11ShaderResourceView* nullSRV[2] = {nullptr, nullptr};
   g_context->PSSetShaderResources(0, 2, nullSRV);
@@ -454,6 +432,23 @@ bool my::DoTest() {
                                 &offset);
   g_context->IASetIndexBuffer(g_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  // Set constants
+
+  ObjectConstants objConstants;
+  objConstants.view = g_view.Transpose();
+  objConstants.proj = g_proj.Transpose();
+
+  objConstants.world = g_sphereWorld.Transpose();
+  objConstants.worldInvTranspose = g_sphereWorld.Invert();
+
+  D3D11_MAPPED_SUBRESOURCE mappedResource;
+  ZeroMemory(&mappedResource, sizeof(D3D11_MAPPED_SUBRESOURCE));
+  g_context->Map(g_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+                 &mappedResource);
+  memcpy(mappedResource.pData, &objConstants, sizeof(objConstants));
+  g_context->Unmap(g_constantBuffer.Get(), 0);
+
   g_context->VSSetShader(g_geometryVS.Get(), nullptr, 0);
   g_context->VSSetConstantBuffers(0, 1, g_constantBuffer.GetAddressOf());
   g_context->PSSetShader(g_geometryPS.Get(), nullptr, 0);
@@ -461,7 +456,7 @@ bool my::DoTest() {
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
   g_context->RSSetState(g_rasterizerState.Get());
 
-  g_context->DrawIndexed(g_indexCount, 0, 0);
+  g_context->DrawIndexed(g_sphereIndexCount, 0, 0);
 
   g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
 
@@ -474,9 +469,6 @@ bool my::DoTest() {
                                            g_normalSRV.Get()};
   g_context->PSSetShaderResources(0, 2, textures);
   g_context->PSSetShader(g_lightPS.Get(), nullptr, 0);
-
-  g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
-  g_context->RSSetState(g_rasterizerState.Get());
 
   g_context->DrawIndexed(6, 0, 0);
 
@@ -724,7 +716,7 @@ Vector3 my::UnprojectOnTbPlane(Vector3 cameraPos, Vector2 mousePos) {
 
   // unproject cursor on the near plane
   Vector3 rayDir(mouseNDC.x, mouseNDC.y, 0.0f);
-  rayDir = Vector3::Transform(rayDir, g_objConstants.projection.Invert());
+  rayDir = Vector3::Transform(rayDir, g_proj.Invert());
 
   rayDir.Normalize();  // unprojected ray direction
 
@@ -771,7 +763,7 @@ Vector3 my::UnprojectOnTbSurface(Vector3 cameraPos, Vector2 mousePos,
   Vector2 mouseNDC = my::GetMouseNDC(mousePos);
 
   Vector3 rayDir(mouseNDC.x, mouseNDC.y, 0.0f);
-  rayDir = Vector3::Transform(rayDir, g_objConstants.projection.Invert());
+  rayDir = Vector3::Transform(rayDir, g_proj.Invert());
 
   rayDir.Normalize();  // unprojected ray direction
   float cameraSpehreDistance = Vector3::Distance(cameraPos, Vector3());
