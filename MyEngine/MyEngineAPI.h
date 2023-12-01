@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 
+#include "Camera.h"
 #include "GeometryGenerator.h"
 #include "spdlog/spdlog.h"
 

@@ -54,10 +54,9 @@ static ComPtr<ID3D11InputLayout> g_inputLayout;
 // Define transformations from local spaces to world space.
 static Matrix g_sphereWorld;
 
-static Matrix g_view;
-static Matrix g_proj;
-
 static UINT g_sphereIndexCount;
+
+static Camera g_cam;
 
 static int g_renderTargetWidth;
 static int g_renderTargetHeight;
@@ -173,7 +172,7 @@ bool my::InitEngine(spdlog::logger* spdlogPtr) {
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
-  g_view = XMMatrixLookAtLH(pos, pos + forward, up);
+  g_cam.LookAt(pos, pos + forward, up);
 
   return true;
 }
@@ -360,10 +359,9 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   // The window resized, so update the aspect ratio and recompute the projection
   // matrix.
-  g_proj = XMMatrixPerspectiveFovLH(
-      0.25f * XM_PI,
-      static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight, 1.0f,
-      1000.0f);
+  g_cam.SetLens(0.25f * XM_PI,
+                static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight,
+                1.0f, 1000.0f);
 
   return true;
 }
@@ -373,10 +371,10 @@ void my::UpdateScene(int mouseButton, Vector2 lastMousePos, Vector2 mousePos) {
     case 0: {
       float tbRadius = 1.0f;
 
-      Vector3 p0 = UnprojectOnTbSurface(Vector3(0.0f, 0.0f, -5.0f),
-                                        lastMousePos, tbRadius);
+      Vector3 p0 =
+          UnprojectOnTbSurface(g_cam.GetPosition(), lastMousePos, tbRadius);
       Vector3 p1 =
-          UnprojectOnTbSurface(Vector3(0.0f, 0.0f, -5.0f), mousePos, tbRadius);
+          UnprojectOnTbSurface(g_cam.GetPosition(), mousePos, tbRadius);
 
       Vector3 axis = p0.Cross(p1);
 
@@ -393,8 +391,8 @@ void my::UpdateScene(int mouseButton, Vector2 lastMousePos, Vector2 mousePos) {
       break;
     }
     case 1: {
-      Vector3 p0 = UnprojectOnTbPlane(Vector3(0.0f, 0.0f, -5.0f), lastMousePos);
-      Vector3 p1 = UnprojectOnTbPlane(Vector3(0.0f, 0.0f, -5.0f), mousePos);
+      Vector3 p0 = UnprojectOnTbPlane(g_cam.GetPosition(), lastMousePos);
+      Vector3 p1 = UnprojectOnTbPlane(g_cam.GetPosition(), mousePos);
 
       Vector3 movement = p1 - p0;
 
@@ -433,11 +431,11 @@ bool my::DoTest() {
   g_context->IASetIndexBuffer(g_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-  // Set constants
+  g_cam.UpdateViewMatrix();
 
   ObjectConstants objConstants;
-  objConstants.view = g_view.Transpose();
-  objConstants.proj = g_proj.Transpose();
+  objConstants.view = g_cam.View().Transpose();
+  objConstants.proj = g_cam.Proj().Transpose();
 
   objConstants.world = g_sphereWorld.Transpose();
   objConstants.worldInvTranspose = g_sphereWorld.Invert();
@@ -716,7 +714,7 @@ Vector3 my::UnprojectOnTbPlane(Vector3 cameraPos, Vector2 mousePos) {
 
   // unproject cursor on the near plane
   Vector3 rayDir(mouseNDC.x, mouseNDC.y, 0.0f);
-  rayDir = Vector3::Transform(rayDir, g_proj.Invert());
+  rayDir = Vector3::Transform(rayDir, g_cam.Proj().Invert());
 
   rayDir.Normalize();  // unprojected ray direction
 
@@ -763,7 +761,7 @@ Vector3 my::UnprojectOnTbSurface(Vector3 cameraPos, Vector2 mousePos,
   Vector2 mouseNDC = my::GetMouseNDC(mousePos);
 
   Vector3 rayDir(mouseNDC.x, mouseNDC.y, 0.0f);
-  rayDir = Vector3::Transform(rayDir, g_proj.Invert());
+  rayDir = Vector3::Transform(rayDir, g_cam.Proj().Invert());
 
   rayDir.Normalize();  // unprojected ray direction
   float cameraSpehreDistance = Vector3::Distance(cameraPos, Vector3());
