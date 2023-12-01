@@ -19,10 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="MyEngineAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="MyEngineAPI.h" />
   </ItemGroup>
