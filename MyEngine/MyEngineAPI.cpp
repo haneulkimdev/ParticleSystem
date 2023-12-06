@@ -288,7 +288,7 @@ bool my::SetRenderTargetSize(int w, int h) {
   depthStencilBufferDesc.Height = g_renderTargetHeight;
   depthStencilBufferDesc.MipLevels = 1;
   depthStencilBufferDesc.ArraySize = 1;
-  depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  depthStencilBufferDesc.Format = DXGI_FORMAT_D32_FLOAT;
   depthStencilBufferDesc.SampleDesc.Count = 1;
   depthStencilBufferDesc.SampleDesc.Quality = 0;
   depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -332,6 +332,7 @@ bool my::SetRenderTargetSize(int w, int h) {
   depthStencilDesc.DepthEnable = true;
   depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
   depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+  depthStencilDesc.StencilEnable = false;
 
   hr = g_device->CreateDepthStencilState(
       &depthStencilDesc, g_depthStencilState.ReleaseAndGetAddressOf());
@@ -628,6 +629,8 @@ bool my::LoadShaders() {
     g_apiLogger->error("CreatePixelShader Failed.");
     return false;
   }
+
+  return true;
 }
 
 bool my::ReadData(const char* name, std::vector<BYTE>& blob) {
