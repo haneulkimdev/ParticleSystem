@@ -9,9 +9,9 @@ struct PostRenderer
     float4x4 matPS2WS;
 
     float2 rtSize;
-    float2 dummy1;
+    float2 dummy0;
 
-    float3 disBoxCenter; // WS
+    float3 distBoxCenter; // WS
     float distBoxSize; // WS
 };
 

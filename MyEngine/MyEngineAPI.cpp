@@ -13,10 +13,10 @@ struct PostRenderer {
   Matrix matPS2WS;
 
   Vector2 rtSize;
-  Vector2 dummy1;
+  Vector2 dummy0;
 
-  Vector3 disBoxCenter;  // WS
-  float distBoxSize;     // WS
+  Vector3 distBoxCenter;  // WS
+  float distBoxSize;      // WS
 };
 
 std::shared_ptr<spdlog::logger> g_apiLogger;
@@ -47,6 +47,16 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 
 // InputLayouts
 ComPtr<ID3D11InputLayout> g_inputLayout;
+
+Vector3 g_posLight;
+int g_lightColor;
+float g_lightIntensity;
+
+Matrix g_view;
+Matrix g_proj;
+
+Vector3 g_distBoxCenter;
+float g_distBoxSize;
 
 D3D11_VIEWPORT g_viewport;
 
@@ -125,6 +135,16 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   my::BuildScreenQuadGeometryBuffers();
 
   my::LoadShaders();
+
+  g_view = Matrix::Identity;
+  g_proj = Matrix::Identity;
+
+  g_posLight = Vector3(0.0f, 1.0f, 0.0f);
+  g_lightColor = 0xffffffff;
+  g_lightIntensity = 1.0f;
+
+  g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
+  g_distBoxSize = 2.0f;
 
   return true;
 }
@@ -212,6 +232,14 @@ bool my::SetRenderTargetSize(int w, int h) {
 
 bool my::DoTest() {
   PostRenderer quadPostRenderer = {};
+  quadPostRenderer.posCam = g_view.Translation();
+  quadPostRenderer.lightColor = g_lightColor;
+  quadPostRenderer.posLight = g_posLight;
+  quadPostRenderer.lightIntensity = g_lightIntensity;
+  quadPostRenderer.matPS2WS = (g_view * g_proj).Invert();
+  quadPostRenderer.rtSize = Vector2(g_renderTargetWidth, g_renderTargetHeight);
+  quadPostRenderer.distBoxCenter = g_distBoxCenter;
+  quadPostRenderer.distBoxSize = g_distBoxSize;
 
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
   g_context->Map(g_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
@@ -414,10 +442,10 @@ bool my::ReadData(const std::string& name, std::vector<BYTE>& blob) {
 
 bool my::BuildScreenQuadGeometryBuffers() {
   Vector3 vertices[4] = {
-      Vector3(-1.0f, 1.0f, 0.5f),
-      Vector3(1.0f, 1.0f, 0.5f),
-      Vector3(-1.0f, -1.0f, 0.5f),
-      Vector3(1.0f, -1.0f, 0.5f),
+      Vector3(-1.0f, 1.0f, 0.0f),
+      Vector3(1.0f, 1.0f, 0.0f),
+      Vector3(-1.0f, -1.0f, 0.0f),
+      Vector3(1.0f, -1.0f, 0.0f),
   };
 
   D3D11_BUFFER_DESC vertexBufferDesc = {};
