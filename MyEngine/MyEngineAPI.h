@@ -6,37 +6,28 @@
 #include <fstream>
 #include <vector>
 
-#include "Camera.h"
-#include "GeometryGenerator.h"
+#include "SimpleMath.h"
 #include "spdlog/spdlog.h"
 
 #define MY_API extern "C" __declspec(dllexport)
 
 namespace my {
-MY_API bool InitEngine(spdlog::logger* spdlogPtr);
+MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
 MY_API bool SetRenderTargetSize(int w, int h);
 
-MY_API void UpdateScene(int mouseButton,
-                        DirectX::SimpleMath::Vector2 lastMousePos,
-                        DirectX::SimpleMath::Vector2 mousePos);
 MY_API bool DoTest();
-MY_API bool GetRenderTarget(ID3D11Device* device,
-                            ID3D11ShaderResourceView** textureView);
+MY_API bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
+                                      ID3D11ShaderResourceView** sharedSRV,
+                                      int& w, int& h);
 
 MY_API void DeinitEngine();
 
 MY_API bool LoadShaders();
 
-bool ReadData(const char* name, std::vector<BYTE>& blob);
+bool GetEnginePath(std::string& enginePath);
+
+bool ReadData(const std::string& name, std::vector<BYTE>& blob);
 
 bool BuildScreenQuadGeometryBuffers();
-
-DirectX::SimpleMath::Vector2 GetMouseNDC(DirectX::SimpleMath::Vector2 mousePos);
-DirectX::SimpleMath::Vector3 UnprojectOnTbPlane(
-    DirectX::SimpleMath::Vector3 cameraPos,
-    DirectX::SimpleMath::Vector2 mousePos);
-DirectX::SimpleMath::Vector3 UnprojectOnTbSurface(
-    DirectX::SimpleMath::Vector3 cameraPos,
-    DirectX::SimpleMath::Vector2 mousePos, float tbRadius);
 }  // namespace my

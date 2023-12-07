@@ -16,17 +16,14 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="hlsl\Geometry_PS.hlsl">
+    <None Include="hlsl\Header.hlsli">
       <Filter>hlsl</Filter>
-    </FxCompile>
-    <FxCompile Include="hlsl\Geometry_VS.hlsl">
+    </None>
+    <None Include="hlsl\PShaders.hlsl">
       <Filter>hlsl</Filter>
-    </FxCompile>
-    <FxCompile Include="hlsl\Light_PS.hlsl">
+    </None>
+    <None Include="hlsl\VShaders.hlsl">
       <Filter>hlsl</Filter>
-    </FxCompile>
-    <FxCompile Include="hlsl\Light_VS.hlsl">
-      <Filter>hlsl</Filter>
-    </FxCompile>
+    </None>
   </ItemGroup>
 </Project>

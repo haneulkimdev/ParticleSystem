@@ -37,15 +37,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 auto g_apiLogger = spdlog::default_logger();
 
-static int g_renderTargetWidth = 512;
-static int g_renderTargetHeight = 512;
-
 // Main code
 int main(int, char**) {
   g_apiLogger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
 
-  my::InitEngine(g_apiLogger.get());
-  my::SetRenderTargetSize(g_renderTargetWidth, g_renderTargetHeight);
+  my::InitEngine(g_apiLogger);
+
+  static ImVec2 renderTargetSize = ImVec2(512, 512);
+  my::SetRenderTargetSize(renderTargetSize.x, renderTargetSize.y);
 
   // Create application window
   // ImGui_ImplWin32_EnableDpiAwareness();
@@ -74,7 +73,8 @@ int main(int, char**) {
   }
 
   ComPtr<ID3D11ShaderResourceView> textureView;
-  my::GetRenderTarget(g_pd3dDevice, textureView.ReleaseAndGetAddressOf());
+  int w, h;
+  my::GetDX11SharedRenderTarget(g_pd3dDevice, textureView.GetAddressOf(), w, h);
 
   // Show the window
   ::ShowWindow(hwnd, SW_SHOWDEFAULT);
@@ -211,32 +211,29 @@ int main(int, char**) {
       ImGui::End();
     }
 
-    ImGui::Begin("DirectX11 Texture Test");
-    ImGui::Text("pointer = %p", textureView.Get());
-    ImGui::Text("size = %d x %d", g_renderTargetWidth, g_renderTargetHeight);
-    if (ImGui::Button("Reload Shaders")) my::LoadShaders();
-    ImVec2 windowPos = ImGui::GetWindowPos();
-    ImVec2 cursorPos = ImGui::GetCursorPos();
-    Vector2 mousePos = Vector2(io.MousePos.x - windowPos.x - cursorPos.x,
-                               io.MousePos.y - windowPos.y - cursorPos.y);
-    ImGui::InvisibleButton(
-        "Invisible Button", ImVec2(g_renderTargetWidth, g_renderTargetHeight),
-        ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-    if (ImGui::IsItemActivated()) {
-      mouseButton = ImGui::IsMouseDown(ImGuiMouseButton_Left)
-                        ? ImGuiMouseButton_Left
-                        : ImGuiMouseButton_Right;
-      lastMousePos = mousePos;
-    } else if (ImGui::IsItemActive()) {
-      my::UpdateScene(mouseButton, lastMousePos, mousePos);
-      lastMousePos = mousePos;
+    {
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+      ImGui::Begin("DirectX11 Texture Test");
+
+      ImVec2 cursorPos = ImGui::GetCursorPos();
+      ImGui::InvisibleButton(
+          "Invisible Button", renderTargetSize,
+          ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+      ImGui::SetItemAllowOverlap();
+
+      my::DoTest();
+
+      ImGui::SetCursorPos(cursorPos);
+      ImGui::Image((void*)textureView.Get(), renderTargetSize);
+      ImGui::End();
+      ImGui::PopStyleVar();
     }
-    my::DoTest();
-    ImGui::SetItemAllowOverlap();
-    ImGui::SetCursorPos(cursorPos);
-    ImGui::Image((void*)textureView.Get(),
-                 ImVec2(g_renderTargetWidth, g_renderTargetHeight));
-    ImGui::End();
+
+    {
+      ImGui::Begin("Shaders");
+      if (ImGui::Button("Reload Shaders")) my::LoadShaders();
+      ImGui::End();
+    }
 
     // Rendering
     ImGui::Render();
