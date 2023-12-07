@@ -231,6 +231,7 @@ int main(int, char**) {
 
     {
       ImGui::Begin("Shaders");
+      ImGui::SetWindowPos(ImVec2(0, 0));
       if (ImGui::Button("Reload Shaders")) my::LoadShaders();
       ImGui::End();
     }
