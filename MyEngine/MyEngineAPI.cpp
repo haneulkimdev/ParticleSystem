@@ -274,6 +274,10 @@ bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
   w = g_renderTargetWidth;
   h = g_renderTargetHeight;
 
+  *sharedSRV = nullptr;
+
+  if (!g_device) return FailRet("Device not initialized.");
+
   ComPtr<IDXGIResource> DXGIResource;
 
   HRESULT hr = g_renderTargetBuffer->QueryInterface(
@@ -308,14 +312,13 @@ bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
   SRVDesc.Texture2D.MipLevels = desc.MipLevels;
   SRVDesc.Texture2D.MostDetailedMip = 0;
 
-  dx11ImGuiDevice->CreateShaderResourceView(texture.Get(), &SRVDesc, sharedSRV);
-
-  if (FAILED(hr)) {
-    g_apiLogger->error("CreateShaderResourceView Failed.");
-    return false;
-  }
-
+  dx11ImGuiDevice->CreateShaderResourceView(
+      texture.Get(), &SRVDesc, g_sharedSRV.ReleaseAndGetAddressOf());
   texture.Reset();
+
+  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
+  *sharedSRV = g_sharedSRV.Get();
 
   return true;
 }

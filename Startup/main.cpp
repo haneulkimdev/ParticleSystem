@@ -72,10 +72,6 @@ int main(int, char**) {
     return 1;
   }
 
-  ComPtr<ID3D11ShaderResourceView> textureView;
-  int w, h;
-  my::GetDX11SharedRenderTarget(g_pd3dDevice, textureView.GetAddressOf(), w, h);
-
   // Show the window
   ::ShowWindow(hwnd, SW_SHOWDEFAULT);
   ::UpdateWindow(hwnd);
@@ -222,6 +218,10 @@ int main(int, char**) {
       ImGui::SetItemAllowOverlap();
 
       my::DoTest();
+
+      ComPtr<ID3D11ShaderResourceView> textureView;
+      int w, h;
+      my::GetDX11SharedRenderTarget(g_pd3dDevice, &textureView, w, h);
 
       ImGui::SetCursorPos(cursorPos);
       ImGui::Image((void*)textureView.Get(), renderTargetSize);
