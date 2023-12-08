@@ -280,8 +280,11 @@ bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
 
   ComPtr<ID3D11Resource> sharedResource;
   if (g_sharedSRV) g_sharedSRV->GetResource(&sharedResource);
+  bool sharedResourceChanged =
+      g_renderTargetBuffer.Get() != sharedResource.Get();
+  sharedResource.Reset();
 
-  if (g_renderTargetBuffer.Get() != sharedResource.Get()) {
+  if (sharedResourceChanged) {
     g_sharedSRV.Reset();
 
     ComPtr<IDXGIResource> DXGIResource;
