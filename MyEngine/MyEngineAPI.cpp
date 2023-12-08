@@ -278,45 +278,51 @@ bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
 
   if (!g_device) return FailRet("Device not initialized.");
 
-  ComPtr<IDXGIResource> DXGIResource;
+  ComPtr<ID3D11Resource> sharedResource;
+  if (g_sharedSRV) g_sharedSRV->GetResource(&sharedResource);
 
-  HRESULT hr = g_renderTargetBuffer->QueryInterface(
-      __uuidof(IDXGIResource),
-      reinterpret_cast<void**>(DXGIResource.ReleaseAndGetAddressOf()));
+  if (g_renderTargetBuffer.Get() != sharedResource.Get()) {
+    g_sharedSRV.Reset();
 
-  if (FAILED(hr)) FailRet("QueryInterface Failed.");
+    ComPtr<IDXGIResource> DXGIResource;
 
-  HANDLE sharedHandle;
+    HRESULT hr = g_renderTargetBuffer->QueryInterface(
+        __uuidof(IDXGIResource),
+        reinterpret_cast<void**>(DXGIResource.ReleaseAndGetAddressOf()));
 
-  hr = DXGIResource->GetSharedHandle(&sharedHandle);
-  DXGIResource.Reset();
+    if (FAILED(hr)) FailRet("QueryInterface Failed.");
 
-  if (FAILED(hr)) FailRet("GetSharedHandle Failed.");
+    HANDLE sharedHandle;
 
-  ComPtr<ID3D11Texture2D> texture;
+    hr = DXGIResource->GetSharedHandle(&sharedHandle);
+    DXGIResource.Reset();
 
-  hr = dx11ImGuiDevice->OpenSharedResource(
-      sharedHandle, __uuidof(ID3D11Texture2D),
-      reinterpret_cast<void**>(texture.ReleaseAndGetAddressOf()));
+    if (FAILED(hr)) FailRet("GetSharedHandle Failed.");
 
-  if (FAILED(hr)) FailRet("OpenSharedResource Failed.");
+    ComPtr<ID3D11Texture2D> texture;
 
-  D3D11_TEXTURE2D_DESC desc = {};
-  texture->GetDesc(&desc);
+    hr = dx11ImGuiDevice->OpenSharedResource(
+        sharedHandle, __uuidof(ID3D11Texture2D),
+        reinterpret_cast<void**>(texture.ReleaseAndGetAddressOf()));
 
-  // Create texture view
-  D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc;
-  ZeroMemory(&SRVDesc, sizeof(SRVDesc));
-  SRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-  SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-  SRVDesc.Texture2D.MipLevels = desc.MipLevels;
-  SRVDesc.Texture2D.MostDetailedMip = 0;
+    if (FAILED(hr)) FailRet("OpenSharedResource Failed.");
 
-  dx11ImGuiDevice->CreateShaderResourceView(
-      texture.Get(), &SRVDesc, g_sharedSRV.ReleaseAndGetAddressOf());
-  texture.Reset();
+    D3D11_TEXTURE2D_DESC desc = {};
+    texture->GetDesc(&desc);
 
-  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+    // Create texture view
+    D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+    SRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    SRVDesc.Texture2D.MipLevels = desc.MipLevels;
+    SRVDesc.Texture2D.MostDetailedMip = 0;
+
+    dx11ImGuiDevice->CreateShaderResourceView(texture.Get(), &SRVDesc,
+                                              g_sharedSRV.GetAddressOf());
+    texture.Reset();
+
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+  }
 
   *sharedSRV = g_sharedSRV.Get();
 

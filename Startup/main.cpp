@@ -219,12 +219,12 @@ int main(int, char**) {
 
       my::DoTest();
 
-      ComPtr<ID3D11ShaderResourceView> textureView;
+      ID3D11ShaderResourceView* pTextureView;
       int w, h;
-      my::GetDX11SharedRenderTarget(g_pd3dDevice, &textureView, w, h);
+      my::GetDX11SharedRenderTarget(g_pd3dDevice, &pTextureView, w, h);
 
       ImGui::SetCursorPos(cursorPos);
-      ImGui::Image((void*)textureView.Get(), renderTargetSize);
+      ImGui::Image((void*)pTextureView, renderTargetSize);
       ImGui::End();
       ImGui::PopStyleVar();
     }
