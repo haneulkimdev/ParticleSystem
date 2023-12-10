@@ -136,7 +136,7 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   my::LoadShaders();
 
-  g_view = Matrix::Identity;
+  g_view = Matrix::CreateTranslation(Vector3(0.0f, 0.0f, -5.0f));
   g_proj = Matrix::Identity;
 
   g_posLight = Vector3(0.0f, 1.0f, 0.0f);
