@@ -207,13 +207,24 @@ int main(int, char**) {
       ImGui::End();
     }
 
+    bool readyCallRender = false;
+
+    {
+      ImGui::Begin("Shaders");
+      ImGui::SetWindowPos(ImVec2(0, 0));
+      if (ImGui::Button("Reload Shaders")) {
+        my::LoadShaders();
+        readyCallRender = true;
+      }
+      ImGui::End();
+    }
+
     {
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
       ImGui::Begin("DirectX11 Texture Test");
 
       static ImVec2 lastWindowSize = ImVec2(0, 0);
       ImVec2 windowSize = ImGui::GetWindowSize();
-      bool readyCallRender = false;
       if (lastWindowSize.x != windowSize.x ||
           lastWindowSize.y != windowSize.y) {
         renderTargetSize = ImGui::GetContentRegionAvail();
@@ -242,13 +253,6 @@ int main(int, char**) {
       ImGui::Image((void*)textureView.Get(), renderTargetSize);
       ImGui::End();
       ImGui::PopStyleVar();
-    }
-
-    {
-      ImGui::Begin("Shaders");
-      ImGui::SetWindowPos(ImVec2(0, 0));
-      if (ImGui::Button("Reload Shaders")) my::LoadShaders();
-      ImGui::End();
     }
 
     // Rendering
