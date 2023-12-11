@@ -22,7 +22,7 @@ float SmoothMin(float a, float b, float k)
 
 float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
 {
-    // fxc /E PS_RayMARCH /T ps_5_0 ./PShaders.hlsl /Fo ./obj/PS_RayMARCH
+  // fxc /E PS_RayMARCH /T ps_5_0 ./PShaders.hlsl /Fo ./obj/PS_RayMARCH
 
     float4 posP;
     posP.x = +2.0f * position.x / postRenderer.rtSize.x - 1.0f;
@@ -32,6 +32,20 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
 
     float3 rayOrigin = postRenderer.posCam;
     float3 rayDir = normalize(mul(posP, postRenderer.matPS2WS).xyz - rayOrigin);
+
+    float2 hits = ComputeAABBHits(
+        rayOrigin, postRenderer.distBoxCenter - postRenderer.distBoxSize,
+        postRenderer.distBoxCenter + postRenderer.distBoxSize, rayDir);
+
+    if (hits.y < 0.0f)
+    {
+        return float4(0.0f, 0.0f, 0.0f, 1.0f);
+    }
+
+    if (hits.x > hits.y)
+    {
+        return float4(0.0f, 0.0f, 0.0f, 1.0f);
+    }
 
     float3 sphereCenter1 = float3(-0.3f, 0.0f, 0.0f);
     float3 sphereCenter2 = float3(0.3f, 0.0f, 0.0f);
