@@ -219,8 +219,6 @@ int main(int, char**) {
         renderTargetSize = ImGui::GetContentRegionAvail();
 
         my::SetRenderTargetSize(renderTargetSize.x, renderTargetSize.y);
-        g_apiLogger->info("SetRenderTargetSize: {}x{}", renderTargetSize.x,
-                          renderTargetSize.y);
 
         lastWindowSize = windowSize;
         readyCallRender = true;
