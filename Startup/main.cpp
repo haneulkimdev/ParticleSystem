@@ -211,20 +211,37 @@ int main(int, char**) {
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
       ImGui::Begin("DirectX11 Texture Test");
 
+      static ImVec2 lastWindowSize = ImVec2(0, 0);
+      ImVec2 windowSize = ImGui::GetWindowSize();
+      bool readyCallRender = false;
+      if (lastWindowSize.x != windowSize.x ||
+          lastWindowSize.y != windowSize.y) {
+        renderTargetSize = ImGui::GetContentRegionAvail();
+
+        my::SetRenderTargetSize(renderTargetSize.x, renderTargetSize.y);
+        g_apiLogger->info("SetRenderTargetSize: {}x{}", renderTargetSize.x,
+                          renderTargetSize.y);
+
+        lastWindowSize = windowSize;
+        readyCallRender = true;
+      }
+
       ImVec2 cursorPos = ImGui::GetCursorPos();
       ImGui::InvisibleButton(
           "Invisible Button", renderTargetSize,
           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
       ImGui::SetItemAllowOverlap();
 
-      my::DoTest();
+      if (readyCallRender) my::DoTest();
 
-      ID3D11ShaderResourceView* pTextureView;
+      ComPtr<ID3D11ShaderResourceView> textureView;
       int w, h;
-      my::GetDX11SharedRenderTarget(g_pd3dDevice, &pTextureView, w, h);
+      my::GetDX11SharedRenderTarget(g_pd3dDevice,
+                                    textureView.ReleaseAndGetAddressOf(), w, h);
+      textureView->AddRef();
 
       ImGui::SetCursorPos(cursorPos);
-      ImGui::Image((void*)pTextureView, renderTargetSize);
+      ImGui::Image((void*)textureView.Get(), renderTargetSize);
       ImGui::End();
       ImGui::PopStyleVar();
     }
