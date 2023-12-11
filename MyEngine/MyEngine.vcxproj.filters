@@ -15,10 +15,10 @@
     <None Include="hlsl\Header.hlsli">
       <Filter>hlsl</Filter>
     </None>
-    <None Include="hlsl\PShaders.hlsl">
+    <None Include="hlsl\PS_RayMARCH.hlsl">
       <Filter>hlsl</Filter>
     </None>
-    <None Include="hlsl\VShaders.hlsl">
+    <None Include="hlsl\VS_QUAD.hlsl">
       <Filter>hlsl</Filter>
     </None>
   </ItemGroup>

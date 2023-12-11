@@ -28,10 +28,10 @@
     <None Include="hlsl\Header.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="hlsl\PShaders.hlsl">
+    <None Include="hlsl\PS_RayMARCH.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="hlsl\VShaders.hlsl">
+    <None Include="hlsl\VS_QUAD.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
