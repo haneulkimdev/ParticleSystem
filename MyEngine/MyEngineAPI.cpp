@@ -1,6 +1,7 @@
 #include "MyEngineAPI.h"
 
 using Microsoft::WRL::ComPtr;
+using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 struct PostRenderer {
@@ -228,6 +229,10 @@ bool my::SetRenderTargetSize(int w, int h) {
   g_viewport.MaxDepth = 1.0f;
 
   g_context->RSSetViewports(1, &g_viewport);
+
+  g_proj = XMMatrixOrthographicLH(
+      static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight * 2.0f,
+      2.0f, 0.0f, 1.0f);
 
   return true;
 }
