@@ -2,13 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="MyEngineAPI.cpp" />
-    <ClCompile Include="GeometryGenerator.cpp" />
-    <ClCompile Include="Camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyEngineAPI.h" />
-    <ClInclude Include="GeometryGenerator.h" />
-    <ClInclude Include="Camera.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">
