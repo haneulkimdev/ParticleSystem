@@ -21,7 +21,7 @@ PS_OUTPUT PS_RayMARCH(PS_INPUT input)
     // fxc /E PS_RayMARCH /T ps_5_0 ./PS_RayMARCH.hlsl /Fo ./obj/PS_RayMARCH
     PS_OUTPUT output;
     output.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    output.depth = -10000.0f;
+    output.depth = -1e3f;
     
     float4 posP;
     posP.x = +2.0f * input.position.x / postRenderer.rtSize.x - 1.0f;
@@ -53,7 +53,8 @@ PS_OUTPUT PS_RayMARCH(PS_INPUT input)
     float3 sphereColor2 = float3(0.0f, 0.0f, 1.0f);
 
     float marchDistance = 0.0f;
-
+    
+    [loop]
     for (int i = 0; i < 20; i++)
     {
         float3 currentPos = rayOrigin + rayDir * marchDistance;
@@ -62,7 +63,7 @@ PS_OUTPUT PS_RayMARCH(PS_INPUT input)
         float distance = SmoothMin(d1, d2, 10.0f);
         float3 color = lerp(sphereColor1, sphereColor2, saturate(d1 / (d1 + d2)));
 
-        if (distance < 0.01f)
+        if (distance < 1e-5f)
         {
             output.color = float4(color, 1.0f);
             output.depth = marchDistance;
