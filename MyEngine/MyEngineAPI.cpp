@@ -30,13 +30,18 @@ ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 ComPtr<ID3D11Texture2D> g_depthStencilBuffer;
 
 // Views
+ComPtr<ID3D11RenderTargetView> g_colorRTV;
+ComPtr<ID3D11ShaderResourceView> g_colorSRV;
+ComPtr<ID3D11RenderTargetView> g_depthRTV;
+ComPtr<ID3D11ShaderResourceView> g_depthSRV;
 ComPtr<ID3D11RenderTargetView> g_renderTargetView;
 ComPtr<ID3D11DepthStencilView> g_depthStencilView;
 ComPtr<ID3D11ShaderResourceView> g_sharedSRV;
 
 // Shaders
-ComPtr<ID3D11VertexShader> g_vertexShader;
-ComPtr<ID3D11PixelShader> g_pixelShader;
+ComPtr<ID3D11VertexShader> g_quadVS;
+ComPtr<ID3D11PixelShader> g_rayMarchPS;
+ComPtr<ID3D11PixelShader> g_lightPS;
 
 // Buffers
 ComPtr<ID3D11Buffer> g_screenQuadVB;
@@ -156,6 +161,66 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   g_sharedSRV.Reset();
 
+  D3D11_TEXTURE2D_DESC colorTexDesc = {};
+  colorTexDesc.Width = g_renderTargetWidth;
+  colorTexDesc.Height = g_renderTargetHeight;
+  colorTexDesc.MipLevels = 1;
+  colorTexDesc.ArraySize = 1;
+  colorTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  colorTexDesc.SampleDesc.Count = 1;
+  colorTexDesc.SampleDesc.Quality = 0;
+  colorTexDesc.Usage = D3D11_USAGE_DEFAULT;
+  colorTexDesc.BindFlags =
+      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+  colorTexDesc.CPUAccessFlags = 0;
+  colorTexDesc.MiscFlags = 0;
+
+  ComPtr<ID3D11Texture2D> colorTex;
+  HRESULT hr = g_device->CreateTexture2D(&colorTexDesc, nullptr,
+                                         colorTex.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateTexture2D Failed.");
+
+  hr = g_device->CreateRenderTargetView(colorTex.Get(), nullptr,
+                                        g_colorRTV.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateRenderTargetView Failed.");
+
+  hr = g_device->CreateShaderResourceView(colorTex.Get(), nullptr,
+                                          g_colorSRV.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
+  D3D11_TEXTURE2D_DESC depthTexDesc = {};
+  depthTexDesc.Width = g_renderTargetWidth;
+  depthTexDesc.Height = g_renderTargetHeight;
+  depthTexDesc.MipLevels = 1;
+  depthTexDesc.ArraySize = 1;
+  depthTexDesc.Format = DXGI_FORMAT_R32_FLOAT;
+  depthTexDesc.SampleDesc.Count = 1;
+  depthTexDesc.SampleDesc.Quality = 0;
+  depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+  depthTexDesc.BindFlags =
+      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+  depthTexDesc.CPUAccessFlags = 0;
+  depthTexDesc.MiscFlags = 0;
+
+  ComPtr<ID3D11Texture2D> depthTex;
+  hr = g_device->CreateTexture2D(&depthTexDesc, nullptr,
+                                 depthTex.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateTexture2D Failed.");
+
+  hr = g_device->CreateRenderTargetView(depthTex.Get(), nullptr,
+                                        g_depthRTV.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateRenderTargetView Failed.");
+
+  hr = g_device->CreateShaderResourceView(depthTex.Get(), nullptr,
+                                          g_depthSRV.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
   D3D11_TEXTURE2D_DESC renderTargetBufferDesc = {};
   renderTargetBufferDesc.Width = g_renderTargetWidth;
   renderTargetBufferDesc.Height = g_renderTargetHeight;
@@ -170,9 +235,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   renderTargetBufferDesc.CPUAccessFlags = 0;
   renderTargetBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_SHARED;
 
-  HRESULT hr =
-      g_device->CreateTexture2D(&renderTargetBufferDesc, nullptr,
-                                g_renderTargetBuffer.ReleaseAndGetAddressOf());
+  hr = g_device->CreateTexture2D(&renderTargetBufferDesc, nullptr,
+                                 g_renderTargetBuffer.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) FailRet("CreateTexture2D Failed.");
 
@@ -254,6 +318,10 @@ bool my::DoTest() {
   memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
   g_context->Unmap(g_constantBuffer.Get(), 0);
 
+  ID3D11RenderTargetView* renderTargets[2] = {g_colorRTV.Get(),
+                                              g_depthRTV.Get()};
+  g_context->OMSetRenderTargets(2, renderTargets, nullptr);
+
   UINT stride = sizeof(Vector3);
   UINT offset = 0;
   g_context->IASetInputLayout(g_inputLayout.Get());
@@ -261,12 +329,20 @@ bool my::DoTest() {
                                 &offset);
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-  g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
-  g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
+  g_context->VSSetShader(g_quadVS.Get(), nullptr, 0);
+  g_context->PSSetShader(g_rayMarchPS.Get(), nullptr, 0);
   g_context->PSSetConstantBuffers(0, 1, g_constantBuffer.GetAddressOf());
 
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
   g_context->RSSetState(g_rasterizerState.Get());
+
+  g_context->Draw(4, 0);
+
+  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
+
+  ID3D11ShaderResourceView* textures[2] = {g_colorSRV.Get(), g_depthSRV.Get()};
+  g_context->PSSetShaderResources(0, 2, textures);
+  g_context->PSSetShader(g_lightPS.Get(), nullptr, 0);
 
   g_context->Draw(4, 0);
 
@@ -344,10 +420,15 @@ void my::DeinitEngine() {
   g_constantBuffer.Reset();
 
   // Shaders
-  g_vertexShader.Reset();
-  g_pixelShader.Reset();
+  g_quadVS.Reset();
+  g_rayMarchPS.Reset();
+  g_lightPS.Reset();
 
   // Views
+  g_depthRTV.Reset();
+  g_colorRTV.Reset();
+  g_colorSRV.Reset();
+  g_depthSRV.Reset();
   g_renderTargetView.Reset();
   g_depthStencilView.Reset();
   g_sharedSRV.Reset();
@@ -401,11 +482,15 @@ bool my::LoadShaders() {
 
   if (!RegisterShaderObjFile("VS_QUAD", "VS",
                              reinterpret_cast<ID3D11DeviceChild**>(
-                                 g_vertexShader.ReleaseAndGetAddressOf())))
+                                 g_quadVS.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
   if (!RegisterShaderObjFile("PS_RayMARCH", "PS",
                              reinterpret_cast<ID3D11DeviceChild**>(
-                                 g_pixelShader.ReleaseAndGetAddressOf())))
+                                 g_rayMarchPS.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
+  if (!RegisterShaderObjFile("PS_Light", "PS",
+                             reinterpret_cast<ID3D11DeviceChild**>(
+                                 g_lightPS.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
 
   return true;

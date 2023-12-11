@@ -5,12 +5,27 @@ cbuffer cbQuadRenderer : register(b0)
     PostRenderer postRenderer;
 }
 
-float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
+struct PS_INPUT
+{
+    float4 position : SV_POSITION;
+};
+
+struct PS_OUTPUT
+{
+    float4 color : SV_Target0;
+    float depth : SV_Target1;
+};
+
+PS_OUTPUT PS_RayMARCH(PS_INPUT input)
 {
     // fxc /E PS_RayMARCH /T ps_5_0 ./PS_RayMARCH.hlsl /Fo ./obj/PS_RayMARCH
+    PS_OUTPUT output;
+    output.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
+    output.depth = -10000.0f;
+    
     float4 posP;
-    posP.x = +2.0f * position.x / postRenderer.rtSize.x - 1.0f;
-    posP.y = -2.0f * position.y / postRenderer.rtSize.y + 1.0f;
+    posP.x = +2.0f * input.position.x / postRenderer.rtSize.x - 1.0f;
+    posP.y = -2.0f * input.position.y / postRenderer.rtSize.y + 1.0f;
     posP.z = 0.0f;
     posP.w = 1.0f;
 
@@ -23,12 +38,12 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     
     if (hits.y < 0.0f)
     {
-        return float4(0.0f, 0.0f, 0.0f, 0.0f);
+        return output;
     }
 
     if (hits.x > hits.y)
     {
-        return float4(0.0f, 0.0f, 0.0f, 0.0f);
+        return output;
     }
 
     float3 sphereCenter1 = float3(-0.3f, 0.0f, 0.0f);
@@ -49,11 +64,13 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
 
         if (distance < 0.01f)
         {
-            return float4(color, 1.0f);
+            output.color = float4(color, 1.0f);
+            output.depth = marchDistance;
+            return output;
         }
 
         marchDistance += distance;
     }
 
-    return float4(0.0f, 0.0f, 0.0f, 0.0f);
+    return output;
 }

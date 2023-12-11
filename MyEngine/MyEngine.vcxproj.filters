@@ -21,5 +21,8 @@
     <None Include="hlsl\VS_QUAD.hlsl">
       <Filter>hlsl</Filter>
     </None>
+    <None Include="hlsl\PS_Light.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
   </ItemGroup>
 </Project>
