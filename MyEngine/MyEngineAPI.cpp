@@ -153,6 +153,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   g_renderTargetWidth = w;
   g_renderTargetHeight = h;
 
+  g_sharedSRV.Reset();
+
   D3D11_TEXTURE2D_DESC renderTargetBufferDesc = {};
   renderTargetBufferDesc.Width = g_renderTargetWidth;
   renderTargetBufferDesc.Height = g_renderTargetHeight;
@@ -278,15 +280,7 @@ bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
 
   if (!g_device) return FailRet("Device not initialized.");
 
-  ComPtr<ID3D11Resource> sharedResource;
-  if (g_sharedSRV) g_sharedSRV->GetResource(&sharedResource);
-  bool sharedResourceChanged =
-      g_renderTargetBuffer.Get() != sharedResource.Get();
-  sharedResource.Reset();
-
-  if (sharedResourceChanged) {
-    g_sharedSRV.Reset();
-
+  if (!g_sharedSRV) {
     ComPtr<IDXGIResource> DXGIResource;
 
     HRESULT hr = g_renderTargetBuffer->QueryInterface(
