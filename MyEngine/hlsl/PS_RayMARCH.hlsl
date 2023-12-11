@@ -5,21 +5,6 @@ cbuffer cbQuadRenderer : register(b0)
     PostRenderer postRenderer;
 }
 
-float SphereSDF(float3 pos, float3 center, float radius)
-{
-    return length(pos - center) - radius;
-}
-
-float SmoothMax(float a, float b, float k)
-{
-    return log(exp(k * a) + exp(k * b)) / k;
-}
-
-float SmoothMin(float a, float b, float k)
-{
-    return -SmoothMax(-a, -b, k);
-}
-
 float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
 {
     // fxc /E PS_RayMARCH /T ps_5_0 ./PS_RayMARCH.hlsl /Fo ./obj/PS_RayMARCH
@@ -35,20 +20,22 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     float2 hits = ComputeAABBHits(
         rayOrigin, postRenderer.distBoxCenter - postRenderer.distBoxSize,
         postRenderer.distBoxCenter + postRenderer.distBoxSize, rayDir);
-
+    
     if (hits.y < 0.0f)
     {
-        return float4(0.0f, 0.0f, 0.0f, 1.0f);
+        return float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
     if (hits.x > hits.y)
     {
-        return float4(0.0f, 0.0f, 0.0f, 1.0f);
+        return float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 
     float3 sphereCenter1 = float3(-0.3f, 0.0f, 0.0f);
     float3 sphereCenter2 = float3(0.3f, 0.0f, 0.0f);
     float sphereRadius = 0.3f;
+    float3 sphereColor1 = float3(1.0f, 0.0f, 0.0f);
+    float3 sphereColor2 = float3(0.0f, 0.0f, 1.0f);
 
     float marchDistance = 0.0f;
 
@@ -58,14 +45,15 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
         float d1 = SphereSDF(currentPos, sphereCenter1, sphereRadius);
         float d2 = SphereSDF(currentPos, sphereCenter2, sphereRadius);
         float distance = SmoothMin(d1, d2, 10.0f);
+        float3 color = lerp(sphereColor1, sphereColor2, saturate(d1 / (d1 + d2)));
 
         if (distance < 0.01f)
         {
-            return float4(1.0f, 0.0f, 0.0f, 1.0f);
+            return float4(color, 1.0f);
         }
 
         marchDistance += distance;
     }
 
-    return float4(0.0f, 0.0f, 0.0f, 1.0f);
+    return float4(0.0f, 0.0f, 0.0f, 0.0f);
 }

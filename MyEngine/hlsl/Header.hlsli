@@ -36,3 +36,18 @@ float2 ComputeAABBHits(const float3 posStart, const float3 posMin,
     float tfar = smallestTmax;
     return float2(tnear, tfar);
 }
+
+float SphereSDF(float3 pos, float3 center, float radius)
+{
+    return length(pos - center) - radius;
+}
+
+float SmoothMax(float a, float b, float k)
+{
+    return log(exp(k * a) + exp(k * b)) / k;
+}
+
+float SmoothMin(float a, float b, float k)
+{
+    return -SmoothMax(-a, -b, k);
+}
