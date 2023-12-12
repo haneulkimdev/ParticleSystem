@@ -23,6 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyEngineAPI.h" />
+    <ClInclude Include="ShaderInterop.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\Header.hlsli" />

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <vector>
 
+#include "ShaderInterop.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
 

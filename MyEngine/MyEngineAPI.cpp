@@ -5,19 +5,19 @@ using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 struct PostRenderer {
-  Vector3 posCam;  // WS
+  float3 posCam;  // WS
   int lightColor;
 
-  Vector3 posLight;  // WS
+  float3 posLight;  // WS
   float lightIntensity;
 
-  Matrix matPS2WS;
+  float4x4 matPS2WS;
 
-  Vector2 rtSize;
-  Vector2 dummy0;
+  float2 rtSize;
+  float2 dummy0;
 
-  Vector3 distBoxCenter;  // WS
-  float distBoxSize;      // WS
+  float3 distBoxCenter;  // WS
+  float distBoxSize;     // WS
 };
 
 std::shared_ptr<spdlog::logger> g_apiLogger;
