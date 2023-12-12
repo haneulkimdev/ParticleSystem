@@ -211,12 +211,14 @@ int main(int, char**) {
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
       ImGui::Begin("DirectX11 Texture Test");
 
+      static ImVec2 lastWindowSize = ImVec2(0, 0);
       ImVec2 windowSize = ImGui::GetWindowSize();
-      static ImVec2 lastWindowSize = windowSize;
       bool readyCallRender = false;
       if (lastWindowSize.x != windowSize.x ||
           lastWindowSize.y != windowSize.y) {
-        renderTargetSize = ImGui::GetContentRegionAvail();
+        if (lastWindowSize.x != 0 && lastWindowSize.y != 0) {
+          renderTargetSize = ImGui::GetContentRegionAvail();
+        }
 
         my::SetRenderTargetSize(renderTargetSize.x, renderTargetSize.y);
 
