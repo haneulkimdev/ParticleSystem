@@ -374,6 +374,9 @@ bool my::DoTest() {
   memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
   g_context->Unmap(g_quadRendererCB.Get(), 0);
 
+  ID3D11ShaderResourceView* nullSRV[2] = {nullptr, nullptr};
+  g_context->PSSetShaderResources(0, 2, nullSRV);
+
   ID3D11RenderTargetView* renderTargets[2] = {g_colorRTV.Get(),
                                               g_depthRTV.Get()};
   g_context->OMSetRenderTargets(2, renderTargets, nullptr);
