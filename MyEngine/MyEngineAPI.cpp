@@ -177,16 +177,16 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   my::LoadShaders();
 
   g_particles[0].size = 0.5f;
-  g_particles[0].color = 0xff0000ff;
+  g_particles[0].color = 0xff00ff00;
 
   g_particles[1].size = 0.5f;
-  g_particles[1].color = 0xff00ffff;
+  g_particles[1].color = 0xffff7f00;
 
   g_particles[2].size = 0.5f;
-  g_particles[2].color = 0xff00ff00;
+  g_particles[2].color = 0xff0033ff;
 
   g_particles[3].size = 0.5f;
-  g_particles[3].color = 0xffff0000;
+  g_particles[3].color = 0xff00ffff;
 
   g_view = Matrix::CreateTranslation(Vector3(0.0f, 0.0f, -5.0f));
   g_proj = Matrix::Identity;
@@ -353,10 +353,14 @@ void my::Update(float dt) {
   // Accumulate time.
   t += dt;
 
-  for (int i = 0; i < MAX_PARTICLES; i++) {
-    g_particles[i].position =
-        Vector3(cosf(t * (i + 1)) * 0.5f, sinf(t * (i + 1)) * 0.5f, 0.0f);
-  }
+  g_particles[0].position = Vector3(
+      cosf(t * 1.1f) * 0.5f, cosf(t * 1.3f) * 0.5f, cosf(t * 1.7f) * 0.5f);
+  g_particles[1].position = Vector3(
+      cosf(t * 0.7f) * 0.5f, cosf(t * 1.9f) * 0.5f, cosf(t * 2.3f) * 0.5f);
+  g_particles[2].position = Vector3(
+      cosf(t * 0.3f) * 0.5f, cosf(t * 2.9f) * 0.5f, sinf(t * 1.1f) * 0.5f);
+  g_particles[3].position = Vector3(
+      sinf(t * 1.3f) * 0.5f, sinf(t * 1.7f) * 0.5f, sinf(t * 0.7f) * 0.5f);
 
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
   g_context->Map(g_particleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
@@ -494,6 +498,7 @@ void my::DeinitEngine() {
   g_lightPS.Reset();
 
   // Views
+  g_particleSRV.Reset();
   g_depthRTV.Reset();
   g_colorRTV.Reset();
   g_colorSRV.Reset();

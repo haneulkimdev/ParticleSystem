@@ -1,4 +1,4 @@
-#define MAX_PARTICLES 2
+#define MAX_PARTICLES 4
 
 struct Particle
 {
@@ -58,14 +58,14 @@ float SphereSDF(float3 pos, float3 center, float radius)
     return length(pos - center) - radius;
 }
 
-float SmoothMax(float a, float b, float k)
+float SmoothMinN(float values[MAX_PARTICLES], int n, float k)
 {
-    return log(exp(k * a) + exp(k * b)) / k;
-}
-
-float SmoothMin(float a, float b, float k)
-{
-    return -SmoothMax(-a, -b, k);
+    float accumulator = 0.0f;
+    for (int i = 0; i < n; i++)
+    {
+        accumulator += exp(-k * values[i]);
+    }
+    return -log(accumulator) / k;
 }
 
 // Schlick gives an approximation to Fresnel reflectance (see pg. 233 "Real-Time Rendering 3rd Ed.").

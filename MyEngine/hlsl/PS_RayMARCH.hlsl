@@ -50,24 +50,35 @@ PS_OUTPUT PS_RayMARCH(PS_INPUT input)
 
     float marchDistance = 0.0f;
     
+    float distances[MAX_PARTICLES];
+    float3 colors[MAX_PARTICLES];
+    
     [loop]
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 100; i++)
     {
         float3 currentPos = rayOrigin + rayDir * marchDistance;
-        float d1 = SphereSDF(currentPos, particles[0].position, particles[0].size / 2.0f);
-        float d2 = SphereSDF(currentPos, particles[1].position, particles[1].size / 2.0f);
-        float distance = SmoothMin(d1, d2, 5.0f);
+        
+        float weightSum = 0.0f;
+        float3 color = float3(0.0f, 0.0f, 0.0f);
+        
+        for (int j = 0; j < MAX_PARTICLES; j++)
+        {
+            distances[j] = SphereSDF(currentPos, particles[j].position, particles[j].size / 2.0f);
+            colors[j] = float3(float(particles[j].color & 0xFF) * (1.0f / 255.0f),
+                               float((particles[j].color >> 8) & 0xFF) * (1.0f / 255.0f),
+                               float((particles[j].color >> 16) & 0xFF) * (1.0f / 255.0f));
+            
+            float weight = 1.0f / distances[j];
+            weightSum += weight;
+            color += colors[j] * weight;
+        }
+        
+        color /= max(weightSum, 1e-5f);
+        
+        float distance = SmoothMinN(distances, MAX_PARTICLES, 10.0f);
         
         if (distance < 1e-5f)
         {
-            float3 c1 = float3(float(particles[0].color & 0xFF) * (1.0f / 255.0f),
-                               float((particles[0].color >> 8) & 0xFF) * (1.0f / 255.0f),
-                               float((particles[0].color >> 16) & 0xFF) * (1.0f / 255.0f));
-            float3 c2 = float3(float(particles[1].color & 0xFF) * (1.0f / 255.0f),
-                               float((particles[1].color >> 8) & 0xFF) * (1.0f / 255.0f),
-                               float((particles[1].color >> 16) & 0xFF) * (1.0f / 255.0f));
-            float3 color = lerp(c1, c2, d1 / (d1 + d2));
-            
             output.color = float4(color, 1.0f);
             output.depth = marchDistance;
             return output;
