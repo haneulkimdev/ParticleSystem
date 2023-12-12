@@ -62,7 +62,7 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 // InputLayouts
 ComPtr<ID3D11InputLayout> g_inputLayout;
 
-const UINT MAX_PARTICLES = 2;
+const UINT MAX_PARTICLES = 4;
 
 Particle g_particles[MAX_PARTICLES];
 
@@ -180,7 +180,13 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_particles[0].color = 0xff0000ff;
 
   g_particles[1].size = 0.5f;
-  g_particles[1].color = 0xffff0000;
+  g_particles[1].color = 0xff00ffff;
+
+  g_particles[2].size = 0.5f;
+  g_particles[2].color = 0xff00ff00;
+
+  g_particles[3].size = 0.5f;
+  g_particles[3].color = 0xffff0000;
 
   g_view = Matrix::CreateTranslation(Vector3(0.0f, 0.0f, -5.0f));
   g_proj = Matrix::Identity;
@@ -347,8 +353,10 @@ void my::Update(float dt) {
   // Accumulate time.
   t += dt;
 
-  g_particles[0].position = Vector3(+0.5f * sinf(t) - 0.5f, 0.0f, 0.0f);
-  g_particles[1].position = Vector3(-0.5f * sinf(t) + 0.5f, 0.0f, 0.0f);
+  for (int i = 0; i < MAX_PARTICLES; i++) {
+    g_particles[i].position =
+        Vector3(cosf(t * (i + 1)) * 0.5f, sinf(t * (i + 1)) * 0.5f, 0.0f);
+  }
 
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
   g_context->Map(g_particleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
