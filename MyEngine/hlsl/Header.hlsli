@@ -1,3 +1,12 @@
+#define MAX_PARTICLES 2
+
+struct Particle
+{
+    float3 position;
+    float size;
+    uint color;
+};
+
 struct PostRenderer
 {
     float3 posCam; // WS

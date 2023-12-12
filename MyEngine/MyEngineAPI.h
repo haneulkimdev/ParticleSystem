@@ -17,6 +17,8 @@ MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
 MY_API bool SetRenderTargetSize(int w, int h);
 
+MY_API void Update(float dt);
+
 MY_API bool DoTest();
 MY_API bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
                                       ID3D11ShaderResourceView** sharedSRV,

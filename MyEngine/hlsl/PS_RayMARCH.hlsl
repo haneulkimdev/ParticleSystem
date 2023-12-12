@@ -1,5 +1,7 @@
 #include "Header.hlsli"
 
+StructuredBuffer<Particle> particles : register(t0);
+
 cbuffer cbQuadRenderer : register(b0)
 {
     PostRenderer postRenderer;
@@ -46,25 +48,26 @@ PS_OUTPUT PS_RayMARCH(PS_INPUT input)
         return output;
     }
 
-    float3 sphereCenter1 = float3(-0.3f, 0.0f, 0.0f);
-    float3 sphereCenter2 = float3(0.3f, 0.0f, 0.0f);
-    float sphereRadius = 0.3f;
-    float3 sphereColor1 = float3(1.0f, 0.0f, 0.0f);
-    float3 sphereColor2 = float3(0.0f, 0.0f, 1.0f);
-
     float marchDistance = 0.0f;
     
     [loop]
     for (int i = 0; i < 20; i++)
     {
         float3 currentPos = rayOrigin + rayDir * marchDistance;
-        float d1 = SphereSDF(currentPos, sphereCenter1, sphereRadius);
-        float d2 = SphereSDF(currentPos, sphereCenter2, sphereRadius);
-        float distance = SmoothMin(d1, d2, 10.0f);
-        float3 color = lerp(sphereColor1, sphereColor2, saturate(d1 / (d1 + d2)));
-
+        float d1 = SphereSDF(currentPos, particles[0].position, particles[0].size / 2.0f);
+        float d2 = SphereSDF(currentPos, particles[1].position, particles[1].size / 2.0f);
+        float distance = SmoothMin(d1, d2, 5.0f);
+        
         if (distance < 1e-5f)
         {
+            float3 c1 = float3(float(particles[0].color & 0xFF) * (1.0f / 255.0f),
+                               float((particles[0].color >> 8) & 0xFF) * (1.0f / 255.0f),
+                               float((particles[0].color >> 16) & 0xFF) * (1.0f / 255.0f));
+            float3 c2 = float3(float(particles[1].color & 0xFF) * (1.0f / 255.0f),
+                               float((particles[1].color >> 8) & 0xFF) * (1.0f / 255.0f),
+                               float((particles[1].color >> 16) & 0xFF) * (1.0f / 255.0f));
+            float3 color = lerp(c1, c2, d1 / (d1 + d2));
+            
             output.color = float4(color, 1.0f);
             output.depth = marchDistance;
             return output;

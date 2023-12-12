@@ -4,6 +4,12 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
+struct Particle {
+  float3 position;
+  float size;
+  uint color;
+};
+
 struct PostRenderer {
   float3 posCam;  // WS
   int lightColor;
@@ -30,6 +36,7 @@ ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 ComPtr<ID3D11Texture2D> g_depthStencilBuffer;
 
 // Views
+ComPtr<ID3D11ShaderResourceView> g_particleSRV;
 ComPtr<ID3D11RenderTargetView> g_colorRTV;
 ComPtr<ID3D11ShaderResourceView> g_colorSRV;
 ComPtr<ID3D11RenderTargetView> g_depthRTV;
@@ -44,8 +51,9 @@ ComPtr<ID3D11PixelShader> g_rayMarchPS;
 ComPtr<ID3D11PixelShader> g_lightPS;
 
 // Buffers
+ComPtr<ID3D11Buffer> g_particleBuffer;
 ComPtr<ID3D11Buffer> g_screenQuadVB;
-ComPtr<ID3D11Buffer> g_constantBuffer;
+ComPtr<ID3D11Buffer> g_quadRendererCB;
 
 // States
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
@@ -53,6 +61,10 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 
 // InputLayouts
 ComPtr<ID3D11InputLayout> g_inputLayout;
+
+const UINT MAX_PARTICLES = 2;
+
+Particle g_particles[MAX_PARTICLES];
 
 Vector3 g_posLight;
 int g_lightColor;
@@ -98,6 +110,28 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   if (featureLevel != D3D_FEATURE_LEVEL_11_0)
     FailRet("Direct3D Feature Level 11 unsupported.");
 
+  D3D11_BUFFER_DESC particleBufferDesc = {};
+  particleBufferDesc.ByteWidth = sizeof(Particle) * MAX_PARTICLES;
+  particleBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+  particleBufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+  particleBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+  particleBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+  particleBufferDesc.StructureByteStride = sizeof(Particle);
+
+  g_device->CreateBuffer(&particleBufferDesc, nullptr,
+                         g_particleBuffer.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+  D3D11_SHADER_RESOURCE_VIEW_DESC particleSRVDesc = {};
+  particleSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
+  particleSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+  particleSRVDesc.Buffer.FirstElement = 0;
+  particleSRVDesc.Buffer.ElementWidth = MAX_PARTICLES;
+
+  g_device->CreateShaderResourceView(g_particleBuffer.Get(), &particleSRVDesc,
+                                     g_particleSRV.ReleaseAndGetAddressOf());
+
   D3D11_BUFFER_DESC constantBufferDesc = {};
   constantBufferDesc.ByteWidth = sizeof(PostRenderer);
   constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -106,7 +140,7 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   constantBufferDesc.MiscFlags = 0;
 
   hr = g_device->CreateBuffer(&constantBufferDesc, nullptr,
-                              g_constantBuffer.ReleaseAndGetAddressOf());
+                              g_quadRendererCB.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
@@ -141,6 +175,12 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   my::BuildScreenQuadGeometryBuffers();
 
   my::LoadShaders();
+
+  g_particles[0].size = 0.5f;
+  g_particles[0].color = 0xff0000ff;
+
+  g_particles[1].size = 0.5f;
+  g_particles[1].color = 0xffff0000;
 
   g_view = Matrix::CreateTranslation(Vector3(0.0f, 0.0f, -5.0f));
   g_proj = Matrix::Identity;
@@ -301,6 +341,22 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
+void my::Update(float dt) {
+  static float t = 0;
+
+  // Accumulate time.
+  t += dt;
+
+  g_particles[0].position = Vector3(+0.5f * sinf(t) - 0.5f, 0.0f, 0.0f);
+  g_particles[1].position = Vector3(-0.5f * sinf(t) + 0.5f, 0.0f, 0.0f);
+
+  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+  g_context->Map(g_particleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+                 &mappedResource);
+  memcpy(mappedResource.pData, g_particles, sizeof(g_particles));
+  g_context->Unmap(g_particleBuffer.Get(), 0);
+}
+
 bool my::DoTest() {
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_view.Translation();
@@ -313,10 +369,10 @@ bool my::DoTest() {
   quadPostRenderer.distBoxSize = g_distBoxSize;
 
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-  g_context->Map(g_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+  g_context->Map(g_quadRendererCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
                  &mappedResource);
   memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
-  g_context->Unmap(g_constantBuffer.Get(), 0);
+  g_context->Unmap(g_quadRendererCB.Get(), 0);
 
   ID3D11RenderTargetView* renderTargets[2] = {g_colorRTV.Get(),
                                               g_depthRTV.Get()};
@@ -331,7 +387,8 @@ bool my::DoTest() {
 
   g_context->VSSetShader(g_quadVS.Get(), nullptr, 0);
   g_context->PSSetShader(g_rayMarchPS.Get(), nullptr, 0);
-  g_context->PSSetConstantBuffers(0, 1, g_constantBuffer.GetAddressOf());
+  g_context->PSSetShaderResources(0, 1, g_particleSRV.GetAddressOf());
+  g_context->PSSetConstantBuffers(0, 1, g_quadRendererCB.GetAddressOf());
 
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
   g_context->RSSetState(g_rasterizerState.Get());
@@ -416,8 +473,9 @@ void my::DeinitEngine() {
   g_inputLayout.Reset();
 
   // Buffers
+  g_particleBuffer.Reset();
   g_screenQuadVB.Reset();
-  g_constantBuffer.Reset();
+  g_quadRendererCB.Reset();
 
   // Shaders
   g_quadVS.Reset();

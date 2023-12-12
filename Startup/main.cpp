@@ -213,7 +213,6 @@ int main(int, char**) {
 
       static ImVec2 lastWindowSize = ImVec2(0, 0);
       ImVec2 windowSize = ImGui::GetWindowSize();
-      bool readyCallRender = false;
       if (lastWindowSize.x != windowSize.x ||
           lastWindowSize.y != windowSize.y) {
         if (lastWindowSize.x != 0 && lastWindowSize.y != 0) {
@@ -223,7 +222,6 @@ int main(int, char**) {
         my::SetRenderTargetSize(renderTargetSize.x, renderTargetSize.y);
 
         lastWindowSize = windowSize;
-        readyCallRender = true;
       }
 
       ImVec2 cursorPos = ImGui::GetCursorPos();
@@ -232,7 +230,8 @@ int main(int, char**) {
           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
       ImGui::SetItemAllowOverlap();
 
-      if (readyCallRender) my::DoTest();
+      my::Update(ImGui::GetIO().DeltaTime);
+      my::DoTest();
 
       ID3D11ShaderResourceView* textureView = nullptr;
       int w, h;
