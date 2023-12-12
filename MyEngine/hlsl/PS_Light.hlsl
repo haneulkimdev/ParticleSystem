@@ -26,14 +26,17 @@ float4 PS_Light(PS_INPUT input) : SV_TARGET
         return float4(0.0f, 0.0f, 0.0f, 1.0f);
     }
     
-    float2 invRtSize = float2(1.0f / postRenderer.rtSize.x, 1.0f / postRenderer.rtSize.y);
+    float width = postRenderer.rtSize.x;
+    float height = postRenderer.rtSize.y;
+    
+    const float aspectRatio = width / height;
     
     float dzdx =
         (g_depth.Load(int3(x + 1, y, 0)).r - g_depth.Load(int3(x - 1, y, 0)).r) /
-        (2.0f * invRtSize.x);
+        (2.0f / width * aspectRatio);
     float dzdy =
         (g_depth.Load(int3(x, y + 1, 0)).r - g_depth.Load(int3(x, y - 1, 0)).r) /
-        (2.0f * invRtSize.y);
+        (2.0f / height);
     
     if (abs(dzdx) > 1e3f || abs(dzdy) > 1e3f)
     {
@@ -43,8 +46,8 @@ float4 PS_Light(PS_INPUT input) : SV_TARGET
     float3 normal = normalize(float3(dzdx, -dzdy, -1.0f));
     
     float4 posP;
-    posP.x = +2.0f * x / postRenderer.rtSize.x - 1.0f;
-    posP.y = -2.0f * y / postRenderer.rtSize.y + 1.0f;
+    posP.x = +2.0f * x / width - 1.0f;
+    posP.y = -2.0f * y / height + 1.0f;
     posP.z = 0.0f;
     posP.w = 1.0f;
     
