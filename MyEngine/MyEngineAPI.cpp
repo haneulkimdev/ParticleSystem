@@ -66,7 +66,6 @@ const UINT MAX_PARTICLES = 4;
 
 Particle g_particles[MAX_PARTICLES];
 
-Vector3 g_posLight;
 int g_lightColor;
 float g_lightIntensity;
 
@@ -189,9 +188,7 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_particles[3].color = 0xff00ffff;
 
   g_view = Matrix::CreateTranslation(Vector3(0.0f, 0.0f, -5.0f));
-  g_proj = Matrix::Identity;
 
-  g_posLight = Vector3(0.0f, 1.0f, 0.0f);
   g_lightColor = 0xffffffff;
   g_lightIntensity = 1.0f;
 
@@ -373,7 +370,7 @@ bool my::DoTest() {
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_view.Translation();
   quadPostRenderer.lightColor = g_lightColor;
-  quadPostRenderer.posLight = g_posLight;
+  quadPostRenderer.posLight = quadPostRenderer.posCam;
   quadPostRenderer.lightIntensity = g_lightIntensity;
   quadPostRenderer.matPS2WS = (g_view * g_proj).Invert();
   quadPostRenderer.rtSize = Vector2(g_renderTargetWidth, g_renderTargetHeight);
