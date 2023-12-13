@@ -50,12 +50,11 @@ float4 PS_Light(PS_INPUT input) : SV_TARGET
     posP.y = -2.0f * y / height + 1.0f;
     posP.z = 0.0f;
     posP.w = 1.0f;
-    
-    float3 posW = mul(posP, postRenderer.matPS2WS).xyz;
 
-    float3 rayDir = normalize(posW - postRenderer.posCam);
+    float3 rayOrigin = postRenderer.posCam;
+    float3 rayDir = normalize(mul(posP, postRenderer.matPS2WS).xyz - rayOrigin);
     
-    float3 finalPos = posW + rayDir * g_depth.Load(int3(x, y, 0)).r;
+    float3 finalPos = rayOrigin + rayDir * g_depth.Load(int3(x, y, 0)).r;
 
     float3 toEye = normalize(postRenderer.posCam - finalPos);
 
