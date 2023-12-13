@@ -33,10 +33,10 @@ float4 PS_Light(PS_INPUT input) : SV_TARGET
     
     float dzdx =
         (g_depth.Load(int3(x + 1, y, 0)).r - g_depth.Load(int3(x - 1, y, 0)).r) /
-        (2.0f / width * aspectRatio);
+        (2.0f * (2.0f / width * aspectRatio));
     float dzdy =
         (g_depth.Load(int3(x, y + 1, 0)).r - g_depth.Load(int3(x, y - 1, 0)).r) /
-        (2.0f / height);
+        (2.0f * (2.0f / height));
     
     if (abs(dzdx) > 1e3f || abs(dzdy) > 1e3f)
     {
