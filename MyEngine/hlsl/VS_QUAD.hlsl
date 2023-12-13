@@ -1,7 +1,5 @@
 #include "Header.hlsli"
 
-// Buffer<float4> g_bufVtx : register(t0); // Mask OTFs StructuredBuffer
-
 struct VS_QUAD_INPUT
 {
     float3 position : POSITION;

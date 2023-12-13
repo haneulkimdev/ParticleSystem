@@ -10,7 +10,7 @@ struct Particle
 struct PostRenderer
 {
     float3 posCam; // WS
-    int lightColor;
+    uint lightColor;
 
     float3 posLight; // WS
     float lightIntensity;

@@ -10,9 +10,15 @@ struct Particle {
   uint color;
 };
 
+struct Light {
+  float3 position;
+  float intensity;
+  uint color;
+};
+
 struct PostRenderer {
   float3 posCam;  // WS
-  int lightColor;
+  uint lightColor;
 
   float3 posLight;  // WS
   float lightIntensity;
@@ -66,11 +72,9 @@ const UINT MAX_PARTICLES = 4;
 
 Particle g_particles[MAX_PARTICLES];
 
-int g_lightColor;
-float g_lightIntensity;
+Light g_pointLight;
 
-Matrix g_view;
-Matrix g_proj;
+Camera g_camera;
 
 Vector3 g_distBoxCenter;
 float g_distBoxSize;
@@ -175,22 +179,28 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   my::LoadShaders();
 
-  g_particles[0].size = 0.5f;
+  g_particles[0].size = 1.0f;
   g_particles[0].color = 0xff00ff00;
 
-  g_particles[1].size = 0.5f;
+  g_particles[1].size = 0.4f;
   g_particles[1].color = 0xffff7f00;
 
-  g_particles[2].size = 0.5f;
+  g_particles[2].size = 0.7f;
   g_particles[2].color = 0xff0033ff;
 
-  g_particles[3].size = 0.5f;
+  g_particles[3].size = 0.4f;
   g_particles[3].color = 0xff00ffff;
 
-  g_view = Matrix::CreateTranslation(Vector3(0.0f, 0.0f, -5.0f));
+  g_pointLight.color = 0xffffffff;
+  g_pointLight.intensity = 1.0f;
 
-  g_lightColor = 0xffffffff;
-  g_lightIntensity = 1.0f;
+  // Build the view matrix.
+  Vector3 pos(0.0f, 0.0f, -5.0f);
+  Vector3 forward(0.0f, 0.0f, 1.0f);
+  Vector3 up(0.0f, 1.0f, 0.0f);
+
+  g_camera.LookAt(pos, pos + forward, up);
+  g_camera.UpdateViewMatrix();
 
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
@@ -337,9 +347,10 @@ bool my::SetRenderTargetSize(int w, int h) {
 
   g_context->RSSetViewports(1, &g_viewport);
 
-  g_proj = XMMatrixOrthographicLH(
-      static_cast<float>(g_renderTargetWidth) / g_renderTargetHeight * 2.0f,
-      2.0f, 0.0f, 1.0f);
+  g_camera.SetLens(0.25f * XM_PI,
+                   static_cast<float>(g_renderTargetWidth) /
+                       static_cast<float>(g_renderTargetHeight),
+                   1.0f, 1000.0f);
 
   return true;
 }
@@ -368,11 +379,11 @@ void my::Update(float dt) {
 
 bool my::DoTest() {
   PostRenderer quadPostRenderer = {};
-  quadPostRenderer.posCam = g_view.Translation();
-  quadPostRenderer.lightColor = g_lightColor;
+  quadPostRenderer.posCam = g_camera.GetPosition();
+  quadPostRenderer.lightColor = g_pointLight.color;
   quadPostRenderer.posLight = quadPostRenderer.posCam;
-  quadPostRenderer.lightIntensity = g_lightIntensity;
-  quadPostRenderer.matPS2WS = (g_view * g_proj).Invert();
+  quadPostRenderer.lightIntensity = g_pointLight.intensity;
+  quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
   quadPostRenderer.rtSize = Vector2(g_renderTargetWidth, g_renderTargetHeight);
   quadPostRenderer.distBoxCenter = g_distBoxCenter;
   quadPostRenderer.distBoxSize = g_distBoxSize;
