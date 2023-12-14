@@ -291,7 +291,7 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-void my::Update(float dt) {
+void my::UpdateParticles(float dt) {
   static float t = 0;
 
   // Accumulate time.
