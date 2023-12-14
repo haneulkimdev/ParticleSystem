@@ -60,12 +60,12 @@ float SphereSDF(float3 pos, float3 center, float radius)
 
 float SmoothMinN(float values[MAX_PARTICLES], int n, float k)
 {
-    float accumulator = 0.0f;
+    float sum = 0.0f;
     for (int i = 0; i < n; i++)
     {
-        accumulator += exp(-k * values[i]);
+        sum += exp(-k * values[i]);
     }
-    return -log(accumulator) / k;
+    return -log(sum) / k;
 }
 
 // Schlick gives an approximation to Fresnel reflectance (see pg. 233 "Real-Time Rendering 3rd Ed.").
