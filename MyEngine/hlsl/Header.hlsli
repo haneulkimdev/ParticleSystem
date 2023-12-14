@@ -1,4 +1,5 @@
 #define MAX_PARTICLES 4
+#define USE_SMOOTH_MIN_N
 
 struct Particle
 {
@@ -68,6 +69,16 @@ float SphereSDF(float3 pos, float3 center, float radius)
     return length(pos - center) - radius;
 }
 
+float SmoothMax(float a, float b, float k)
+{
+    return log(exp(k * a) + exp(k * b)) / k;
+}
+
+float SmoothMin(float a, float b, float k)
+{
+    return -SmoothMax(-a, -b, k);
+}
+
 float SmoothMinN(float values[MAX_PARTICLES], int n, float k)
 {
     float sum = 0.0f;
@@ -80,12 +91,21 @@ float SmoothMinN(float values[MAX_PARTICLES], int n, float k)
 
 float GetDist(float3 pos, StructuredBuffer<Particle> particles)
 {
+#ifndef USE_SMOOTH_MIN_N
+    float distance = SphereSDF(pos, particles[0].position, particles[0].size / 2.0f);
+    for (int i = 1; i < MAX_PARTICLES; i++)
+    {
+        distance = SmoothMin(distance, SphereSDF(pos, particles[i].position, particles[i].size / 2.0f), 10.0f);
+    }
+    return distance;
+#else
     float distances[MAX_PARTICLES];
     for (int i = 0; i < MAX_PARTICLES; i++)
     {
         distances[i] = SphereSDF(pos, particles[i].position, particles[i].size / 2.0f);
     }
     return SmoothMinN(distances, MAX_PARTICLES, 10.0f);
+#endif
 }
 
 float3 GetColor(float3 pos, StructuredBuffer<Particle> particles)
