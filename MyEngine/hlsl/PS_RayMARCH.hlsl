@@ -1,5 +1,9 @@
 #include "Header.hlsli"
 
+#define MAX_STEPS 100
+#define SURF_DIST 1e-5f
+#define SURF_REFINEMENT 5
+
 StructuredBuffer<Particle> particles : register(t0);
 
 cbuffer cbQuadRenderer : register(b0)
@@ -37,19 +41,44 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     float marchDistance = hits.x;
     
     [loop]
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < MAX_STEPS; i++)
     {
         float3 currentPos = rayOrigin + rayDir * marchDistance;
         
         float distance = GetDist(currentPos, particles);
         
-        if (distance < 1e-5f)
+        if (distance <= 0.0f)
+#ifdef SURF_REFINEMENT
+        {
+            float3 st = currentPos - rayDir * SURF_DIST;
+            float3 en = currentPos;
+            
+            [loop]
+            for (int j = 0; j < SURF_REFINEMENT; j++)
+            {
+                float3 mid = (st + en) / 2.0f;
+                if (GetDist(mid, particles) > 0.0f)
+                {
+                    st = mid;
+                }
+                else
+                {
+                    en = mid;
+                }
+                currentPos = mid;
+            }
+            
+            return float4(GetLight(currentPos, particles, quadRenderer), 1.0f);
+        }
+        
+        marchDistance += max(distance, SURF_DIST);
+#else
         {
             return float4(GetLight(currentPos, particles, quadRenderer), 1.0f);
         }
         
         marchDistance += distance;
+#endif
     }
-    
     return float4(0.0f, 0.0f, 0.0f, 1.0f);
 }
