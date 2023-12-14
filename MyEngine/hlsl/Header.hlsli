@@ -181,5 +181,5 @@ float3 GetLight(float3 pos, StructuredBuffer<Particle> particles, PostRenderer q
     float ndotl = max(dot(lightVec, normal), 0.0f);
     float3 lightStrength = lightColor * quadRenderer.lightIntensity * ndotl;
             
-    return float4(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 1.0f);
+    return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
 }
