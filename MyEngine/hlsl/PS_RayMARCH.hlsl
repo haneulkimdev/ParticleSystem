@@ -7,26 +7,11 @@ cbuffer cbQuadRenderer : register(b0)
     PostRenderer postRenderer;
 }
 
-struct PS_INPUT
-{
-    float4 position : SV_POSITION;
-};
-
-struct PS_OUTPUT
-{
-    float4 color : SV_Target0;
-    float depth : SV_Target1;
-};
-
-PS_OUTPUT PS_RayMARCH(PS_INPUT input)
+float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
 {
     // fxc /E PS_RayMARCH /T ps_5_0 ./PS_RayMARCH.hlsl /Fo ./obj/PS_RayMARCH
-    PS_OUTPUT output;
-    output.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-    output.depth = -1e3f;
-    
-    float x = input.position.x;
-    float y = input.position.y;
+    float x = position.x;
+    float y = position.y;
 
     float width = postRenderer.rtSize.x;
     float height = postRenderer.rtSize.y;
@@ -44,56 +29,44 @@ PS_OUTPUT PS_RayMARCH(PS_INPUT input)
         rayOrigin, postRenderer.distBoxCenter - postRenderer.distBoxSize,
         postRenderer.distBoxCenter + postRenderer.distBoxSize, rayDir);
     
-    if (hits.y < 0.0f)
-    {
-        return output;
-    }
-
     if (hits.x > hits.y)
     {
-        return output;
+        return float4(0.0f, 0.0f, 0.0f, 1.0f);
     }
 
-    float marchDistance = 0.0f;
-
-    float distances[MAX_PARTICLES];
-    float3 colors[MAX_PARTICLES];
-
+    float marchDistance = hits.x;
+    
     [loop]
     for (int i = 0; i < 100; i++)
     {
         float3 currentPos = rayOrigin + rayDir * marchDistance;
-
-        float weightSum = 0.0f;
-        float3 color = float3(0.0f, 0.0f, 0.0f);
-
-        for (int j = 0; j < MAX_PARTICLES; j++)
-        {
-            distances[j] = SphereSDF(currentPos, particles[j].position,
-                                     particles[j].size / 2.0f);
-            colors[j] =
-                float3(float(particles[j].color & 0xFF) * (1.0f / 255.0f),
-                       float((particles[j].color >> 8) & 0xFF) * (1.0f / 255.0f),
-                       float((particles[j].color >> 16) & 0xFF) * (1.0f / 255.0f));
-
-            float weight = 1.0f / distances[j];
-            weightSum += weight;
-            color += colors[j] * weight;
-        }
-
-        color /= max(weightSum, 1e-5f);
-
-        float distance = SmoothMinN(distances, MAX_PARTICLES, 10.0f);
-
+        
+        float distance = GetDist(currentPos, particles);
+        
         if (distance < 1e-5f)
         {
-            output.color = float4(color, 1.0f);
-            output.depth = marchDistance;
-            return output;
-        }
+            float3 toEye = normalize(postRenderer.posCam - currentPos);
 
+            float3 lightColor = ColorConvertU32ToFloat4(postRenderer.lightColor).rgb;
+
+            float4 diffuseAlbedo = float4(GetColor(currentPos, particles), 1.0f);
+            const float3 fresnelR0 = float3(0.05f, 0.05f, 0.05f);
+            const float shininess = 0.8f;
+            Material mat = { diffuseAlbedo, fresnelR0, shininess };
+
+            float3 normal = GetNormal(currentPos, particles);
+            
+            float3 lightVec = normalize(postRenderer.posLight - currentPos);
+
+            // Scale light down by Lambert's cosine law.
+            float ndotl = max(dot(lightVec, normal), 0.0f);
+            float3 lightStrength = lightColor * postRenderer.lightIntensity * ndotl;
+            
+            return float4(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 1.0f);
+        }
+        
         marchDistance += distance;
     }
-
-    return output;
+    
+    return float4(0.0f, 0.0f, 0.0f, 1.0f);
 }
