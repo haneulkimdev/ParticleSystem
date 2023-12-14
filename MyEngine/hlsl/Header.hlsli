@@ -108,6 +108,17 @@ float GetDist(float3 pos, StructuredBuffer<Particle> particles)
 #endif
 }
 
+float3 GetNormal(float3 pos, StructuredBuffer<Particle> particles)
+{
+    float distance = GetDist(pos, particles);
+    float2 epsilon = float2(0.01f, 0.0f);
+    float3 normal = distance - float3(
+        GetDist(pos - epsilon.xyy, particles),
+        GetDist(pos - epsilon.yxy, particles),
+        GetDist(pos - epsilon.yyx, particles));
+    return normalize(normal);
+}
+
 float3 GetColor(float3 pos, StructuredBuffer<Particle> particles)
 {
     float3 color = float3(0.0f, 0.0f, 0.0f);
@@ -120,17 +131,6 @@ float3 GetColor(float3 pos, StructuredBuffer<Particle> particles)
     }
     color /= weightSum;
     return color;
-}
-
-float3 GetNormal(float3 pos, StructuredBuffer<Particle> particles)
-{
-    float distance = GetDist(pos, particles);
-    float2 epsilon = float2(0.01f, 0.0f);
-    float3 normal = distance - float3(
-        GetDist(pos - epsilon.xyy, particles),
-        GetDist(pos - epsilon.yxy, particles),
-        GetDist(pos - epsilon.yyx, particles));
-    return normalize(normal);
 }
 
 // Schlick gives an approximation to Fresnel reflectance (see pg. 233 "Real-Time Rendering 3rd Ed.").
@@ -160,4 +160,26 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
     specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 
     return (mat.DiffuseAlbedo.rgb + specAlbedo) * lightStrength;
+}
+
+float3 GetLight(float3 pos, StructuredBuffer<Particle> particles, PostRenderer quadRenderer)
+{
+    float3 toEye = normalize(quadRenderer.posCam - pos);
+
+    float3 lightColor = ColorConvertU32ToFloat4(quadRenderer.lightColor).rgb;
+
+    float4 diffuseAlbedo = float4(GetColor(pos, particles), 1.0f);
+    const float3 fresnelR0 = float3(0.05f, 0.05f, 0.05f);
+    const float shininess = 0.8f;
+    Material mat = { diffuseAlbedo, fresnelR0, shininess };
+
+    float3 normal = GetNormal(pos, particles);
+            
+    float3 lightVec = normalize(quadRenderer.posLight - pos);
+
+    // Scale light down by Lambert's cosine law.
+    float ndotl = max(dot(lightVec, normal), 0.0f);
+    float3 lightStrength = lightColor * quadRenderer.lightIntensity * ndotl;
+            
+    return float4(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 1.0f);
 }

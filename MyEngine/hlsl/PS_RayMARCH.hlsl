@@ -4,7 +4,7 @@ StructuredBuffer<Particle> particles : register(t0);
 
 cbuffer cbQuadRenderer : register(b0)
 {
-    PostRenderer postRenderer;
+    PostRenderer quadRenderer;
 }
 
 float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
@@ -13,8 +13,8 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     float x = position.x;
     float y = position.y;
 
-    float width = postRenderer.rtSize.x;
-    float height = postRenderer.rtSize.y;
+    float width = quadRenderer.rtSize.x;
+    float height = quadRenderer.rtSize.y;
     
     float4 posP;
     posP.x = +2.0f * x / width - 1.0f;
@@ -22,12 +22,12 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     posP.z = 0.0f;
     posP.w = 1.0f;
 
-    float3 rayOrigin = postRenderer.posCam;
-    float3 rayDir = normalize(mul(posP, postRenderer.matPS2WS).xyz - rayOrigin);
+    float3 rayOrigin = quadRenderer.posCam;
+    float3 rayDir = normalize(mul(posP, quadRenderer.matPS2WS).xyz - rayOrigin);
 
     float2 hits = ComputeAABBHits(
-        rayOrigin, postRenderer.distBoxCenter - postRenderer.distBoxSize,
-        postRenderer.distBoxCenter + postRenderer.distBoxSize, rayDir);
+        rayOrigin, quadRenderer.distBoxCenter - quadRenderer.distBoxSize,
+        quadRenderer.distBoxCenter + quadRenderer.distBoxSize, rayDir);
     
     if (hits.x > hits.y)
     {
@@ -45,24 +45,7 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
         
         if (distance < 1e-5f)
         {
-            float3 toEye = normalize(postRenderer.posCam - currentPos);
-
-            float3 lightColor = ColorConvertU32ToFloat4(postRenderer.lightColor).rgb;
-
-            float4 diffuseAlbedo = float4(GetColor(currentPos, particles), 1.0f);
-            const float3 fresnelR0 = float3(0.05f, 0.05f, 0.05f);
-            const float shininess = 0.8f;
-            Material mat = { diffuseAlbedo, fresnelR0, shininess };
-
-            float3 normal = GetNormal(currentPos, particles);
-            
-            float3 lightVec = normalize(postRenderer.posLight - currentPos);
-
-            // Scale light down by Lambert's cosine law.
-            float ndotl = max(dot(lightVec, normal), 0.0f);
-            float3 lightStrength = lightColor * postRenderer.lightIntensity * ndotl;
-            
-            return float4(BlinnPhong(lightStrength, lightVec, normal, toEye, mat), 1.0f);
+            return float4(GetLight(currentPos, particles, quadRenderer), 1.0f);
         }
         
         marchDistance += distance;
