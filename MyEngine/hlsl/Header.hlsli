@@ -31,6 +31,16 @@ struct Material
     float Shininess;
 };
 
+float4 ColorConvertU32ToFloat4(uint color)
+{
+    float s = 1.0f / 255.0f;
+    return float4(
+        ((color) & 0xFF) * s,
+        ((color >> 8) & 0xFF) * s,
+        ((color >> 16) & 0xFF) * s,
+        ((color >> 24) & 0xFF) * s);
+}
+
 float2 ComputeAABBHits(const float3 posStart, const float3 posMin,
                        const float3 posMax, const float3 vecDir)
 {
@@ -66,6 +76,41 @@ float SmoothMinN(float values[MAX_PARTICLES], int n, float k)
         sum += exp(-k * values[i]);
     }
     return -log(sum) / k;
+}
+
+float GetDist(float3 pos, StructuredBuffer<Particle> particles)
+{
+    float distances[MAX_PARTICLES];
+    for (int i = 0; i < MAX_PARTICLES; i++)
+    {
+        distances[i] = SphereSDF(pos, particles[i].position, particles[i].size / 2.0f);
+    }
+    return SmoothMinN(distances, MAX_PARTICLES, 10.0f);
+}
+
+float3 GetColor(float3 pos, StructuredBuffer<Particle> particles)
+{
+    float3 color = float3(0.0f, 0.0f, 0.0f);
+    float weightSum = 0.0f;
+    for (int i = 0; i < MAX_PARTICLES; i++)
+    {
+        float weight = 1.0f / SphereSDF(pos, particles[i].position, particles[i].size / 2.0f);
+        color += ColorConvertU32ToFloat4(particles[i].color).rgb * weight;
+        weightSum += weight;
+    }
+    color /= weightSum;
+    return color;
+}
+
+float3 GetNormal(float3 pos, StructuredBuffer<Particle> particles)
+{
+    float distance = GetDist(pos, particles);
+    float2 epsilon = float2(0.01f, 0.0f);
+    float3 normal = distance - float3(
+        GetDist(pos - epsilon.xyy, particles),
+        GetDist(pos - epsilon.yxy, particles),
+        GetDist(pos - epsilon.yyx, particles));
+    return normalize(normal);
 }
 
 // Schlick gives an approximation to Fresnel reflectance (see pg. 233 "Real-Time Rendering 3rd Ed.").
