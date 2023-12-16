@@ -22,10 +22,20 @@ MY_API UINT GetMaxParticleCount();
 
 MY_API float GetParticleSize(int index);
 MY_API Color GetParticleColor(int index);
+
+MY_API Vector3 GetLightPosition();
+MY_API float GetLightIntensity();
+MY_API Color GetLightColor();
+
 MY_API float GetSmoothingCoefficient();
 
 MY_API void SetParticleSize(int index, float size);
 MY_API void SetParticleColor(int index, const Color& color);
+
+MY_API void SetLightPosition(const Vector3& position);
+MY_API void SetLightIntensity(float intensity);
+MY_API void SetLightColor(const Color& color);
+
 MY_API void SetSmoothingCoefficient(float smoothingCoefficient);
 
 MY_API void UpdateParticles(float dt);

@@ -16,7 +16,7 @@ struct Particle {
   uint color = my::ColorConvertFloat4ToU32(Color(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
-struct Light {
+struct PointLight {
   float3 position;
   float intensity;
   uint color;
@@ -74,7 +74,7 @@ const UINT MAX_PARTICLES = 4;
 
 Particle g_particles[MAX_PARTICLES];
 
-Light g_pointLight;
+PointLight g_pointLight;
 
 Camera g_camera;
 
@@ -196,9 +196,6 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   my::SetParticleColor(2, Color(1.0f, 0.2f, 0.0f, 1.0f));
   my::SetParticleColor(3, Color(1.0f, 1.0f, 0.0f, 1.0f));
 
-  g_pointLight.color = ColorConvertFloat4ToU32(Color(1.0f, 1.0f, 1.0f, 1.0f));
-  g_pointLight.intensity = 1.0f;
-
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -5.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
@@ -206,6 +203,10 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   g_camera.LookAt(pos, pos + forward, up);
   g_camera.UpdateViewMatrix();
+
+  g_pointLight.position = g_camera.GetPosition();
+  g_pointLight.color = ColorConvertFloat4ToU32(Color(1.0f, 1.0f, 1.0f, 1.0f));
+  g_pointLight.intensity = 1.0f;
 
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
@@ -311,6 +312,14 @@ Color my::GetParticleColor(int index) {
   return my::ColorConvertU32ToFloat4(g_particles[index].color);
 }
 
+Vector3 my::GetLightPosition() { return g_pointLight.position; }
+
+float my::GetLightIntensity() { return g_pointLight.intensity; }
+
+Color my::GetLightColor() {
+  return my::ColorConvertU32ToFloat4(g_pointLight.color);
+}
+
 float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
 
 void my::SetParticleSize(int index, float size) {
@@ -319,6 +328,18 @@ void my::SetParticleSize(int index, float size) {
 
 void my::SetParticleColor(int index, const Color& color) {
   g_particles[index].color = my::ColorConvertFloat4ToU32(color);
+}
+
+void my::SetLightPosition(const Vector3& position) {
+  g_pointLight.position = position;
+}
+
+void my::SetLightIntensity(float intensity) {
+  g_pointLight.intensity = intensity;
+}
+
+void my::SetLightColor(const Color& color) {
+  g_pointLight.color = my::ColorConvertFloat4ToU32(color);
 }
 
 void my::SetSmoothingCoefficient(float smoothingCoefficient) {
@@ -351,7 +372,7 @@ bool my::DoTest() {
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_camera.GetPosition();
   quadPostRenderer.lightColor = g_pointLight.color;
-  quadPostRenderer.posLight = quadPostRenderer.posCam;
+  quadPostRenderer.posLight = g_pointLight.position;
   quadPostRenderer.lightIntensity = g_pointLight.intensity;
   quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
   quadPostRenderer.rtSize = Vector2(g_renderTargetWidth, g_renderTargetHeight);
