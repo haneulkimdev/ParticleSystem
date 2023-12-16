@@ -300,7 +300,17 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
+UINT my::GetMaxParticleCount() { return MAX_PARTICLES; }
+
+float my::GetParticleSize(int index) {
+  return g_particles[index].sizeBeginEnd.x;
+}
+
 float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
+
+void my::SetParticleSize(int index, float size) {
+  g_particles[index].sizeBeginEnd = Vector2(size);
+}
 
 void my::SetSmoothingCoefficient(float smoothingCoefficient) {
   g_smoothingCoefficient = smoothingCoefficient;

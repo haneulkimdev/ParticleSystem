@@ -252,6 +252,15 @@ int main(int, char**) {
 
       ImGui::Begin("MyEngine Settings");
 
+      const UINT maxParticleCount = my::GetMaxParticleCount();
+      for (int i = 0; i < maxParticleCount; i++) {
+        float particleSize = my::GetParticleSize(i);
+        if (ImGui::SliderFloat(("Particle Size " + std::to_string(i)).c_str(),
+                               &particleSize, 0.0f, 1.0f)) {
+          my::SetParticleSize(i, particleSize);
+        }
+      }
+
       static float smoothingCoefficient = my::GetSmoothingCoefficient();
       if (ImGui::SliderFloat("Smoothing Coefficient", &smoothingCoefficient,
                              1.0f, 10.0f)) {
