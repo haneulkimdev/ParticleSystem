@@ -300,6 +300,12 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
+float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
+
+void my::SetSmoothingCoefficient(float smoothingCoefficient) {
+  g_smoothingCoefficient = smoothingCoefficient;
+}
+
 void my::UpdateParticles(float dt) {
   static float t = 0;
 

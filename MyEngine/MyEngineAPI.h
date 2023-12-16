@@ -18,6 +18,9 @@ MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
 MY_API bool SetRenderTargetSize(int w, int h);
 
+MY_API float GetSmoothingCoefficient();
+MY_API void SetSmoothingCoefficient(float smoothingCoefficient);
+
 MY_API void UpdateParticles(float dt);
 
 MY_API bool DoTest();

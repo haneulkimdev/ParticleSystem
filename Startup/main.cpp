@@ -120,7 +120,7 @@ int main(int, char**) {
   // nullptr, io.Fonts->GetGlyphRangesJapanese()); IM_ASSERT(font != nullptr);
 
   // Our state
-  bool show_demo_window = true;
+  bool show_demo_window = false;
   bool show_another_window = false;
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -244,8 +244,20 @@ int main(int, char**) {
     }
 
     {
-      ImGui::Begin("Shaders");
-      ImGui::SetWindowPos(ImVec2(0, 0));
+      const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+      ImGui::SetNextWindowPos(
+          ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20),
+          ImGuiCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+
+      ImGui::Begin("MyEngine Settings");
+
+      static float smoothingCoefficient = my::GetSmoothingCoefficient();
+      if (ImGui::SliderFloat("Smoothing Coefficient", &smoothingCoefficient,
+                             1.0f, 10.0f)) {
+        my::SetSmoothingCoefficient(smoothingCoefficient);
+      }
+
       if (ImGui::Button("Reload Shaders")) {
         my::LoadShaders();
         my::DoTest();
