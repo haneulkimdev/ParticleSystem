@@ -36,15 +36,15 @@ float SmoothMinN(float values[MAX_PARTICLES], int n, float k)
     return -log(sum) / k;
 }
 
-float GetLifeLerp(int particleIndex)
+float GetLifeLerp(int index)
 {
-    return 1 - particleBuffer[particleIndex].life / particleBuffer[particleIndex].maxLife;
+    return 1 - particleBuffer[index].life / particleBuffer[index].maxLife;
 }
 
-float GetParticleSize(int particleIndex)
+float GetParticleSize(int index)
 {
-    float lifeLerp = GetLifeLerp(particleIndex);
-    return lerp(particleBuffer[particleIndex].sizeBeginEnd.x, particleBuffer[particleIndex].sizeBeginEnd.y, lifeLerp);
+    float lifeLerp = GetLifeLerp(index);
+    return lerp(particleBuffer[index].sizeBeginEnd.x, particleBuffer[index].sizeBeginEnd.y, lifeLerp);
 }
 
 float GetDist(float3 pos)
