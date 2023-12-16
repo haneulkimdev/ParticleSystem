@@ -252,33 +252,87 @@ int main(int, char**) {
 
       ImGui::Begin("MyEngine Settings");
 
-      const UINT maxParticleCount = my::GetMaxParticleCount();
-      for (int i = 0; i < maxParticleCount; i++) {
-        float particleSize = my::GetParticleSize(i);
-        if (ImGui::SliderFloat(("Particle Size " + std::to_string(i)).c_str(),
-                               &particleSize, 0.0f, 1.0f)) {
-          my::SetParticleSize(i, particleSize);
+      if (ImGui::CollapsingHeader("Emitter")) {
+        int open_action = -1;
+        if (ImGui::Button("Expand all")) open_action = 1;
+        ImGui::SameLine();
+        if (ImGui::Button("Collapse all")) open_action = 0;
+        ImGui::Separator();
+
+        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+        if (ImGui::TreeNode("Emitter Spawn")) {
+          ImGui::TreePop();
+        }
+
+        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+        if (ImGui::TreeNode("Emitter Update")) {
+          ImGui::TreePop();
+        }
+
+        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+        if (ImGui::TreeNode("Particle Spawn")) {
+          if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+          if (ImGui::TreeNode("Initialize Particle")) {
+            ImGui::SeparatorText("Size");
+
+            {
+              const UINT maxParticleCount = my::GetMaxParticleCount();
+              for (int i = 0; i < maxParticleCount; i++) {
+                float particleSize = my::GetParticleSize(i);
+                if (ImGui::SliderFloat(
+                        ("Particle Size " + std::to_string(i)).c_str(),
+                        &particleSize, 0.0f, 1.0f)) {
+                  my::SetParticleSize(i, particleSize);
+                }
+              }
+            }
+
+            ImGui::SeparatorText("Color");
+
+            {
+              const UINT maxParticleCount = my::GetMaxParticleCount();
+              for (int i = 0; i < maxParticleCount; i++) {
+                Color particleColor = my::GetParticleColor(i);
+                if (ImGui::ColorEdit3(
+                        ("Particle Color " + std::to_string(i)).c_str(),
+                        (float*)&particleColor)) {
+                  my::SetParticleColor(i, particleColor);
+                }
+              }
+            }
+
+            ImGui::TreePop();
+          }
+
+          ImGui::TreePop();
+        }
+
+        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+        if (ImGui::TreeNode("Particle Update")) {
+          ImGui::TreePop();
+        }
+
+        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+        if (ImGui::TreeNode("Render")) {
+          ImGui::SeparatorText("Ray Marching");
+          static float smoothingCoefficient = my::GetSmoothingCoefficient();
+          if (ImGui::SliderFloat("Smoothing Coefficient", &smoothingCoefficient,
+                                 1.0f, 10.0f)) {
+            my::SetSmoothingCoefficient(smoothingCoefficient);
+          }
+
+          ImGui::TreePop();
         }
       }
 
-      for (int i = 0; i < maxParticleCount; i++) {
-        Color particleColor = my::GetParticleColor(i);
-        if (ImGui::ColorEdit3(("Particle Color " + std::to_string(i)).c_str(),
-                              (float*)&particleColor)) {
-          my::SetParticleColor(i, particleColor);
+      if (ImGui::CollapsingHeader("Debug")) {
+        ImGui::SeparatorText("Shaders");
+        if (ImGui::Button("Reload Shaders")) {
+          my::LoadShaders();
+          my::DoTest();
         }
       }
 
-      static float smoothingCoefficient = my::GetSmoothingCoefficient();
-      if (ImGui::SliderFloat("Smoothing Coefficient", &smoothingCoefficient,
-                             1.0f, 10.0f)) {
-        my::SetSmoothingCoefficient(smoothingCoefficient);
-      }
-
-      if (ImGui::Button("Reload Shaders")) {
-        my::LoadShaders();
-        my::DoTest();
-      }
       ImGui::End();
     }
 
