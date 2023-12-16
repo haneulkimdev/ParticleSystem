@@ -320,6 +320,10 @@ Color my::GetLightColor() {
   return my::ColorConvertU32ToFloat4(g_pointLight.color);
 }
 
+Vector3 my::GetDistBoxCenter() { return g_distBoxCenter; }
+
+float my::GetDistBoxSize() { return g_distBoxSize; }
+
 float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
 
 void my::SetParticleSize(int index, float size) {
@@ -341,6 +345,10 @@ void my::SetLightIntensity(float intensity) {
 void my::SetLightColor(const Color& color) {
   g_pointLight.color = my::ColorConvertFloat4ToU32(color);
 }
+
+void my::SetDistBoxCenter(const Vector3& center) { g_distBoxCenter = center; }
+
+void my::SetDistBoxSize(float size) { g_distBoxSize = size; }
 
 void my::SetSmoothingCoefficient(float smoothingCoefficient) {
   g_smoothingCoefficient = smoothingCoefficient;
