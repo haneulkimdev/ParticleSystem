@@ -24,7 +24,8 @@ struct PostRenderer
     float4x4 matPS2WS;
 
     float2 rtSize;
-    float2 dummy0;
+    float smoothingCoefficient;
+    float dummy0;
 
     float3 distBoxCenter; // WS
     float distBoxSize; // WS

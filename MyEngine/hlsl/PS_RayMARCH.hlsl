@@ -47,7 +47,7 @@ float GetParticleSize(int particleIndex)
     return lerp(particleBuffer[particleIndex].sizeBeginEnd.x, particleBuffer[particleIndex].sizeBeginEnd.y, lifeLerp);
 }
 
-float GetDist(float3 pos, float smoothingCoefficient)
+float GetDist(float3 pos)
 {
 #define USE_SMOOTH_MIN_N
 #ifdef USE_SMOOTH_MIN_N
@@ -58,7 +58,8 @@ float GetDist(float3 pos, float smoothingCoefficient)
         float radius = GetParticleSize(i) / 2.0f;
         distances[i] = SphereSDF(pos, center, radius);
     }
-    return SmoothMinN(distances, MAX_PARTICLES, smoothingCoefficient);
+    float k = quadRenderer.smoothingCoefficient;
+    return SmoothMinN(distances, MAX_PARTICLES, k);
 #else
     float3 center = particleBuffer[0].position;
     float radius = GetParticleSize(0) / 2.0f;
@@ -67,20 +68,21 @@ float GetDist(float3 pos, float smoothingCoefficient)
     {
         center = particleBuffer[i].position;
         radius = GetParticleSize(i) / 2.0f;
-        distance = SmoothMin(distance, SphereSDF(pos, center, radius), smoothingCoefficient);
+        float k = quadRenderer.smoothingCoefficient;
+        distance = SmoothMin(distance, SphereSDF(pos, center, radius), k);
     }
     return distance;
 #endif
 }
 
-float3 GetNormal(float3 pos, float smoothingCoefficient)
+float3 GetNormal(float3 pos)
 {
-    float distance = GetDist(pos, smoothingCoefficient);
+    float distance = GetDist(pos);
     float2 epsilon = float2(0.01f, 0.0f);
     float3 normal = distance - float3(
-        GetDist(pos - epsilon.xyy, smoothingCoefficient),
-        GetDist(pos - epsilon.yxy, smoothingCoefficient),
-        GetDist(pos - epsilon.yyx, smoothingCoefficient));
+        GetDist(pos - epsilon.xyy),
+        GetDist(pos - epsilon.yxy),
+        GetDist(pos - epsilon.yyx));
     return normalize(normal);
 }
 
@@ -100,7 +102,7 @@ float3 GetColor(float3 pos)
     return color;
 }
 
-float3 GetLight(float3 pos, float smoothingCoefficient)
+float3 GetLight(float3 pos)
 {
     float3 toEye = normalize(quadRenderer.posCam - pos);
 
@@ -111,7 +113,7 @@ float3 GetLight(float3 pos, float smoothingCoefficient)
     const float shininess = 0.8f;
     Material mat = { diffuseAlbedo, fresnelR0, shininess };
 
-    float3 normal = GetNormal(pos, smoothingCoefficient);
+    float3 normal = GetNormal(pos);
             
     float3 lightVec = normalize(quadRenderer.posLight - pos);
 
@@ -148,8 +150,6 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     {
         return float4(0.0f, 0.0f, 0.0f, 1.0f);
     }
-    
-    const float smoothingCoefficient = 10.0f;
 
     float marchDistance = hits.x;
     
@@ -158,7 +158,7 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     {
         float3 currentPos = rayOrigin + rayDir * marchDistance;
         
-        float distance = GetDist(currentPos, smoothingCoefficient);
+        float distance = GetDist(currentPos);
         
         if (distance <= 0.0f)
 #ifdef SURF_REFINEMENT
@@ -170,7 +170,7 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
             for (int j = 0; j < SURF_REFINEMENT; j++)
             {
                 float3 mid = (st + en) / 2.0f;
-                if (GetDist(mid, smoothingCoefficient) > 0.0f)
+                if (GetDist(mid) > 0.0f)
                 {
                     st = mid;
                 }
@@ -181,13 +181,13 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
                 currentPos = mid;
             }
             
-            return float4(GetLight(currentPos, smoothingCoefficient), 1.0f);
+            return float4(GetLight(currentPos), 1.0f);
         }
         
         marchDistance += max(distance, SURF_DIST);
 #else
         {
-            return float4(GetLight(currentPos, smoothingCoefficient), 1.0f);
+            return float4(GetLight(currentPos), 1.0f);
         }
         
         marchDistance += distance;

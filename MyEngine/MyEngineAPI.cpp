@@ -32,7 +32,8 @@ struct PostRenderer {
   float4x4 matPS2WS;
 
   float2 rtSize;
-  float2 dummy0;
+  float smoothingCoefficient;
+  float dummy0;
 
   float3 distBoxCenter;  // WS
   float distBoxSize;     // WS
@@ -76,6 +77,8 @@ Particle g_particles[MAX_PARTICLES];
 Light g_pointLight;
 
 Camera g_camera;
+
+float g_smoothingCoefficient = 10.0f;
 
 Vector3 g_distBoxCenter;
 float g_distBoxSize;
@@ -327,6 +330,7 @@ bool my::DoTest() {
   quadPostRenderer.lightIntensity = g_pointLight.intensity;
   quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
   quadPostRenderer.rtSize = Vector2(g_renderTargetWidth, g_renderTargetHeight);
+  quadPostRenderer.smoothingCoefficient = g_smoothingCoefficient;
   quadPostRenderer.distBoxCenter = g_distBoxCenter;
   quadPostRenderer.distBoxSize = g_distBoxSize;
 
