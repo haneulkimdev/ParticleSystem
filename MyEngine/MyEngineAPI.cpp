@@ -5,9 +5,15 @@ using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
 struct Particle {
-  float3 position;
-  float size;
-  uint color;
+  float3 position = Vector3(0.0f);
+  float mass = 1.0f;
+  float3 force = Vector3(0.0f);
+  float rotationalVelocity = 0.0f;
+  float3 velocity = Vector3(0.0f);
+  float maxLife = 1.0f;
+  float2 sizeBeginEnd = Vector2(1.0f);
+  float life = maxLife;
+  uint color = 0xffffffff;
 };
 
 struct Light {
@@ -174,16 +180,16 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   my::LoadShaders();
 
-  g_particles[0].size = 1.0f;
+  g_particles[0].sizeBeginEnd = Vector2(1.0f);
   g_particles[0].color = 0xff00ff00;
 
-  g_particles[1].size = 0.4f;
+  g_particles[1].sizeBeginEnd = Vector2(0.4f);
   g_particles[1].color = 0xffff7f00;
 
-  g_particles[2].size = 0.7f;
+  g_particles[2].sizeBeginEnd = Vector2(0.7f);
   g_particles[2].color = 0xff0033ff;
 
-  g_particles[3].size = 0.4f;
+  g_particles[3].sizeBeginEnd = Vector2(0.4f);
   g_particles[3].color = 0xff00ffff;
 
   g_pointLight.color = 0xffffffff;
