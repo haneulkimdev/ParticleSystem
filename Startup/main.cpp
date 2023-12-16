@@ -314,11 +314,37 @@ int main(int, char**) {
 
         if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
         if (ImGui::TreeNode("Render")) {
-          ImGui::SeparatorText("Ray Marching");
-          static float smoothingCoefficient = my::GetSmoothingCoefficient();
-          if (ImGui::SliderFloat("Smoothing Coefficient", &smoothingCoefficient,
-                                 1.0f, 10.0f)) {
-            my::SetSmoothingCoefficient(smoothingCoefficient);
+          if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+          if (ImGui::TreeNode("Light")) {
+            Vector3 lightPosition = my::GetLightPosition();
+            if (ImGui::SliderFloat3("Light Position", (float*)&lightPosition,
+                                    -10.0f, 10.0f)) {
+              my::SetLightPosition(lightPosition);
+            }
+
+            float lightIntensity = my::GetLightIntensity();
+            if (ImGui::SliderFloat("Light Intensity", &lightIntensity, 0.0f,
+                                   1.0f)) {
+              my::SetLightIntensity(lightIntensity);
+            }
+
+            Color lightColor = my::GetLightColor();
+            if (ImGui::ColorEdit3("Light Color", (float*)&lightColor)) {
+              my::SetLightColor(lightColor);
+            }
+
+            ImGui::TreePop();
+          }
+
+          if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
+          if (ImGui::TreeNode("Ray Marching")) {
+            static float smoothingCoefficient = my::GetSmoothingCoefficient();
+            if (ImGui::SliderFloat("Smoothing Coefficient",
+                                   &smoothingCoefficient, 1.0f, 10.0f)) {
+              my::SetSmoothingCoefficient(smoothingCoefficient);
+            }
+
+            ImGui::TreePop();
           }
 
           ImGui::TreePop();
