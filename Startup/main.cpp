@@ -261,6 +261,14 @@ int main(int, char**) {
         }
       }
 
+      for (int i = 0; i < maxParticleCount; i++) {
+        Color particleColor = my::GetParticleColor(i);
+        if (ImGui::ColorEdit3(("Particle Color " + std::to_string(i)).c_str(),
+                              (float*)&particleColor)) {
+          my::SetParticleColor(i, particleColor);
+        }
+      }
+
       static float smoothingCoefficient = my::GetSmoothingCoefficient();
       if (ImGui::SliderFloat("Smoothing Coefficient", &smoothingCoefficient,
                              1.0f, 10.0f)) {

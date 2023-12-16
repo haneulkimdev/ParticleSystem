@@ -13,7 +13,7 @@ struct Particle {
   float maxLife = 1.0f;
   float2 sizeBeginEnd = Vector2(1.0f);
   float life = maxLife;
-  uint color = 0xffffffff;
+  uint color = my::ColorConvertFloat4ToU32(Color(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
 struct Light {
@@ -125,8 +125,8 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   particleBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
   particleBufferDesc.StructureByteStride = sizeof(Particle);
 
-  g_device->CreateBuffer(&particleBufferDesc, nullptr,
-                         g_particleBuffer.ReleaseAndGetAddressOf());
+  hr = g_device->CreateBuffer(&particleBufferDesc, nullptr,
+                              g_particleBuffer.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
@@ -136,8 +136,11 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   particleSRVDesc.Buffer.FirstElement = 0;
   particleSRVDesc.Buffer.ElementWidth = MAX_PARTICLES;
 
-  g_device->CreateShaderResourceView(g_particleBuffer.Get(), &particleSRVDesc,
-                                     g_particleSRV.ReleaseAndGetAddressOf());
+  hr = g_device->CreateShaderResourceView(
+      g_particleBuffer.Get(), &particleSRVDesc,
+      g_particleSRV.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
 
   D3D11_BUFFER_DESC constantBufferDesc = {};
   constantBufferDesc.ByteWidth = sizeof(PostRenderer);
@@ -183,19 +186,17 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   my::LoadShaders();
 
-  g_particles[0].sizeBeginEnd = Vector2(1.0f);
-  g_particles[0].color = 0xff00ff00;
+  my::SetParticleSize(0, 1.0f);
+  my::SetParticleSize(1, 0.4f);
+  my::SetParticleSize(2, 0.7f);
+  my::SetParticleSize(3, 0.4f);
 
-  g_particles[1].sizeBeginEnd = Vector2(0.4f);
-  g_particles[1].color = 0xffff7f00;
+  my::SetParticleColor(0, Color(0.0f, 1.0f, 0.0f, 1.0f));
+  my::SetParticleColor(1, Color(0.0f, 0.5f, 1.0f, 1.0f));
+  my::SetParticleColor(2, Color(1.0f, 0.2f, 0.0f, 1.0f));
+  my::SetParticleColor(3, Color(1.0f, 1.0f, 0.0f, 1.0f));
 
-  g_particles[2].sizeBeginEnd = Vector2(0.7f);
-  g_particles[2].color = 0xff0033ff;
-
-  g_particles[3].sizeBeginEnd = Vector2(0.4f);
-  g_particles[3].color = 0xff00ffff;
-
-  g_pointLight.color = 0xffffffff;
+  g_pointLight.color = ColorConvertFloat4ToU32(Color(1.0f, 1.0f, 1.0f, 1.0f));
   g_pointLight.intensity = 1.0f;
 
   // Build the view matrix.
@@ -306,10 +307,18 @@ float my::GetParticleSize(int index) {
   return g_particles[index].sizeBeginEnd.x;
 }
 
+Color my::GetParticleColor(int index) {
+  return my::ColorConvertU32ToFloat4(g_particles[index].color);
+}
+
 float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
 
 void my::SetParticleSize(int index, float size) {
   g_particles[index].sizeBeginEnd = Vector2(size);
+}
+
+void my::SetParticleColor(int index, const Color& color) {
+  g_particles[index].color = my::ColorConvertFloat4ToU32(color);
 }
 
 void my::SetSmoothingCoefficient(float smoothingCoefficient) {
@@ -582,4 +591,17 @@ bool my::BuildScreenQuadGeometryBuffers() {
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
   return true;
+}
+
+Color my::ColorConvertU32ToFloat4(UINT color) {
+  float s = 1.0f / 255.0f;
+  return Vector4(((color)&0xFF) * s, ((color >> 8) & 0xFF) * s,
+                 ((color >> 16) & 0xFF) * s, ((color >> 24) & 0xFF) * s);
+}
+
+UINT my::ColorConvertFloat4ToU32(const Color& color) {
+  return static_cast<UINT>(color.R() * 255.0f + 0.5f) |
+         (static_cast<UINT>(color.G() * 255.0f + 0.5f) << 8) |
+         (static_cast<UINT>(color.B() * 255.0f + 0.5f) << 16) |
+         (static_cast<UINT>(color.A() * 255.0f + 0.5f) << 24);
 }

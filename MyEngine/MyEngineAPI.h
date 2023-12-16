@@ -21,9 +21,11 @@ MY_API bool SetRenderTargetSize(int w, int h);
 MY_API UINT GetMaxParticleCount();
 
 MY_API float GetParticleSize(int index);
+MY_API Color GetParticleColor(int index);
 MY_API float GetSmoothingCoefficient();
 
 MY_API void SetParticleSize(int index, float size);
+MY_API void SetParticleColor(int index, const Color& color);
 MY_API void SetSmoothingCoefficient(float smoothingCoefficient);
 
 MY_API void UpdateParticles(float dt);
@@ -42,4 +44,7 @@ bool GetEnginePath(std::string& enginePath);
 bool ReadData(const std::string& name, std::vector<BYTE>& blob);
 
 bool BuildScreenQuadGeometryBuffers();
+
+Color ColorConvertU32ToFloat4(UINT color);
+UINT ColorConvertFloat4ToU32(const Color& color);
 }  // namespace my
