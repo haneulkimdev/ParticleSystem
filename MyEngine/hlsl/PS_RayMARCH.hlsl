@@ -4,11 +4,122 @@
 #define SURF_DIST 1e-5f
 #define SURF_REFINEMENT 5
 
-StructuredBuffer<Particle> particles : register(t0);
+StructuredBuffer<Particle> particleBuffer : register(t0);
 
 cbuffer cbQuadRenderer : register(b0)
 {
     PostRenderer quadRenderer;
+}
+
+float SphereSDF(float3 pos, float3 center, float radius)
+{
+    return length(pos - center) - radius;
+}
+
+float SmoothMax(float a, float b, float k)
+{
+    return log(exp(k * a) + exp(k * b)) / k;
+}
+
+float SmoothMin(float a, float b, float k)
+{
+    return -SmoothMax(-a, -b, k);
+}
+
+float SmoothMinN(float values[MAX_PARTICLES], int n, float k)
+{
+    float sum = 0.0f;
+    for (int i = 0; i < n; i++)
+    {
+        sum += exp(-k * values[i]);
+    }
+    return -log(sum) / k;
+}
+
+float GetLifeLerp(int particleIndex)
+{
+    return 1 - particleBuffer[particleIndex].life / particleBuffer[particleIndex].maxLife;
+}
+
+float GetParticleSize(int particleIndex)
+{
+    float lifeLerp = GetLifeLerp(particleIndex);
+    return lerp(particleBuffer[particleIndex].sizeBeginEnd.x, particleBuffer[particleIndex].sizeBeginEnd.y, lifeLerp);
+}
+
+float GetDist(float3 pos, float smoothingCoefficient)
+{
+#define USE_SMOOTH_MIN_N
+#ifdef USE_SMOOTH_MIN_N
+    float distances[MAX_PARTICLES];
+    for (int i = 0; i < MAX_PARTICLES; i++)
+    {
+        float3 center = particleBuffer[i].position;
+        float radius = GetParticleSize(i) / 2.0f;
+        distances[i] = SphereSDF(pos, center, radius);
+    }
+    return SmoothMinN(distances, MAX_PARTICLES, smoothingCoefficient);
+#else
+    float3 center = particleBuffer[0].position;
+    float radius = GetParticleSize(0) / 2.0f;
+    float distance = SphereSDF(pos, center, radius);
+    for (int i = 1; i < MAX_PARTICLES; i++)
+    {
+        center = particleBuffer[i].position;
+        radius = GetParticleSize(i) / 2.0f;
+        distance = SmoothMin(distance, SphereSDF(pos, center, radius), smoothingCoefficient);
+    }
+    return distance;
+#endif
+}
+
+float3 GetNormal(float3 pos, float smoothingCoefficient)
+{
+    float distance = GetDist(pos, smoothingCoefficient);
+    float2 epsilon = float2(0.01f, 0.0f);
+    float3 normal = distance - float3(
+        GetDist(pos - epsilon.xyy, smoothingCoefficient),
+        GetDist(pos - epsilon.yxy, smoothingCoefficient),
+        GetDist(pos - epsilon.yyx, smoothingCoefficient));
+    return normalize(normal);
+}
+
+float3 GetColor(float3 pos)
+{
+    float3 color = float3(0.0f, 0.0f, 0.0f);
+    float weightSum = 0.0f;
+    for (int i = 0; i < MAX_PARTICLES; i++)
+    {
+        float3 center = particleBuffer[i].position;
+        float radius = GetParticleSize(i) / 2.0f;
+        float weight = 1.0f / SphereSDF(pos, center, radius);
+        color += ColorConvertU32ToFloat4(particleBuffer[i].color).rgb * weight;
+        weightSum += weight;
+    }
+    color /= weightSum;
+    return color;
+}
+
+float3 GetLight(float3 pos, float smoothingCoefficient)
+{
+    float3 toEye = normalize(quadRenderer.posCam - pos);
+
+    float3 lightColor = ColorConvertU32ToFloat4(quadRenderer.lightColor).rgb;
+
+    float4 diffuseAlbedo = float4(GetColor(pos), 1.0f);
+    const float3 fresnelR0 = float3(0.05f, 0.05f, 0.05f);
+    const float shininess = 0.8f;
+    Material mat = { diffuseAlbedo, fresnelR0, shininess };
+
+    float3 normal = GetNormal(pos, smoothingCoefficient);
+            
+    float3 lightVec = normalize(quadRenderer.posLight - pos);
+
+    // Scale light down by Lambert's cosine law.
+    float ndotl = max(dot(lightVec, normal), 0.0f);
+    float3 lightStrength = lightColor * quadRenderer.lightIntensity * ndotl;
+            
+    return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
 }
 
 float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
@@ -37,6 +148,8 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     {
         return float4(0.0f, 0.0f, 0.0f, 1.0f);
     }
+    
+    const float smoothingCoefficient = 10.0f;
 
     float marchDistance = hits.x;
     
@@ -45,7 +158,7 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
     {
         float3 currentPos = rayOrigin + rayDir * marchDistance;
         
-        float distance = GetDist(currentPos, particles);
+        float distance = GetDist(currentPos, smoothingCoefficient);
         
         if (distance <= 0.0f)
 #ifdef SURF_REFINEMENT
@@ -57,7 +170,7 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
             for (int j = 0; j < SURF_REFINEMENT; j++)
             {
                 float3 mid = (st + en) / 2.0f;
-                if (GetDist(mid, particles) > 0.0f)
+                if (GetDist(mid, smoothingCoefficient) > 0.0f)
                 {
                     st = mid;
                 }
@@ -68,13 +181,13 @@ float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
                 currentPos = mid;
             }
             
-            return float4(GetLight(currentPos, particles, quadRenderer), 1.0f);
+            return float4(GetLight(currentPos, smoothingCoefficient), 1.0f);
         }
         
         marchDistance += max(distance, SURF_DIST);
 #else
         {
-            return float4(GetLight(currentPos, particles, quadRenderer), 1.0f);
+            return float4(GetLight(currentPos, smoothingCoefficient), 1.0f);
         }
         
         marchDistance += distance;
