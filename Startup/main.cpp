@@ -338,6 +338,18 @@ int main(int, char**) {
 
           if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
           if (ImGui::TreeNode("Ray Marching")) {
+            Vector3 distBoxCenter = my::GetDistBoxCenter();
+            if (ImGui::SliderFloat3("Dist Box Center", (float*)&distBoxCenter,
+                                    -10.0f, 10.0f)) {
+              my::SetDistBoxCenter(distBoxCenter);
+            }
+
+            float distBoxSize = my::GetDistBoxSize();
+            if (ImGui::SliderFloat("Dist Box Size", &distBoxSize, 0.0f,
+                                   10.0f)) {
+              my::SetDistBoxSize(distBoxSize);
+            }
+
             static float smoothingCoefficient = my::GetSmoothingCoefficient();
             if (ImGui::SliderFloat("Smoothing Coefficient",
                                    &smoothingCoefficient, 1.0f, 10.0f)) {
