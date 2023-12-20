@@ -46,7 +46,7 @@ MY_API void SetDistBoxSize(float size);
 
 MY_API void SetSmoothingCoefficient(float smoothingCoefficient);
 
-MY_API void UpdateParticles(float dt);
+MY_API void UpdateParticleBuffer();
 
 MY_API bool DoTest();
 MY_API bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,

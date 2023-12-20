@@ -362,21 +362,7 @@ void my::SetSmoothingCoefficient(float smoothingCoefficient) {
   g_smoothingCoefficient = smoothingCoefficient;
 }
 
-void my::UpdateParticles(float dt) {
-  static float t = 0;
-
-  // Accumulate time.
-  t += dt;
-
-  g_particles[0].position = Vector3(
-      cosf(t * 1.1f) * 0.5f, cosf(t * 1.3f) * 0.5f, cosf(t * 1.7f) * 0.5f);
-  g_particles[1].position = Vector3(
-      cosf(t * 0.7f) * 0.5f, cosf(t * 1.9f) * 0.5f, cosf(t * 2.3f) * 0.5f);
-  g_particles[2].position = Vector3(
-      cosf(t * 0.3f) * 0.5f, cosf(t * 2.9f) * 0.5f, sinf(t * 1.1f) * 0.5f);
-  g_particles[3].position = Vector3(
-      sinf(t * 1.3f) * 0.5f, sinf(t * 1.7f) * 0.5f, sinf(t * 0.7f) * 0.5f);
-
+void my::UpdateParticleBuffer() {
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
   g_context->Map(g_particleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
                  &mappedResource);
