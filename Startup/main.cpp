@@ -273,6 +273,20 @@ int main(int, char**) {
         if (ImGui::TreeNode("Particle Spawn")) {
           if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
           if (ImGui::TreeNode("Initialize Particle")) {
+            ImGui::SeparatorText("Position");
+
+            {
+              const UINT maxParticleCount = my::GetMaxParticleCount();
+              for (int i = 0; i < maxParticleCount; i++) {
+                Vector3 particlePosition = my::GetParticlePosition(i);
+                if (ImGui::SliderFloat3(
+                        ("Particle Position " + std::to_string(i)).c_str(),
+                        (float*)&particlePosition, -5.0f, 5.0f)) {
+                  my::SetParticlePosition(i, particlePosition);
+                }
+              }
+            }
+
             ImGui::SeparatorText("Size");
 
             {
@@ -340,7 +354,7 @@ int main(int, char**) {
           if (ImGui::TreeNode("Ray Marching")) {
             Vector3 distBoxCenter = my::GetDistBoxCenter();
             if (ImGui::SliderFloat3("Dist Box Center", (float*)&distBoxCenter,
-                                    -10.0f, 10.0f)) {
+                                    -5.0f, 5.0f)) {
               my::SetDistBoxCenter(distBoxCenter);
             }
 

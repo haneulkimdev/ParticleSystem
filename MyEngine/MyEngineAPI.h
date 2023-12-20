@@ -20,6 +20,7 @@ MY_API bool SetRenderTargetSize(int w, int h);
 
 MY_API UINT GetMaxParticleCount();
 
+MY_API Vector3 GetParticlePosition(int index);
 MY_API float GetParticleSize(int index);
 MY_API Color GetParticleColor(int index);
 
@@ -32,6 +33,7 @@ MY_API float GetDistBoxSize();
 
 MY_API float GetSmoothingCoefficient();
 
+MY_API void SetParticlePosition(int index, const Vector3& position);
 MY_API void SetParticleSize(int index, float size);
 MY_API void SetParticleColor(int index, const Color& color);
 

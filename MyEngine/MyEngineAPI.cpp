@@ -304,6 +304,10 @@ bool my::SetRenderTargetSize(int w, int h) {
 
 UINT my::GetMaxParticleCount() { return MAX_PARTICLES; }
 
+Vector3 my::GetParticlePosition(int index) {
+  return g_particles[index].position;
+}
+
 float my::GetParticleSize(int index) {
   return g_particles[index].sizeBeginEnd.x;
 }
@@ -325,6 +329,10 @@ Vector3 my::GetDistBoxCenter() { return g_distBoxCenter; }
 float my::GetDistBoxSize() { return g_distBoxSize; }
 
 float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
+
+void my::SetParticlePosition(int index, const Vector3& position) {
+  g_particles[index].position = position;
+}
 
 void my::SetParticleSize(int index, float size) {
   g_particles[index].sizeBeginEnd = Vector2(size);
