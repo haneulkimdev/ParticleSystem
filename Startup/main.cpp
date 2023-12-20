@@ -281,7 +281,7 @@ int main(int, char**) {
                 Vector3 particlePosition = my::GetParticlePosition(i);
                 if (ImGui::SliderFloat3(
                         ("Particle Position " + std::to_string(i)).c_str(),
-                        (float*)&particlePosition, -5.0f, 5.0f)) {
+                        (float*)&particlePosition, -1.0f, 1.0f)) {
                   my::SetParticlePosition(i, particlePosition);
                 }
               }
@@ -338,7 +338,7 @@ int main(int, char**) {
 
             float lightIntensity = my::GetLightIntensity();
             if (ImGui::SliderFloat("Light Intensity", &lightIntensity, 0.0f,
-                                   1.0f)) {
+                                   2.0f)) {
               my::SetLightIntensity(lightIntensity);
             }
 
@@ -354,13 +354,12 @@ int main(int, char**) {
           if (ImGui::TreeNode("Ray Marching")) {
             Vector3 distBoxCenter = my::GetDistBoxCenter();
             if (ImGui::SliderFloat3("Dist Box Center", (float*)&distBoxCenter,
-                                    -5.0f, 5.0f)) {
+                                    -1.0f, 1.0f)) {
               my::SetDistBoxCenter(distBoxCenter);
             }
 
             float distBoxSize = my::GetDistBoxSize();
-            if (ImGui::SliderFloat("Dist Box Size", &distBoxSize, 0.0f,
-                                   10.0f)) {
+            if (ImGui::SliderFloat("Dist Box Size", &distBoxSize, 0.0f, 2.0f)) {
               my::SetDistBoxSize(distBoxSize);
             }
 
