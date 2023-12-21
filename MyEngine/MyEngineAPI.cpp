@@ -382,7 +382,8 @@ bool my::DoTest() {
   quadPostRenderer.posLight = g_pointLight.position;
   quadPostRenderer.lightIntensity = g_pointLight.intensity;
   quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
-  quadPostRenderer.rtSize = Vector2(g_renderTargetWidth, g_renderTargetHeight);
+  quadPostRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
+                                    static_cast<float>(g_renderTargetHeight));
   quadPostRenderer.smoothingCoefficient = g_smoothingCoefficient;
   quadPostRenderer.distBoxCenter = g_distBoxCenter;
   quadPostRenderer.distBoxSize = g_distBoxSize;

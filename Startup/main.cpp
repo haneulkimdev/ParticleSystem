@@ -44,7 +44,8 @@ int main(int, char**) {
   my::InitEngine(g_apiLogger);
 
   static ImVec2 renderTargetSize = ImVec2(512, 512);
-  my::SetRenderTargetSize(renderTargetSize.x, renderTargetSize.y);
+  my::SetRenderTargetSize(static_cast<int>(renderTargetSize.x),
+                          static_cast<int>(renderTargetSize.y));
 
   // Create application window
   // ImGui_ImplWin32_EnableDpiAwareness();
@@ -219,7 +220,8 @@ int main(int, char**) {
           renderTargetSize = ImGui::GetContentRegionAvail();
         }
 
-        my::SetRenderTargetSize(renderTargetSize.x, renderTargetSize.y);
+        my::SetRenderTargetSize(static_cast<int>(renderTargetSize.x),
+                                static_cast<int>(renderTargetSize.y));
 
         lastWindowSize = windowSize;
       }
@@ -276,8 +278,8 @@ int main(int, char**) {
             ImGui::SeparatorText("Position");
 
             {
-              const UINT maxParticleCount = my::GetMaxParticleCount();
-              for (int i = 0; i < maxParticleCount; i++) {
+              const uint32_t maxParticleCount = my::GetMaxParticleCount();
+              for (uint32_t i = 0; i < maxParticleCount; i++) {
                 Vector3 particlePosition = my::GetParticlePosition(i);
                 if (ImGui::SliderFloat3(
                         ("Particle Position " + std::to_string(i)).c_str(),
@@ -290,8 +292,8 @@ int main(int, char**) {
             ImGui::SeparatorText("Size");
 
             {
-              const UINT maxParticleCount = my::GetMaxParticleCount();
-              for (int i = 0; i < maxParticleCount; i++) {
+              const uint32_t maxParticleCount = my::GetMaxParticleCount();
+              for (uint32_t i = 0; i < maxParticleCount; i++) {
                 float particleSize = my::GetParticleSize(i);
                 if (ImGui::SliderFloat(
                         ("Particle Size " + std::to_string(i)).c_str(),
@@ -304,8 +306,8 @@ int main(int, char**) {
             ImGui::SeparatorText("Color");
 
             {
-              const UINT maxParticleCount = my::GetMaxParticleCount();
-              for (int i = 0; i < maxParticleCount; i++) {
+              const uint32_t maxParticleCount = my::GetMaxParticleCount();
+              for (uint32_t i = 0; i < maxParticleCount; i++) {
                 Color particleColor = my::GetParticleColor(i);
                 if (ImGui::ColorEdit3(
                         ("Particle Color " + std::to_string(i)).c_str(),
