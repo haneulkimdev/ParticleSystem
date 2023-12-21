@@ -18,7 +18,7 @@ MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
 MY_API bool SetRenderTargetSize(int w, int h);
 
-MY_API UINT GetMaxParticleCount();
+MY_API uint32_t GetMaxParticleCount();
 
 MY_API Vector3 GetParticlePosition(int index);
 MY_API float GetParticleSize(int index);
@@ -57,12 +57,14 @@ MY_API void DeinitEngine();
 
 MY_API bool LoadShaders();
 
+bool GetDevice(ID3D11Device* device);
+
 bool GetEnginePath(std::string& enginePath);
 
 bool ReadData(const std::string& name, std::vector<BYTE>& blob);
 
 bool BuildScreenQuadGeometryBuffers();
 
-Color ColorConvertU32ToFloat4(UINT color);
-UINT ColorConvertFloat4ToU32(const Color& color);
+Color ColorConvertU32ToFloat4(uint32_t color);
+uint32_t ColorConvertFloat4ToU32(const Color& color);
 }  // namespace my

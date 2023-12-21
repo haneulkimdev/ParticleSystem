@@ -70,7 +70,7 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 // InputLayouts
 ComPtr<ID3D11InputLayout> g_inputLayout;
 
-const UINT MAX_PARTICLES = 4;
+const uint32_t MAX_PARTICLES = 4;
 
 Particle g_particles[MAX_PARTICLES];
 
@@ -98,7 +98,7 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   // Create the device and device context.
 
-  UINT createDeviceFlags = 0;
+  uint32_t createDeviceFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)
   createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
@@ -302,7 +302,7 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-UINT my::GetMaxParticleCount() { return MAX_PARTICLES; }
+uint32_t my::GetMaxParticleCount() { return MAX_PARTICLES; }
 
 Vector3 my::GetParticlePosition(int index) {
   return g_particles[index].position;
@@ -388,8 +388,8 @@ bool my::DoTest() {
   memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
   g_context->Unmap(g_quadRendererCB.Get(), 0);
 
-  UINT stride = sizeof(Vector3);
-  UINT offset = 0;
+  uint32_t stride = sizeof(Vector3);
+  uint32_t offset = 0;
   g_context->IASetInputLayout(g_inputLayout.Get());
   g_context->IASetVertexBuffers(0, 1, g_screenQuadVB.GetAddressOf(), &stride,
                                 &offset);
@@ -548,6 +548,16 @@ bool my::LoadShaders() {
   return true;
 }
 
+bool my::GetDevice(ID3D11Device* device) {
+  device = nullptr;
+
+  if (!g_device) return FailRet("Device not initialized.");
+
+  device = g_device.Get();
+
+  return true;
+}
+
 bool my::GetEnginePath(std::string& enginePath) {
   char ownPth[2048];
   GetModuleFileNameA(nullptr, ownPth, sizeof(ownPth));
@@ -616,15 +626,15 @@ bool my::BuildScreenQuadGeometryBuffers() {
   return true;
 }
 
-Color my::ColorConvertU32ToFloat4(UINT color) {
+Color my::ColorConvertU32ToFloat4(uint32_t color) {
   float s = 1.0f / 255.0f;
   return Vector4(((color)&0xFF) * s, ((color >> 8) & 0xFF) * s,
                  ((color >> 16) & 0xFF) * s, ((color >> 24) & 0xFF) * s);
 }
 
-UINT my::ColorConvertFloat4ToU32(const Color& color) {
-  return static_cast<UINT>(color.R() * 255.0f + 0.5f) |
-         (static_cast<UINT>(color.G() * 255.0f + 0.5f) << 8) |
-         (static_cast<UINT>(color.B() * 255.0f + 0.5f) << 16) |
-         (static_cast<UINT>(color.A() * 255.0f + 0.5f) << 24);
+uint32_t my::ColorConvertFloat4ToU32(const Color& color) {
+  return static_cast<uint32_t>(color.R() * 255.0f + 0.5f) |
+         (static_cast<uint32_t>(color.G() * 255.0f + 0.5f) << 8) |
+         (static_cast<uint32_t>(color.B() * 255.0f + 0.5f) << 16) |
+         (static_cast<uint32_t>(color.A() * 255.0f + 0.5f) << 24);
 }
