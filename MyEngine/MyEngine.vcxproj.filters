@@ -6,7 +6,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyEngineAPI.h" />
-    <ClInclude Include="ShaderInterop.h" />
     <ClInclude Include="Camera.h" />
   </ItemGroup>
   <ItemGroup>

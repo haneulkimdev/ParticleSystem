@@ -4,6 +4,11 @@ using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
+using float4x4 = Matrix;
+using float2 = Vector2;
+using float3 = Vector3;
+using uint = uint32_t;
+
 struct Particle {
   float3 position = Vector3(0.0f);
   float mass = 1.0f;

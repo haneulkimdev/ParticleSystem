@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "Camera.h"
-#include "ShaderInterop.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
 
@@ -20,28 +19,30 @@ MY_API bool SetRenderTargetSize(int w, int h);
 
 MY_API uint32_t GetMaxParticleCount();
 
-MY_API Vector3 GetParticlePosition(int index);
+MY_API DirectX::SimpleMath::Vector3 GetParticlePosition(int index);
 MY_API float GetParticleSize(int index);
-MY_API Color GetParticleColor(int index);
+MY_API DirectX::SimpleMath::Color GetParticleColor(int index);
 
-MY_API Vector3 GetLightPosition();
+MY_API DirectX::SimpleMath::Vector3 GetLightPosition();
 MY_API float GetLightIntensity();
-MY_API Color GetLightColor();
+MY_API DirectX::SimpleMath::Color GetLightColor();
 
-MY_API Vector3 GetDistBoxCenter();
+MY_API DirectX::SimpleMath::Vector3 GetDistBoxCenter();
 MY_API float GetDistBoxSize();
 
 MY_API float GetSmoothingCoefficient();
 
-MY_API void SetParticlePosition(int index, const Vector3& position);
+MY_API void SetParticlePosition(int index,
+                                const DirectX::SimpleMath::Vector3& position);
 MY_API void SetParticleSize(int index, float size);
-MY_API void SetParticleColor(int index, const Color& color);
+MY_API void SetParticleColor(int index,
+                             const DirectX::SimpleMath::Color& color);
 
-MY_API void SetLightPosition(const Vector3& position);
+MY_API void SetLightPosition(const DirectX::SimpleMath::Vector3& position);
 MY_API void SetLightIntensity(float intensity);
-MY_API void SetLightColor(const Color& color);
+MY_API void SetLightColor(const DirectX::SimpleMath::Color& color);
 
-MY_API void SetDistBoxCenter(const Vector3& center);
+MY_API void SetDistBoxCenter(const DirectX::SimpleMath::Vector3& center);
 MY_API void SetDistBoxSize(float size);
 
 MY_API void SetSmoothingCoefficient(float smoothingCoefficient);
@@ -65,6 +66,6 @@ bool ReadData(const std::string& name, std::vector<BYTE>& blob);
 
 bool BuildScreenQuadGeometryBuffers();
 
-Color ColorConvertU32ToFloat4(uint32_t color);
-uint32_t ColorConvertFloat4ToU32(const Color& color);
+DirectX::SimpleMath::Color ColorConvertU32ToFloat4(uint32_t color);
+uint32_t ColorConvertFloat4ToU32(const DirectX::SimpleMath::Color& color);
 }  // namespace my
