@@ -59,6 +59,7 @@ extern "C" MY_API void DeinitEngine();
 extern "C" MY_API bool LoadShaders();
 
 bool GetDevice(ID3D11Device* device);
+bool GetContext(ID3D11DeviceContext* context);
 
 bool GetEnginePath(std::string& enginePath);
 

@@ -564,6 +564,16 @@ bool my::GetDevice(ID3D11Device* device) {
   return true;
 }
 
+bool my::GetContext(ID3D11DeviceContext* context) {
+  context = nullptr;
+
+  if (!g_device) return FailRet("Device not initialized.");
+
+  context = g_context.Get();
+
+  return true;
+}
+
 bool my::GetEnginePath(std::string& enginePath) {
   char ownPth[2048];
   GetModuleFileNameA(nullptr, ownPth, sizeof(ownPth));
