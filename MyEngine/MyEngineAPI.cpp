@@ -34,11 +34,12 @@ struct PostRenderer {
   float3 posLight;  // WS
   float lightIntensity;
 
+  float4x4 matWS2CS;
   float4x4 matPS2WS;
 
   float2 rtSize;
   float smoothingCoefficient;
-  float dummy0;
+  float deltaTime;
 
   float3 distBoxCenter;  // WS
   float distBoxSize;     // WS
@@ -381,6 +382,7 @@ bool my::DoTest() {
   quadPostRenderer.lightColor = g_pointLight.color;
   quadPostRenderer.posLight = g_pointLight.position;
   quadPostRenderer.lightIntensity = g_pointLight.intensity;
+  quadPostRenderer.matWS2CS = g_camera.View().Transpose();
   quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
   quadPostRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
                                     static_cast<float>(g_renderTargetHeight));
@@ -550,6 +552,16 @@ bool my::LoadShaders() {
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  g_rayMarchPS.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
+
+  return true;
+}
+
+bool my::GetQuadRendererCB(ID3D11Buffer* quadRendererCB) {
+  quadRendererCB = nullptr;
+
+  if (!g_quadRendererCB) return FailRet("quadRendererCB not initialized.");
+
+  quadRendererCB = g_quadRendererCB.Get();
 
   return true;
 }
