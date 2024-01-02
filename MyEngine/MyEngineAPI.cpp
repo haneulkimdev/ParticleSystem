@@ -586,6 +586,16 @@ bool my::GetContext(ID3D11DeviceContext* context) {
   return true;
 }
 
+bool my::GetApiLogger(std::shared_ptr<spdlog::logger>& logger) {
+  logger = nullptr;
+
+  if (!g_apiLogger) return FailRet("ApiLogger not initialized.");
+
+  logger = g_apiLogger;
+
+  return true;
+}
+
 bool my::GetEnginePath(std::string& enginePath) {
   char ownPth[2048];
   GetModuleFileNameA(nullptr, ownPth, sizeof(ownPth));

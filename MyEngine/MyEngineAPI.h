@@ -63,6 +63,8 @@ bool GetQuadRendererCB(ID3D11Buffer* quadRendererCB);
 bool GetDevice(ID3D11Device* device);
 bool GetContext(ID3D11DeviceContext* context);
 
+bool GetApiLogger(std::shared_ptr<spdlog::logger>& logger);
+
 bool GetEnginePath(std::string& enginePath);
 
 bool ReadData(const std::string& name, std::vector<BYTE>& blob);
