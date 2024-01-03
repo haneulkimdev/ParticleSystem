@@ -1,4 +1,5 @@
 #include "Header.hlsli"
+#include "Header_Particle.hlsli"
 
 #define MAX_STEPS 100
 #define SURF_DIST 1e-5f

@@ -3,10 +3,12 @@
   <ItemGroup>
     <ClCompile Include="MyEngineAPI.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="ParticleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="ParticleSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">
@@ -21,6 +23,27 @@
       <Filter>hlsl</Filter>
     </None>
     <None Include="hlsl\VS_QUAD.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\Header_Particle.hlsli">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\CS_particle_emit.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\CS_particle_finishUpdate.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\CS_particle_kickoffUpdate.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\CS_particle_simulate.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\PS_Particle_RayMARCH.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\VS_Particle.hlsl">
       <Filter>hlsl</Filter>
     </None>
   </ItemGroup>

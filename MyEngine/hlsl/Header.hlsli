@@ -1,18 +1,5 @@
 #define MAX_PARTICLES 4
 
-struct Particle
-{
-    float3 position;
-    float mass;
-    float3 force;
-    float rotationalVelocity;
-    float3 velocity;
-    float maxLife;
-    float2 sizeBeginEnd;
-    float life;
-    uint color;
-};
-
 struct PostRenderer
 {
     float3 posCam; // WS
@@ -21,11 +8,12 @@ struct PostRenderer
     float3 posLight; // WS
     float lightIntensity;
 
+    float4x4 matWS2CS;
     float4x4 matPS2WS;
 
     float2 rtSize;
     float smoothingCoefficient;
-    float dummy0;
+    float deltaTime;
 
     float3 distBoxCenter; // WS
     float distBoxSize; // WS

@@ -1,5 +1,3 @@
-#include "Header.hlsli"
-
 struct VS_QUAD_INPUT
 {
     float3 position : POSITION;
