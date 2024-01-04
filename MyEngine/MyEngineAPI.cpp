@@ -443,22 +443,22 @@ bool GetQuadRendererCB(ID3D11Buffer* quadRendererCB) {
   return true;
 }
 
-bool GetDevice(ID3D11Device* device) {
+bool GetDevice(Microsoft::WRL::ComPtr<ID3D11Device>& device) {
   device = nullptr;
 
   if (!g_device) return FailRet("Device not initialized.");
 
-  device = g_device.Get();
+  device = g_device;
 
   return true;
 }
 
-bool GetContext(ID3D11DeviceContext* context) {
+bool GetContext(Microsoft::WRL::ComPtr<ID3D11DeviceContext>& context) {
   context = nullptr;
 
   if (!g_device) return FailRet("Device not initialized.");
 
-  context = g_context.Get();
+  context = g_context;
 
   return true;
 }

@@ -34,7 +34,7 @@ void ParticleSystem::SetMaxParticleCount(uint32_t value) {
 }
 
 void ParticleSystem::CreateSelfBuffers() {
-  ID3D11Device* device = nullptr;
+  ComPtr<ID3D11Device> device;
   my::GetDevice(device);
 
   D3D11_BUFFER_DESC particleBufferDesc = {};
@@ -214,7 +214,7 @@ void ParticleSystem::CreateSelfBuffers() {
       debugBufDesc.BindFlags = 0;
       debugBufDesc.MiscFlags = 0;
 
-      ID3D11Device* device = nullptr;
+      ComPtr<ID3D11Device> device;
       my::GetDevice(device);
 
       device->CreateBuffer(&debugBufDesc, nullptr,
@@ -267,7 +267,7 @@ void ParticleSystem::UpdateCPU(const Matrix& transform, float dt) {
   std::swap(aliveList[0], aliveList[1]);
 
   // Read back statistics (with GPU delay):
-  ID3D11DeviceContext* context = nullptr;
+  ComPtr<ID3D11DeviceContext> context;
   my::GetContext(context);
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
   context->Map(counterBuffer.Get(), 0, D3D11_MAP_READ, 0, &mappedResource);
@@ -333,7 +333,7 @@ void ParticleSystem::UpdateGPU(uint32_t instanceIndex) {
 
     cb.xEmitterOptions = 0;
 
-    ID3D11DeviceContext* context = nullptr;
+    ComPtr<ID3D11DeviceContext> context;
     my::GetContext(context);
 
     context->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
@@ -390,7 +390,7 @@ void ParticleSystem::UpdateGPU(uint32_t instanceIndex) {
 }
 
 void ParticleSystem::Draw() {
-  ID3D11DeviceContext* context = nullptr;
+  ComPtr<ID3D11DeviceContext> context;
   my::GetContext(context);
 
   context->VSSetShader(vertexShader.Get(), nullptr, 0);
@@ -425,7 +425,7 @@ bool LoadShaders() {
     std::vector<BYTE> byteCode;
     my::ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
 
-    ID3D11Device* device = nullptr;
+    ComPtr<ID3D11Device> device;
     my::GetDevice(device);
 
     if (shaderProfile == "VS") {
@@ -481,7 +481,7 @@ bool LoadShaders() {
 }  // namespace ParticleSystem_Internal
 
 void ParticleSystem::Initialize() {
-  ID3D11Device* device = nullptr;
+  ComPtr<ID3D11Device> device;
   my::GetDevice(device);
 
   D3D11_RASTERIZER_DESC rasterizerDesc = {};

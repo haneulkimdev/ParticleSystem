@@ -16,8 +16,6 @@
 
 #define MY_API __declspec(dllexport)
 
-using namespace DirectX::SimpleMath;
-
 namespace my {
 extern "C" MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
@@ -33,8 +31,8 @@ extern "C" MY_API bool LoadShaders();
 
 bool GetQuadRendererCB(ID3D11Buffer* quadRendererCB);
 
-bool GetDevice(ID3D11Device* device);
-bool GetContext(ID3D11DeviceContext* context);
+bool GetDevice(Microsoft::WRL::ComPtr<ID3D11Device>& device);
+bool GetContext(Microsoft::WRL::ComPtr<ID3D11DeviceContext>& context);
 
 bool GetApiLogger(std::shared_ptr<spdlog::logger>& logger);
 
@@ -44,6 +42,6 @@ bool ReadData(const std::string& name, std::vector<BYTE>& blob);
 
 bool BuildScreenQuadGeometryBuffers();
 
-Color ColorConvertU32ToFloat4(uint32_t color);
-uint32_t ColorConvertFloat4ToU32(const Color& color);
+DirectX::SimpleMath::Color ColorConvertU32ToFloat4(uint32_t color);
+uint32_t ColorConvertFloat4ToU32(const DirectX::SimpleMath::Color& color);
 }  // namespace my
