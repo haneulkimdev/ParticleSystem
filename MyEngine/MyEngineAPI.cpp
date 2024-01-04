@@ -33,6 +33,7 @@ struct PostRenderer {
   float distBoxSize;     // WS
 };
 
+namespace my {
 std::shared_ptr<spdlog::logger> g_apiLogger;
 
 ComPtr<ID3D11Device> g_device;
@@ -81,7 +82,7 @@ auto FailRet = [](const std::string& msg) {
   return false;
 };
 
-bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
+bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_apiLogger = spdlogPtr;
 
   // Create the device and device context.
@@ -145,9 +146,9 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   if (FAILED(hr)) FailRet("CreateDepthStencilState Failed.");
 
-  my::BuildScreenQuadGeometryBuffers();
+  BuildScreenQuadGeometryBuffers();
 
-  my::LoadShaders();
+  LoadShaders();
 
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -5.0f);
@@ -167,7 +168,7 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   return true;
 }
 
-bool my::SetRenderTargetSize(int w, int h) {
+bool SetRenderTargetSize(int w, int h) {
   g_renderTargetWidth = w;
   g_renderTargetHeight = h;
 
@@ -255,7 +256,7 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-bool my::DoTest() {
+bool DoTest() {
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_camera.GetPosition();
   quadPostRenderer.lightColor = g_pointLight.color;
@@ -296,9 +297,9 @@ bool my::DoTest() {
   return true;
 }
 
-bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
-                                   ID3D11ShaderResourceView** sharedSRV, int& w,
-                                   int& h) {
+bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
+                               ID3D11ShaderResourceView** sharedSRV, int& w,
+                               int& h) {
   w = g_renderTargetWidth;
   h = g_renderTargetHeight;
 
@@ -352,7 +353,7 @@ bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
   return true;
 }
 
-void my::DeinitEngine() {
+void DeinitEngine() {
   // States
   g_rasterizerState.Reset();
   g_depthStencilState.Reset();
@@ -381,7 +382,7 @@ void my::DeinitEngine() {
   g_device.Reset();
 }
 
-bool my::LoadShaders() {
+bool LoadShaders() {
   std::string enginePath;
   if (!GetEnginePath(enginePath))
     return FailRet("Failure to Read Engine Path.");
@@ -391,7 +392,7 @@ bool my::LoadShaders() {
                                    const std::string& shaderProfile,
                                    ID3D11DeviceChild** deviceChild) -> bool {
     std::vector<BYTE> byteCode;
-    my::ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
+    ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
 
     if (shaderProfile == "VS") {
       HRESULT hr = g_device->CreateVertexShader(
@@ -432,7 +433,7 @@ bool my::LoadShaders() {
   return true;
 }
 
-bool my::GetQuadRendererCB(ID3D11Buffer* quadRendererCB) {
+bool GetQuadRendererCB(ID3D11Buffer* quadRendererCB) {
   quadRendererCB = nullptr;
 
   if (!g_quadRendererCB) return FailRet("quadRendererCB not initialized.");
@@ -442,7 +443,7 @@ bool my::GetQuadRendererCB(ID3D11Buffer* quadRendererCB) {
   return true;
 }
 
-bool my::GetDevice(ID3D11Device* device) {
+bool GetDevice(ID3D11Device* device) {
   device = nullptr;
 
   if (!g_device) return FailRet("Device not initialized.");
@@ -452,7 +453,7 @@ bool my::GetDevice(ID3D11Device* device) {
   return true;
 }
 
-bool my::GetContext(ID3D11DeviceContext* context) {
+bool GetContext(ID3D11DeviceContext* context) {
   context = nullptr;
 
   if (!g_device) return FailRet("Device not initialized.");
@@ -462,7 +463,7 @@ bool my::GetContext(ID3D11DeviceContext* context) {
   return true;
 }
 
-bool my::GetApiLogger(std::shared_ptr<spdlog::logger>& logger) {
+bool GetApiLogger(std::shared_ptr<spdlog::logger>& logger) {
   logger = nullptr;
 
   if (!g_apiLogger) return FailRet("ApiLogger not initialized.");
@@ -472,7 +473,7 @@ bool my::GetApiLogger(std::shared_ptr<spdlog::logger>& logger) {
   return true;
 }
 
-bool my::GetEnginePath(std::string& enginePath) {
+bool GetEnginePath(std::string& enginePath) {
   char ownPth[2048];
   GetModuleFileNameA(nullptr, ownPth, sizeof(ownPth));
   std::string exe_path = ownPth;
@@ -499,7 +500,7 @@ bool my::GetEnginePath(std::string& enginePath) {
   return true;
 }
 
-bool my::ReadData(const std::string& name, std::vector<BYTE>& blob) {
+bool ReadData(const std::string& name, std::vector<BYTE>& blob) {
   std::ifstream fin(name, std::ios::binary);
 
   if (!fin) FailRet("File not found.");
@@ -512,7 +513,7 @@ bool my::ReadData(const std::string& name, std::vector<BYTE>& blob) {
   return true;
 }
 
-bool my::BuildScreenQuadGeometryBuffers() {
+bool BuildScreenQuadGeometryBuffers() {
   Vector3 vertices[4] = {
       Vector3(-1.0f, 1.0f, 0.0f),
       Vector3(1.0f, 1.0f, 0.0f),
@@ -540,15 +541,16 @@ bool my::BuildScreenQuadGeometryBuffers() {
   return true;
 }
 
-Color my::ColorConvertU32ToFloat4(uint32_t color) {
+Color ColorConvertU32ToFloat4(uint32_t color) {
   float s = 1.0f / 255.0f;
   return Vector4(((color)&0xFF) * s, ((color >> 8) & 0xFF) * s,
                  ((color >> 16) & 0xFF) * s, ((color >> 24) & 0xFF) * s);
 }
 
-uint32_t my::ColorConvertFloat4ToU32(const Color& color) {
+uint32_t ColorConvertFloat4ToU32(const Color& color) {
   return static_cast<uint32_t>(color.R() * 255.0f + 0.5f) |
          (static_cast<uint32_t>(color.G() * 255.0f + 0.5f) << 8) |
          (static_cast<uint32_t>(color.B() * 255.0f + 0.5f) << 16) |
          (static_cast<uint32_t>(color.A() * 255.0f + 0.5f) << 24);
 }
+}  // namespace my
