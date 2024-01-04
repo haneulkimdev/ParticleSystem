@@ -64,6 +64,7 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 ComPtr<ID3D11InputLayout> g_inputLayout;
 
 EmittedParticleSystem g_emitter;
+Matrix g_emitterTransform;
 
 PointLight g_pointLight;
 
@@ -259,6 +260,8 @@ bool SetRenderTargetSize(int w, int h) {
 
   return true;
 }
+
+void Update(float dt) { g_emitter.UpdateCPU(g_emitterTransform, dt); }
 
 bool DoTest() {
   PostRenderer quadPostRenderer = {};

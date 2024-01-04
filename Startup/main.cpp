@@ -232,6 +232,7 @@ int main(int, char**) {
           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
       ImGui::SetItemAllowOverlap();
 
+      my::Update(ImGui::GetIO().DeltaTime);
       my::DoTest();
 
       ID3D11ShaderResourceView* textureView = nullptr;

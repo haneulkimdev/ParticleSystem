@@ -22,6 +22,7 @@ extern "C" MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
 extern "C" MY_API bool SetRenderTargetSize(int w, int h);
 
+extern "C" MY_API void Update(float dt);
 extern "C" MY_API bool DoTest();
 extern "C" MY_API bool GetDX11SharedRenderTarget(
     ID3D11Device* pDevice, ID3D11ShaderResourceView** ppSRView, int& w, int& h);
