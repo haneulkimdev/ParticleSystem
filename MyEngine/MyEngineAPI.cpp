@@ -264,8 +264,6 @@ bool SetRenderTargetSize(int w, int h) {
 void Update(float dt) { g_emitter.UpdateCPU(g_emitterTransform, dt); }
 
 bool DoTest() {
-  g_emitter.UpdateGPU(0);
-
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_camera.GetPosition();
   quadPostRenderer.lightColor = g_pointLight.color;
@@ -300,6 +298,9 @@ bool DoTest() {
   g_context->RSSetState(g_rasterizerState.Get());
 
   g_context->Draw(4, 0);
+
+  g_emitter.UpdateGPU(0);
+  g_emitter.Draw();
 
   g_context->Flush();
 
