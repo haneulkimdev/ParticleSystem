@@ -1,4 +1,4 @@
-#include "ParticleSystem.h"
+#include "EmittedParticleSystem.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX::SimpleMath;

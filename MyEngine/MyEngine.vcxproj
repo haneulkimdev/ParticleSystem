@@ -21,12 +21,12 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="MyEngineAPI.cpp" />
-    <ClCompile Include="ParticleSystem.cpp" />
+    <ClCompile Include="EmittedParticleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="MyEngineAPI.h" />
-    <ClInclude Include="ParticleSystem.h" />
+    <ClInclude Include="EmittedParticleSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\Header.hlsli" />

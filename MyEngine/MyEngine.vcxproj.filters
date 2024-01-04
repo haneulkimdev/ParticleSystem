@@ -3,12 +3,12 @@
   <ItemGroup>
     <ClCompile Include="MyEngineAPI.cpp" />
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="ParticleSystem.cpp" />
+    <ClCompile Include="EmittedParticleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="ParticleSystem.h" />
+    <ClInclude Include="EmittedParticleSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">

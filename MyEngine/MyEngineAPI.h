@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Camera.h"
+#include "EmittedParticleSystem.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
 
