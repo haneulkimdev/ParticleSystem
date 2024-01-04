@@ -63,6 +63,8 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 // InputLayouts
 ComPtr<ID3D11InputLayout> g_inputLayout;
 
+EmittedParticleSystem g_emitter;
+
 PointLight g_pointLight;
 
 Camera g_camera;
@@ -164,6 +166,8 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
+
+  g_emitter.Initialize();
 
   return true;
 }
