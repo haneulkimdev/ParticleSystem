@@ -88,8 +88,8 @@ static const uint ARGUMENTBUFFER_OFFSET_DRAWPARTICLES = ARGUMENTBUFFER_OFFSET_DI
 
 struct Vertex
 {
-    float3 position;
-    uint color;
+    float4 position : SV_POSITION;
+    uint color : COLOR;
 };
 
 inline uint pack_rgba(in float4 value)
