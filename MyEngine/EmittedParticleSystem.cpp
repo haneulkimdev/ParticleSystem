@@ -19,7 +19,7 @@ auto FailRet = [](const std::string& msg) {
 namespace my {
 static ComPtr<ID3D11VertexShader> vertexShader;
 static ComPtr<ID3D11PixelShader>
-    pixelShader[ParticleSystem::PARTICLESHADERTYPE_COUNT];
+    pixelShader[EmittedParticleSystem::PARTICLESHADERTYPE_COUNT];
 static ComPtr<ID3D11ComputeShader> kickoffUpdateCS;
 static ComPtr<ID3D11ComputeShader> finishUpdateCS;
 static ComPtr<ID3D11ComputeShader> emitCS;
@@ -28,12 +28,12 @@ static ComPtr<ID3D11ComputeShader> simulateCS;
 static ComPtr<ID3D11RasterizerState> rasterizerState;
 static ComPtr<ID3D11DepthStencilState> depthStencilState;
 
-void ParticleSystem::SetMaxParticleCount(uint32_t value) {
+void EmittedParticleSystem::SetMaxParticleCount(uint32_t value) {
   MAX_PARTICLES = value;
   counterBuffer.Reset();  // will be recreated
 }
 
-void ParticleSystem::CreateSelfBuffers() {
+void EmittedParticleSystem::CreateSelfBuffers() {
   ComPtr<ID3D11Device> device;
   my::GetDevice(device);
 
@@ -223,7 +223,7 @@ void ParticleSystem::CreateSelfBuffers() {
   }
 }
 
-uint64_t ParticleSystem::GetMemorySizeInBytes() const {
+uint64_t EmittedParticleSystem::GetMemorySizeInBytes() const {
   if (!particleBuffer) {
     return 0;
   }
@@ -246,7 +246,7 @@ uint64_t ParticleSystem::GetMemorySizeInBytes() const {
   return retVal;
 }
 
-void ParticleSystem::UpdateCPU(const Matrix& transform, float dt) {
+void EmittedParticleSystem::UpdateCPU(const Matrix& transform, float dt) {
   this->dt = dt;
   CreateSelfBuffers();
 
@@ -275,18 +275,18 @@ void ParticleSystem::UpdateCPU(const Matrix& transform, float dt) {
   context->Unmap(counterBuffer.Get(), 0);
 }
 
-void ParticleSystem::Burst(int num) {
+void EmittedParticleSystem::Burst(int num) {
   if (IsPaused()) return;
 
   burst += num;
 }
 
-void ParticleSystem::Restart() {
+void EmittedParticleSystem::Restart() {
   SetPaused(false);
   counterBuffer.Reset();  // will be recreated
 }
 
-void ParticleSystem::UpdateGPU(uint32_t instanceIndex) {
+void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
   if (!particleBuffer) {
     return;
   }
@@ -389,7 +389,7 @@ void ParticleSystem::UpdateGPU(uint32_t instanceIndex) {
   };
 }
 
-void ParticleSystem::Draw() {
+void EmittedParticleSystem::Draw() {
   ComPtr<ID3D11DeviceContext> context;
   my::GetContext(context);
 
@@ -455,7 +455,7 @@ bool LoadShaders() {
 
   if (!RegisterShaderObjFile("PS_Particle_RayMARCH", "PS",
                              reinterpret_cast<ID3D11DeviceChild**>(
-                                 pixelShader[ParticleSystem::RAYMARCHING]
+                                 pixelShader[EmittedParticleSystem::RAYMARCHING]
                                      .ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
 
@@ -480,7 +480,7 @@ bool LoadShaders() {
 }
 }  // namespace ParticleSystem_Internal
 
-void ParticleSystem::Initialize() {
+void EmittedParticleSystem::Initialize() {
   ComPtr<ID3D11Device> device;
   my::GetDevice(device);
 

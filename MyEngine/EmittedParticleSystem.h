@@ -111,7 +111,7 @@ struct Vertex {
 };
 
 namespace my {
-class MY_API ParticleSystem {
+class MY_API EmittedParticleSystem {
  public:
   enum PARTICLESHADERTYPE {
     RAYMARCHING,
