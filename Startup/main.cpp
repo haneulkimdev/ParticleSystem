@@ -232,7 +232,6 @@ int main(int, char**) {
           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
       ImGui::SetItemAllowOverlap();
 
-      my::UpdateParticleBuffer();
       my::DoTest();
 
       ID3D11ShaderResourceView* textureView = nullptr;
@@ -253,130 +252,6 @@ int main(int, char**) {
       ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
 
       ImGui::Begin("MyEngine Settings");
-
-      if (ImGui::CollapsingHeader("Emitter")) {
-        int open_action = -1;
-        if (ImGui::Button("Expand all")) open_action = 1;
-        ImGui::SameLine();
-        if (ImGui::Button("Collapse all")) open_action = 0;
-        ImGui::Separator();
-
-        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-        if (ImGui::TreeNode("Emitter Spawn")) {
-          ImGui::TreePop();
-        }
-
-        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-        if (ImGui::TreeNode("Emitter Update")) {
-          ImGui::TreePop();
-        }
-
-        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-        if (ImGui::TreeNode("Particle Spawn")) {
-          if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-          if (ImGui::TreeNode("Initialize Particle")) {
-            ImGui::SeparatorText("Position");
-
-            {
-              const uint32_t maxParticleCount = my::GetMaxParticleCount();
-              for (uint32_t i = 0; i < maxParticleCount; i++) {
-                Vector3 particlePosition = my::GetParticlePosition(i);
-                if (ImGui::SliderFloat3(
-                        ("Particle Position " + std::to_string(i)).c_str(),
-                        (float*)&particlePosition, -1.0f, 1.0f)) {
-                  my::SetParticlePosition(i, particlePosition);
-                }
-              }
-            }
-
-            ImGui::SeparatorText("Size");
-
-            {
-              const uint32_t maxParticleCount = my::GetMaxParticleCount();
-              for (uint32_t i = 0; i < maxParticleCount; i++) {
-                float particleSize = my::GetParticleSize(i);
-                if (ImGui::SliderFloat(
-                        ("Particle Size " + std::to_string(i)).c_str(),
-                        &particleSize, 0.0f, 1.0f)) {
-                  my::SetParticleSize(i, particleSize);
-                }
-              }
-            }
-
-            ImGui::SeparatorText("Color");
-
-            {
-              const uint32_t maxParticleCount = my::GetMaxParticleCount();
-              for (uint32_t i = 0; i < maxParticleCount; i++) {
-                Color particleColor = my::GetParticleColor(i);
-                if (ImGui::ColorEdit3(
-                        ("Particle Color " + std::to_string(i)).c_str(),
-                        (float*)&particleColor)) {
-                  my::SetParticleColor(i, particleColor);
-                }
-              }
-            }
-
-            ImGui::TreePop();
-          }
-
-          ImGui::TreePop();
-        }
-
-        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-        if (ImGui::TreeNode("Particle Update")) {
-          ImGui::TreePop();
-        }
-
-        if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-        if (ImGui::TreeNode("Render")) {
-          if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-          if (ImGui::TreeNode("Light")) {
-            Vector3 lightPosition = my::GetLightPosition();
-            if (ImGui::SliderFloat3("Light Position", (float*)&lightPosition,
-                                    -10.0f, 10.0f)) {
-              my::SetLightPosition(lightPosition);
-            }
-
-            float lightIntensity = my::GetLightIntensity();
-            if (ImGui::SliderFloat("Light Intensity", &lightIntensity, 0.0f,
-                                   2.0f)) {
-              my::SetLightIntensity(lightIntensity);
-            }
-
-            Color lightColor = my::GetLightColor();
-            if (ImGui::ColorEdit3("Light Color", (float*)&lightColor)) {
-              my::SetLightColor(lightColor);
-            }
-
-            ImGui::TreePop();
-          }
-
-          if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
-          if (ImGui::TreeNode("Ray Marching")) {
-            Vector3 distBoxCenter = my::GetDistBoxCenter();
-            if (ImGui::SliderFloat3("Dist Box Center", (float*)&distBoxCenter,
-                                    -1.0f, 1.0f)) {
-              my::SetDistBoxCenter(distBoxCenter);
-            }
-
-            float distBoxSize = my::GetDistBoxSize();
-            if (ImGui::SliderFloat("Dist Box Size", &distBoxSize, 0.0f, 2.0f)) {
-              my::SetDistBoxSize(distBoxSize);
-            }
-
-            static float smoothingCoefficient = my::GetSmoothingCoefficient();
-            if (ImGui::SliderFloat("Smoothing Coefficient",
-                                   &smoothingCoefficient, 1.0f, 10.0f)) {
-              my::SetSmoothingCoefficient(smoothingCoefficient);
-            }
-
-            ImGui::TreePop();
-          }
-
-          ImGui::TreePop();
-        }
-      }
 
       if (ImGui::CollapsingHeader("Debug")) {
         ImGui::SeparatorText("Shaders");

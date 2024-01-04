@@ -55,7 +55,6 @@ ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 ComPtr<ID3D11Texture2D> g_depthStencilBuffer;
 
 // Views
-ComPtr<ID3D11ShaderResourceView> g_particleSRV;
 ComPtr<ID3D11RenderTargetView> g_renderTargetView;
 ComPtr<ID3D11DepthStencilView> g_depthStencilView;
 ComPtr<ID3D11ShaderResourceView> g_sharedSRV;
@@ -65,7 +64,6 @@ ComPtr<ID3D11VertexShader> g_quadVS;
 ComPtr<ID3D11PixelShader> g_rayMarchPS;
 
 // Buffers
-ComPtr<ID3D11Buffer> g_particleBuffer;
 ComPtr<ID3D11Buffer> g_screenQuadVB;
 ComPtr<ID3D11Buffer> g_quadRendererCB;
 
@@ -123,31 +121,6 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   if (featureLevel != D3D_FEATURE_LEVEL_11_0)
     FailRet("Direct3D Feature Level 11 unsupported.");
 
-  D3D11_BUFFER_DESC particleBufferDesc = {};
-  particleBufferDesc.ByteWidth = sizeof(Particle) * MAX_PARTICLES;
-  particleBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-  particleBufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-  particleBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  particleBufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-  particleBufferDesc.StructureByteStride = sizeof(Particle);
-
-  hr = g_device->CreateBuffer(&particleBufferDesc, nullptr,
-                              g_particleBuffer.ReleaseAndGetAddressOf());
-
-  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-  D3D11_SHADER_RESOURCE_VIEW_DESC particleSRVDesc = {};
-  particleSRVDesc.Format = DXGI_FORMAT_UNKNOWN;
-  particleSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-  particleSRVDesc.Buffer.FirstElement = 0;
-  particleSRVDesc.Buffer.ElementWidth = MAX_PARTICLES;
-
-  hr = g_device->CreateShaderResourceView(
-      g_particleBuffer.Get(), &particleSRVDesc,
-      g_particleSRV.ReleaseAndGetAddressOf());
-
-  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-
   D3D11_BUFFER_DESC constantBufferDesc = {};
   constantBufferDesc.ByteWidth = sizeof(PostRenderer);
   constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -191,16 +164,6 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   my::BuildScreenQuadGeometryBuffers();
 
   my::LoadShaders();
-
-  my::SetParticleSize(0, 1.0f);
-  my::SetParticleSize(1, 0.4f);
-  my::SetParticleSize(2, 0.7f);
-  my::SetParticleSize(3, 0.4f);
-
-  my::SetParticleColor(0, Color(0.0f, 1.0f, 0.0f, 1.0f));
-  my::SetParticleColor(1, Color(0.0f, 0.5f, 1.0f, 1.0f));
-  my::SetParticleColor(2, Color(1.0f, 0.2f, 0.0f, 1.0f));
-  my::SetParticleColor(3, Color(1.0f, 1.0f, 0.0f, 1.0f));
 
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -5.0f);
@@ -308,74 +271,6 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-uint32_t my::GetMaxParticleCount() { return MAX_PARTICLES; }
-
-Vector3 my::GetParticlePosition(int index) {
-  return g_particles[index].position;
-}
-
-float my::GetParticleSize(int index) {
-  return g_particles[index].sizeBeginEnd.x;
-}
-
-Color my::GetParticleColor(int index) {
-  return my::ColorConvertU32ToFloat4(g_particles[index].color);
-}
-
-Vector3 my::GetLightPosition() { return g_pointLight.position; }
-
-float my::GetLightIntensity() { return g_pointLight.intensity; }
-
-Color my::GetLightColor() {
-  return my::ColorConvertU32ToFloat4(g_pointLight.color);
-}
-
-Vector3 my::GetDistBoxCenter() { return g_distBoxCenter; }
-
-float my::GetDistBoxSize() { return g_distBoxSize; }
-
-float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
-
-void my::SetParticlePosition(int index, const Vector3& position) {
-  g_particles[index].position = position;
-}
-
-void my::SetParticleSize(int index, float size) {
-  g_particles[index].sizeBeginEnd = Vector2(size);
-}
-
-void my::SetParticleColor(int index, const Color& color) {
-  g_particles[index].color = my::ColorConvertFloat4ToU32(color);
-}
-
-void my::SetLightPosition(const Vector3& position) {
-  g_pointLight.position = position;
-}
-
-void my::SetLightIntensity(float intensity) {
-  g_pointLight.intensity = intensity;
-}
-
-void my::SetLightColor(const Color& color) {
-  g_pointLight.color = my::ColorConvertFloat4ToU32(color);
-}
-
-void my::SetDistBoxCenter(const Vector3& center) { g_distBoxCenter = center; }
-
-void my::SetDistBoxSize(float size) { g_distBoxSize = size; }
-
-void my::SetSmoothingCoefficient(float smoothingCoefficient) {
-  g_smoothingCoefficient = smoothingCoefficient;
-}
-
-void my::UpdateParticleBuffer() {
-  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-  g_context->Map(g_particleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
-                 &mappedResource);
-  memcpy(mappedResource.pData, g_particles, sizeof(g_particles));
-  g_context->Unmap(g_particleBuffer.Get(), 0);
-}
-
 bool my::DoTest() {
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_camera.GetPosition();
@@ -405,7 +300,6 @@ bool my::DoTest() {
 
   g_context->VSSetShader(g_quadVS.Get(), nullptr, 0);
   g_context->PSSetShader(g_rayMarchPS.Get(), nullptr, 0);
-  g_context->PSSetShaderResources(0, 1, g_particleSRV.GetAddressOf());
   g_context->PSSetConstantBuffers(0, 1, g_quadRendererCB.GetAddressOf());
 
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
@@ -483,7 +377,6 @@ void my::DeinitEngine() {
   g_inputLayout.Reset();
 
   // Buffers
-  g_particleBuffer.Reset();
   g_screenQuadVB.Reset();
   g_quadRendererCB.Reset();
 
@@ -492,7 +385,6 @@ void my::DeinitEngine() {
   g_rayMarchPS.Reset();
 
   // Views
-  g_particleSRV.Reset();
   g_renderTargetView.Reset();
   g_depthStencilView.Reset();
   g_sharedSRV.Reset();
