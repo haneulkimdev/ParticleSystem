@@ -264,6 +264,8 @@ bool SetRenderTargetSize(int w, int h) {
 void Update(float dt) { g_emitter.UpdateCPU(g_emitterTransform, dt); }
 
 bool DoTest() {
+  g_emitter.UpdateGPU(0);
+
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_camera.GetPosition();
   quadPostRenderer.lightColor = g_pointLight.color;
@@ -361,6 +363,8 @@ bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
 }
 
 void DeinitEngine() {
+  g_emitter.Deinitialize();
+
   // States
   g_rasterizerState.Reset();
   g_depthStencilState.Reset();

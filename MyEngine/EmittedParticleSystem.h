@@ -219,5 +219,7 @@ class MY_API EmittedParticleSystem {
   }
 
   static void Initialize();
+
+  void Deinitialize();
 };
 }  // namespace my

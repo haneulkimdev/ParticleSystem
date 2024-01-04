@@ -375,9 +375,6 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
     context->CSSetUnorderedAccessViews(0, 1, uavs, nullptr);
 
     context->Dispatch(1, 1, 1);
-
-    // Statistics is copied to readback:
-    context->CopyResource(statisticsReadbackBuffer.Get(), counterBuffer.Get());
   };
 }
 
@@ -502,5 +499,44 @@ void EmittedParticleSystem::Initialize() {
 
   if (!ParticleSystem_Internal::LoadShaders())
     FailRet("ParticleSystem_Internal::LoadShaders Failed.");
+}
+void EmittedParticleSystem::Deinitialize() {
+  vertexShader.Reset();
+  pixelShader[RAYMARCHING].Reset();
+  kickoffUpdateCS.Reset();
+  finishUpdateCS.Reset();
+  emitCS.Reset();
+  simulateCS.Reset();
+
+  rasterizerState.Reset();
+  depthStencilState.Reset();
+
+  statisticsReadbackBuffer.Reset();
+
+  particleBuffer.Reset();
+  aliveList[0].Reset();
+  aliveList[1].Reset();
+  deadList.Reset();
+  counterBuffer.Reset();
+  indirectBuffers.Reset();
+  constantBuffer.Reset();
+  vertexBuffer.Reset();
+
+  particleBufferSRV.Reset();
+  aliveListSRV[0].Reset();
+  aliveListSRV[1].Reset();
+  deadListSRV.Reset();
+  counterBufferSRV.Reset();
+  constantBufferSRV.Reset();
+  vertexBufferSRV.Reset();
+
+  particleBufferUAV.Reset();
+  aliveListUAV[0].Reset();
+  aliveListUAV[1].Reset();
+  deadListUAV.Reset();
+  counterBufferUAV.Reset();
+  indirectBuffersUAV.Reset();
+  constantBufferUAV.Reset();
+  vertexBufferUAV.Reset();
 }
 }  // namespace my
