@@ -265,14 +265,6 @@ void EmittedParticleSystem::UpdateCPU(const Matrix& transform, float dt) {
 
   // Swap CURRENT alivelist with NEW alivelist
   std::swap(aliveList[0], aliveList[1]);
-
-  // Read back statistics (with GPU delay):
-  ComPtr<ID3D11DeviceContext> context;
-  my::GetContext(context);
-  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-  context->Map(counterBuffer.Get(), 0, D3D11_MAP_READ, 0, &mappedResource);
-  memcpy(&statistics, mappedResource.pData, sizeof(statistics));
-  context->Unmap(counterBuffer.Get(), 0);
 }
 
 void EmittedParticleSystem::Burst(int num) {
