@@ -9,18 +9,6 @@ using float2 = Vector2;
 using float3 = Vector3;
 using uint = uint32_t;
 
-struct Particle {
-  float3 position = Vector3(0.0f);
-  float mass = 1.0f;
-  float3 force = Vector3(0.0f);
-  float rotationalVelocity = 0.0f;
-  float3 velocity = Vector3(0.0f);
-  float maxLife = 1.0f;
-  float2 sizeBeginEnd = Vector2(1.0f);
-  float life = maxLife;
-  uint color = my::ColorConvertFloat4ToU32(Color(1.0f, 1.0f, 1.0f, 1.0f));
-};
-
 struct PointLight {
   float3 position;
   float intensity;
@@ -73,10 +61,6 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 
 // InputLayouts
 ComPtr<ID3D11InputLayout> g_inputLayout;
-
-const uint32_t MAX_PARTICLES = 4;
-
-Particle g_particles[MAX_PARTICLES];
 
 PointLight g_pointLight;
 
