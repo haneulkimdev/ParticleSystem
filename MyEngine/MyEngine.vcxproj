@@ -29,6 +29,7 @@
     <ClInclude Include="EmittedParticleSystem.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="cpp.hint" />
     <None Include="hlsl\Header.hlsli" />
   </ItemGroup>
   <ItemGroup>
