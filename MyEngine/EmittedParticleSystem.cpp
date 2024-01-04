@@ -448,7 +448,7 @@ bool LoadShaders() {
     return true;
   };
 
-  if (!RegisterShaderObjFile("VS_Particle", "PS",
+  if (!RegisterShaderObjFile("VS_Particle", "VS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  vertexShader.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
