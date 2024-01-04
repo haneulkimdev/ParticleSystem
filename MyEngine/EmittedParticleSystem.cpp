@@ -38,7 +38,7 @@ void EmittedParticleSystem::CreateSelfBuffers() {
   my::GetDevice(device);
 
   D3D11_BUFFER_DESC particleBufferDesc = {};
-  particleBuffer->GetDesc(&particleBufferDesc);
+  if (particleBuffer) particleBuffer->GetDesc(&particleBufferDesc);
 
   if (particleBufferDesc.ByteWidth < MAX_PARTICLES * sizeof(Particle)) {
     D3D11_BUFFER_DESC bd = {};
