@@ -20,11 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Helper.cpp" />
     <ClCompile Include="MyEngineAPI.cpp" />
     <ClCompile Include="EmittedParticleSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Helper.h" />
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="EmittedParticleSystem.h" />
   </ItemGroup>

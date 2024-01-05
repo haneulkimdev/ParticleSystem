@@ -1,22 +1,15 @@
 #include "EmittedParticleSystem.h"
 
-using Microsoft::WRL::ComPtr;
-using namespace DirectX::SimpleMath;
-
 static const uint ARGUMENTBUFFER_OFFSET_DISPATCHEMIT = 0;
 static const uint ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION =
     ARGUMENTBUFFER_OFFSET_DISPATCHEMIT + (3 * 4);
 static const uint ARGUMENTBUFFER_OFFSET_DRAWPARTICLES =
     ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION + (3 * 4);
 
-auto FailRet = [](const std::string& msg) {
-  std::shared_ptr<spdlog::logger> apiLogger;
-  my::GetApiLogger(apiLogger);
-  apiLogger->error(msg);
-  return false;
-};
-
 namespace my {
+static ComPtr<ID3D11Device> device;
+static ComPtr<ID3D11DeviceContext> context;
+
 static ComPtr<ID3D11VertexShader> vertexShader;
 static ComPtr<ID3D11PixelShader>
     pixelShader[EmittedParticleSystem::PARTICLESHADERTYPE_COUNT];
@@ -34,9 +27,6 @@ void EmittedParticleSystem::SetMaxParticleCount(uint32_t value) {
 }
 
 void EmittedParticleSystem::CreateSelfBuffers() {
-  ComPtr<ID3D11Device> device;
-  my::GetDevice(device);
-
   D3D11_BUFFER_DESC particleBufferDesc = {};
   if (particleBuffer) particleBuffer->GetDesc(&particleBufferDesc);
 
@@ -214,9 +204,6 @@ void EmittedParticleSystem::CreateSelfBuffers() {
       debugBufDesc.BindFlags = 0;
       debugBufDesc.MiscFlags = 0;
 
-      ComPtr<ID3D11Device> device;
-      my::GetDevice(device);
-
       device->CreateBuffer(&debugBufDesc, nullptr,
                            statisticsReadbackBuffer.ReleaseAndGetAddressOf());
     }
@@ -325,17 +312,10 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
 
     cb.xEmitterOptions = 0;
 
-    ComPtr<ID3D11DeviceContext> context;
-    my::GetContext(context);
-
     context->UpdateSubresource(constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
 
     context->CSSetConstantBuffers(__CBUFFERBINDSLOT__EmittedParticleCB__, 1,
                                   constantBuffer.GetAddressOf());
-
-    ID3D11Buffer* quadRendererCB = nullptr;
-    my::GetQuadRendererCB(quadRendererCB);
-    context->CSSetConstantBuffers(1, 1, &quadRendererCB);
 
     context->CSSetUnorderedAccessViews(0, 1, particleBufferUAV.GetAddressOf(),
                                        nullptr);
@@ -379,9 +359,6 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
 }
 
 void EmittedParticleSystem::Draw() {
-  ComPtr<ID3D11DeviceContext> context;
-  my::GetContext(context);
-
   context->VSSetShader(vertexShader.Get(), nullptr, 0);
   context->PSSetShader(pixelShader[RAYMARCHING].Get(), nullptr, 0);
   context->RSSetState(rasterizerState.Get());
@@ -404,34 +381,30 @@ void EmittedParticleSystem::Draw() {
 namespace ParticleSystem_Internal {
 bool LoadShaders() {
   std::string enginePath;
-  if (!my::GetEnginePath(enginePath))
-    return FailRet("Failure to Read Engine Path.");
+  if (!Helper::GetEnginePath(enginePath)) return false;
 
   auto RegisterShaderObjFile = [&enginePath](
                                    const std::string& shaderObjFileName,
                                    const std::string& shaderProfile,
                                    ID3D11DeviceChild** deviceChild) -> bool {
     std::vector<BYTE> byteCode;
-    my::ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
-
-    ComPtr<ID3D11Device> device;
-    my::GetDevice(device);
+    Helper::ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
 
     if (shaderProfile == "VS") {
       HRESULT hr = device->CreateVertexShader(
           byteCode.data(), byteCode.size(), nullptr,
           reinterpret_cast<ID3D11VertexShader**>(deviceChild));
-      if (FAILED(hr)) FailRet("CreateVertexShader Failed.");
+      if (FAILED(hr)) return false;
     } else if (shaderProfile == "PS") {
       HRESULT hr = device->CreatePixelShader(
           byteCode.data(), byteCode.size(), nullptr,
           reinterpret_cast<ID3D11PixelShader**>(deviceChild));
-      if (FAILED(hr)) FailRet("CreatePixelShader Failed.");
+      if (FAILED(hr)) return false;
     } else if (shaderProfile == "CS") {
       HRESULT hr = device->CreateComputeShader(
           byteCode.data(), byteCode.size(), nullptr,
           reinterpret_cast<ID3D11ComputeShader**>(deviceChild));
-      if (FAILED(hr)) FailRet("CreateComputeShader Failed.");
+      if (FAILED(hr)) return false;
     }
 
     return true;
@@ -440,38 +413,39 @@ bool LoadShaders() {
   if (!RegisterShaderObjFile("VS_Particle", "VS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  vertexShader.ReleaseAndGetAddressOf())))
-    FailRet("RegisterShaderObjFile Failed.");
+    return false;
 
   if (!RegisterShaderObjFile("PS_Particle_RayMARCH", "PS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  pixelShader[EmittedParticleSystem::RAYMARCHING]
                                      .ReleaseAndGetAddressOf())))
-    FailRet("RegisterShaderObjFile Failed.");
+    return false;
 
   if (!RegisterShaderObjFile("CS_Particle_KickoffUpdate", "CS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  kickoffUpdateCS.ReleaseAndGetAddressOf())))
-    FailRet("RegisterShaderObjFile Failed.");
+    return false;
   if (!RegisterShaderObjFile("CS_Particle_FinishUpdate", "CS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  finishUpdateCS.ReleaseAndGetAddressOf())))
-    FailRet("RegisterShaderObjFile Failed.");
+    return false;
   if (!RegisterShaderObjFile("CS_Particle_Emit", "CS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  emitCS.ReleaseAndGetAddressOf())))
-    FailRet("RegisterShaderObjFile Failed.");
+    return false;
   if (!RegisterShaderObjFile("CS_Particle_Simulate", "CS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  simulateCS.ReleaseAndGetAddressOf())))
-    FailRet("RegisterShaderObjFile Failed.");
+    return false;
 
   return true;
 }
 }  // namespace ParticleSystem_Internal
 
-void EmittedParticleSystem::Initialize() {
-  ComPtr<ID3D11Device> device;
-  my::GetDevice(device);
+bool EmittedParticleSystem::InitParticle(ComPtr<ID3D11Device>& device,
+                                         ComPtr<ID3D11DeviceContext>& context) {
+  my::device = device;
+  my::context = context;
 
   D3D11_RASTERIZER_DESC rasterizerDesc = {};
   rasterizerDesc.FillMode = D3D11_FILL_SOLID;
@@ -485,7 +459,7 @@ void EmittedParticleSystem::Initialize() {
 
   if (FAILED(device->CreateRasterizerState(
           &rasterizerDesc, rasterizerState.ReleaseAndGetAddressOf())))
-    FailRet("CreateRasterizerState Failed.");
+    return false;
 
   D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
   depthStencilDesc.DepthEnable = false;
@@ -495,12 +469,12 @@ void EmittedParticleSystem::Initialize() {
 
   if (FAILED(device->CreateDepthStencilState(
           &depthStencilDesc, depthStencilState.ReleaseAndGetAddressOf())))
-    FailRet("CreateDepthStencilState Failed.");
+    return false;
 
-  if (!ParticleSystem_Internal::LoadShaders())
-    FailRet("ParticleSystem_Internal::LoadShaders Failed.");
+  if (!ParticleSystem_Internal::LoadShaders()) return false;
 }
-void EmittedParticleSystem::Deinitialize() {
+
+void EmittedParticleSystem::DeinitParticle() {
   vertexShader.Reset();
   pixelShader[RAYMARCHING].Reset();
   kickoffUpdateCS.Reset();

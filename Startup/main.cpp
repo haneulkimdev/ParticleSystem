@@ -36,7 +36,6 @@ void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 auto g_apiLogger = spdlog::default_logger();
-my::EmittedParticleSystem g_emitter;
 
 // Main code
 int main(int, char**) {
@@ -256,44 +255,47 @@ int main(int, char**) {
       ImGui::Begin("MyEngine Settings");
 
       if (ImGui::CollapsingHeader("Emitter")) {
-        int maxCount = g_emitter.GetMaxParticleCount();
+        my::EmittedParticleSystem* emitter;
+        my::GetEmitter(&emitter);
+
+        int maxCount = emitter->GetMaxParticleCount();
         ImGui::SliderInt("Max Count", (int*)&maxCount, 1, 1000000);
-        g_emitter.SetMaxParticleCount(maxCount);
+        emitter->SetMaxParticleCount(maxCount);
 
-        ImGui::SliderFloat("Emit", &g_emitter.count, 0.0f, 10000.0f);
-        ImGui::SliderFloat("Size", &g_emitter.size, 0.01f, 10.0f);
-        ImGui::SliderFloat("Rotation", &g_emitter.rotation, 0.0f, 1.0f);
-        ImGui::SliderFloat("Normal", &g_emitter.normal_factor, 0.0f, 100.0f);
-        ImGui::SliderFloat("Scale X", &g_emitter.scaleX, 0.0f, 100.0f);
-        ImGui::SliderFloat("Scale Y", &g_emitter.scaleY, 0.0f, 100.0f);
-        ImGui::SliderFloat("Life Span", &g_emitter.life, 0.0f, 100.0f);
-        ImGui::SliderFloat("Life Randomness", &g_emitter.random_life, 0.0f,
+        ImGui::SliderFloat("Emit", &emitter->count, 0.0f, 10000.0f);
+        ImGui::SliderFloat("Size", &emitter->size, 0.01f, 10.0f);
+        ImGui::SliderFloat("Rotation", &emitter->rotation, 0.0f, 1.0f);
+        ImGui::SliderFloat("Normal", &emitter->normal_factor, 0.0f, 100.0f);
+        ImGui::SliderFloat("Scale X", &emitter->scaleX, 0.0f, 100.0f);
+        ImGui::SliderFloat("Scale Y", &emitter->scaleY, 0.0f, 100.0f);
+        ImGui::SliderFloat("Life Span", &emitter->life, 0.0f, 100.0f);
+        ImGui::SliderFloat("Life Randomness", &emitter->random_life, 0.0f,
                            2.0f);
-        ImGui::SliderFloat("Randomness", &g_emitter.random_factor, 0.0f, 10.0f);
-        ImGui::SliderFloat("Color Randomness", &g_emitter.random_color, 0.0f,
+        ImGui::SliderFloat("Randomness", &emitter->random_factor, 0.0f, 10.0f);
+        ImGui::SliderFloat("Color Randomness", &emitter->random_color, 0.0f,
                            2.0f);
-        ImGui::SliderFloat("Motion Blur", &g_emitter.motionBlurAmount, 0.0f,
+        ImGui::SliderFloat("Motion Blur", &emitter->motionBlurAmount, 0.0f,
                            1.0f);
-        ImGui::SliderFloat("Mass", &g_emitter.mass, 0.1f, 100.0f);
-        ImGui::SliderFloat("Timestep", &g_emitter.FIXED_TIMESTEP, -1.0f, 1.0f);
-        ImGui::SliderFloat("Drag", &g_emitter.drag, 0.0f, 1.0f);
-        ImGui::SliderFloat("Restitution", &g_emitter.restitution, 0.0f, 1.0f);
+        ImGui::SliderFloat("Mass", &emitter->mass, 0.1f, 100.0f);
+        ImGui::SliderFloat("Timestep", &emitter->FIXED_TIMESTEP, -1.0f, 1.0f);
+        ImGui::SliderFloat("Drag", &emitter->drag, 0.0f, 1.0f);
+        ImGui::SliderFloat("Restitution", &emitter->restitution, 0.0f, 1.0f);
 
-        float velocity[3] = {g_emitter.velocity.x, g_emitter.velocity.y,
-                             g_emitter.velocity.z};
+        float velocity[3] = {emitter->velocity.x, emitter->velocity.y,
+                             emitter->velocity.z};
         ImGui::InputFloat3("Velocity", velocity);
 
-        float gravity[3] = {g_emitter.gravity.x, g_emitter.gravity.y,
-                            g_emitter.gravity.z};
+        float gravity[3] = {emitter->gravity.x, emitter->gravity.y,
+                            emitter->gravity.z};
         ImGui::InputFloat3("Gravity", gravity);
 
-        ImGui::InputFloat("Frame Rate", &g_emitter.frameRate);
+        ImGui::InputFloat("Frame Rate", &emitter->frameRate);
 
-        int frames[2] = {(int)g_emitter.framesX, (int)g_emitter.framesY};
+        int frames[2] = {(int)emitter->framesX, (int)emitter->framesY};
         ImGui::InputInt2("Frames", frames);
 
-        ImGui::InputInt("Frame Count", (int*)&g_emitter.frameCount);
-        ImGui::InputInt("Start Frame", (int*)&g_emitter.frameStart);
+        ImGui::InputInt("Frame Count", (int*)&emitter->frameCount);
+        ImGui::InputInt("Start Frame", (int*)&emitter->frameStart);
       }
 
       if (ImGui::CollapsingHeader("Debug")) {

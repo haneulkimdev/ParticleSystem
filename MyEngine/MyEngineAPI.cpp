@@ -168,7 +168,7 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
 
-  g_emitter.Initialize();
+  g_emitter.InitParticle(g_device, g_context);
 
   return true;
 }
@@ -293,6 +293,7 @@ bool DoTest() {
   g_context->VSSetShader(g_quadVS.Get(), nullptr, 0);
   g_context->PSSetShader(g_rayMarchPS.Get(), nullptr, 0);
   g_context->PSSetConstantBuffers(0, 1, g_quadRendererCB.GetAddressOf());
+  g_context->CSSetConstantBuffers(1, 1, g_quadRendererCB.GetAddressOf());
 
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
   g_context->RSSetState(g_rasterizerState.Get());
@@ -364,7 +365,7 @@ bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
 }
 
 void DeinitEngine() {
-  g_emitter.Deinitialize();
+  g_emitter.DeinitParticle();
 
   // States
   g_rasterizerState.Reset();
@@ -396,7 +397,7 @@ void DeinitEngine() {
 
 bool LoadShaders() {
   std::string enginePath;
-  if (!GetEnginePath(enginePath))
+  if (!Helper::GetEnginePath(enginePath))
     return FailRet("Failure to Read Engine Path.");
 
   auto RegisterShaderObjFile = [&enginePath](
@@ -404,7 +405,7 @@ bool LoadShaders() {
                                    const std::string& shaderProfile,
                                    ID3D11DeviceChild** deviceChild) -> bool {
     std::vector<BYTE> byteCode;
-    ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
+    Helper::ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
 
     if (shaderProfile == "VS") {
       HRESULT hr = g_device->CreateVertexShader(
@@ -445,85 +446,7 @@ bool LoadShaders() {
   return true;
 }
 
-bool GetQuadRendererCB(ID3D11Buffer* quadRendererCB) {
-  quadRendererCB = nullptr;
-
-  if (!g_quadRendererCB) return FailRet("quadRendererCB not initialized.");
-
-  quadRendererCB = g_quadRendererCB.Get();
-
-  return true;
-}
-
-bool GetDevice(Microsoft::WRL::ComPtr<ID3D11Device>& device) {
-  device = nullptr;
-
-  if (!g_device) return FailRet("Device not initialized.");
-
-  device = g_device;
-
-  return true;
-}
-
-bool GetContext(Microsoft::WRL::ComPtr<ID3D11DeviceContext>& context) {
-  context = nullptr;
-
-  if (!g_device) return FailRet("Device not initialized.");
-
-  context = g_context;
-
-  return true;
-}
-
-bool GetApiLogger(std::shared_ptr<spdlog::logger>& logger) {
-  logger = nullptr;
-
-  if (!g_apiLogger) return FailRet("ApiLogger not initialized.");
-
-  logger = g_apiLogger;
-
-  return true;
-}
-
-bool GetEnginePath(std::string& enginePath) {
-  char ownPth[2048];
-  GetModuleFileNameA(nullptr, ownPth, sizeof(ownPth));
-  std::string exe_path = ownPth;
-  std::string exe_path_;
-  size_t pos = 0;
-  std::string token;
-  std::string delimiter = "\\";
-  while ((pos = exe_path.find(delimiter)) != std::string::npos) {
-    token = exe_path.substr(0, pos);
-    if (token.find(".exe") != std::string::npos) break;
-    exe_path += token + "\\";
-    exe_path_ += token + "\\";
-    exe_path.erase(0, pos + delimiter.length());
-  }
-
-  std::ifstream file(exe_path_ + "..\\engine_module_path.txt");
-
-  if (!file.is_open()) return FailRet("engine_module_path.txt not found.");
-
-  getline(file, enginePath);
-
-  file.close();
-
-  return true;
-}
-
-bool ReadData(const std::string& name, std::vector<BYTE>& blob) {
-  std::ifstream fin(name, std::ios::binary);
-
-  if (!fin) FailRet("File not found.");
-
-  blob.assign((std::istreambuf_iterator<char>(fin)),
-              std::istreambuf_iterator<char>());
-
-  fin.close();
-
-  return true;
-}
+void GetEmitter(EmittedParticleSystem** emitter) { *emitter = &g_emitter; }
 
 bool BuildScreenQuadGeometryBuffers() {
   Vector3 vertices[4] = {

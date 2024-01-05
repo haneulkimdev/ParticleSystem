@@ -1,9 +1,19 @@
 #pragma once
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#include <d3d11.h>
+#include <wrl/client.h>
+
 #include <algorithm>
+#include <memory>
 #include <random>
 
-#include "MyEngineAPI.h"
+#include "Helper.h"
+#include "SimpleMath.h"
+#include "spdlog/spdlog.h"
 
 #define MY_API __declspec(dllexport)
 
@@ -218,8 +228,9 @@ class MY_API EmittedParticleSystem {
     }
   }
 
-  static void Initialize();
+  bool InitParticle(ComPtr<ID3D11Device>& device,
+                    ComPtr<ID3D11DeviceContext>& context);
 
-  void Deinitialize();
+  void DeinitParticle();
 };
 }  // namespace my
