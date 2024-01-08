@@ -259,7 +259,7 @@ int main(int, char**) {
         my::GetEmitter(&emitter);
 
         int maxCount = emitter->GetMaxParticleCount();
-        ImGui::SliderInt("Max Count", (int*)&maxCount, 1, 1000000);
+        ImGui::SliderInt("Max Count", (int*)&maxCount, 1, 1e6);
         emitter->SetMaxParticleCount(maxCount);
 
         ImGui::SliderFloat("Emit", &emitter->count, 0.0f, 10000.0f);
