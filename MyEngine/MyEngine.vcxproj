@@ -82,7 +82,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="hlsl\PS_Particle_RayMARCH.hlsl">
+    <None Include="hlsl\PS_Particle_Simple.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>

@@ -124,7 +124,7 @@ namespace my {
 class MY_API EmittedParticleSystem {
  public:
   enum PARTICLESHADERTYPE {
-    RAYMARCHING,
+    SIMPLE,
     PARTICLESHADERTYPE_COUNT,
   };
 
@@ -178,7 +178,7 @@ class MY_API EmittedParticleSystem {
   };
   uint32_t _flags = FLAG_EMPTY;
 
-  PARTICLESHADERTYPE shaderType = RAYMARCHING;
+  PARTICLESHADERTYPE shaderType = SIMPLE;
 
   float FIXED_TIMESTEP = -1.0f;  // -1 : variable timestep; >=0 : fixed timestep
 

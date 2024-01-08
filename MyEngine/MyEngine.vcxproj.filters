@@ -42,7 +42,7 @@
     <None Include="hlsl\CS_particle_simulate.hlsl">
       <Filter>hlsl</Filter>
     </None>
-    <None Include="hlsl\PS_Particle_RayMARCH.hlsl">
+    <None Include="hlsl\PS_Particle_Simple.hlsl">
       <Filter>hlsl</Filter>
     </None>
     <None Include="hlsl\VS_Particle.hlsl">

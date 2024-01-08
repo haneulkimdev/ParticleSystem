@@ -360,7 +360,7 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
 
 void EmittedParticleSystem::Draw() {
   context->VSSetShader(vertexShader.Get(), nullptr, 0);
-  context->PSSetShader(pixelShader[RAYMARCHING].Get(), nullptr, 0);
+  context->PSSetShader(pixelShader[SIMPLE].Get(), nullptr, 0);
   context->RSSetState(rasterizerState.Get());
   context->OMSetDepthStencilState(depthStencilState.Get(), 0);
   context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
@@ -417,7 +417,7 @@ bool LoadShaders() {
 
   if (!RegisterShaderObjFile("PS_Particle_RayMARCH", "PS",
                              reinterpret_cast<ID3D11DeviceChild**>(
-                                 pixelShader[EmittedParticleSystem::RAYMARCHING]
+                                 pixelShader[EmittedParticleSystem::SIMPLE]
                                      .ReleaseAndGetAddressOf())))
     return false;
 
@@ -476,7 +476,7 @@ bool EmittedParticleSystem::InitParticle(ComPtr<ID3D11Device>& device,
 
 void EmittedParticleSystem::DeinitParticle() {
   vertexShader.Reset();
-  pixelShader[RAYMARCHING].Reset();
+  pixelShader[SIMPLE].Reset();
   kickoffUpdateCS.Reset();
   finishUpdateCS.Reset();
   emitCS.Reset();
