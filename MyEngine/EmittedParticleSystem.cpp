@@ -194,19 +194,6 @@ void EmittedParticleSystem::CreateSelfBuffers() {
     bd.CPUAccessFlags = 0;
     bd.MiscFlags = 0;
     device->CreateBuffer(&bd, nullptr, constantBuffer.ReleaseAndGetAddressOf());
-
-    // Debug information CPU-readback buffer:
-    {
-      D3D11_BUFFER_DESC debugBufDesc = {};
-      counterBuffer->GetDesc(&bd);
-      debugBufDesc.Usage = D3D11_USAGE_STAGING;
-      debugBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-      debugBufDesc.BindFlags = 0;
-      debugBufDesc.MiscFlags = 0;
-
-      device->CreateBuffer(&debugBufDesc, nullptr,
-                           statisticsReadbackBuffer.ReleaseAndGetAddressOf());
-    }
   }
 }
 
@@ -359,21 +346,26 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
 }
 
 void EmittedParticleSystem::Draw() {
-  context->VSSetShader(vertexShader.Get(), nullptr, 0);
-  context->PSSetShader(pixelShader[SIMPLE].Get(), nullptr, 0);
-  context->RSSetState(rasterizerState.Get());
-  context->OMSetDepthStencilState(depthStencilState.Get(), 0);
+  uint32_t stride = sizeof(Vertex);
+  uint32_t offset = 0;
+  context->IASetInputLayout(nullptr);
+  context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride,
+                              &offset);
   context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-
+  context->VSSetShader(vertexShader.Get(), nullptr, 0);
   context->VSSetConstantBuffers(__CBUFFERBINDSLOT__EmittedParticleCB__, 1,
                                 constantBuffer.GetAddressOf());
-  context->PSSetConstantBuffers(__CBUFFERBINDSLOT__EmittedParticleCB__, 1,
-                                constantBuffer.GetAddressOf());
-
   ID3D11ShaderResourceView* srvs[] = {particleBufferSRV.Get(),
                                       aliveListSRV[1].Get(),  // NEW aliveList
                                       vertexBufferSRV.Get()};
   context->VSSetShaderResources(0, 3, srvs);
+  context->PSSetShader(pixelShader[SIMPLE].Get(), nullptr, 0);
+  context->PSSetConstantBuffers(__CBUFFERBINDSLOT__EmittedParticleCB__, 1,
+                                constantBuffer.GetAddressOf());
+
+  context->OMSetDepthStencilState(depthStencilState.Get(), 0);
+  context->RSSetState(rasterizerState.Get());
+
   context->DrawInstancedIndirect(indirectBuffers.Get(),
                                  ARGUMENTBUFFER_OFFSET_DRAWPARTICLES);
 }
@@ -484,8 +476,6 @@ void EmittedParticleSystem::DeinitParticle() {
 
   rasterizerState.Reset();
   depthStencilState.Reset();
-
-  statisticsReadbackBuffer.Reset();
 
   particleBuffer.Reset();
   aliveList[0].Reset();
