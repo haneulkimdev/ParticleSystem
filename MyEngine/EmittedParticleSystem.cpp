@@ -305,9 +305,6 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
     context->CSSetConstantBuffers(__CBUFFERBINDSLOT__EmittedParticleCB__, 1,
                                   constantBuffer.GetAddressOf());
 
-    ID3D11ShaderResourceView* nullSRV[] = {nullptr};
-    context->CSSetShaderResources(0, 1, nullSRV);
-
     context->CSSetUnorderedAccessViews(0, 1, particleBufferUAV.GetAddressOf(),
                                        nullptr);
     context->CSSetUnorderedAccessViews(1, 1, aliveListUAV[0].GetAddressOf(),
@@ -349,6 +346,9 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
                                        nullptr);
 
     context->Dispatch(1, 1, 1);
+
+    ID3D11ShaderResourceView* nullSRV[] = {nullptr};
+    context->CSSetShaderResources(0, 1, nullSRV);
   };
 }
 
@@ -356,9 +356,7 @@ void EmittedParticleSystem::Draw() {
   uint32_t stride = sizeof(Vertex);
   uint32_t offset = 0;
   context->IASetInputLayout(nullptr);
-  context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride,
-                              &offset);
-  context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+  context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
   context->VSSetShader(vertexShader.Get(), nullptr, 0);
   context->VSSetConstantBuffers(__CBUFFERBINDSLOT__EmittedParticleCB__, 1,
                                 constantBuffer.GetAddressOf());
