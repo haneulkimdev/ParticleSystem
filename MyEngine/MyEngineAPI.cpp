@@ -286,23 +286,6 @@ void Update(float dt) {
 }
 
 bool DoTest() {
-  uint32_t stride = sizeof(Vector3);
-  uint32_t offset = 0;
-  g_context->IASetInputLayout(g_inputLayout.Get());
-  g_context->IASetVertexBuffers(0, 1, g_screenQuadVB.GetAddressOf(), &stride,
-                                &offset);
-  g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-  g_context->VSSetShader(g_quadVS.Get(), nullptr, 0);
-  g_context->PSSetShader(g_rayMarchPS.Get(), nullptr, 0);
-  g_context->PSSetConstantBuffers(0, 1, g_quadRendererCB.GetAddressOf());
-  g_context->CSSetConstantBuffers(1, 1, g_quadRendererCB.GetAddressOf());
-
-  g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 1);
-  g_context->RSSetState(g_rasterizerState.Get());
-
-  g_context->Draw(4, 0);
-
   g_emitter.UpdateGPU(0);
   g_emitter.Draw();
 
