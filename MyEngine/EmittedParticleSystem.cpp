@@ -1,8 +1,8 @@
 #include "EmittedParticleSystem.h"
 
 namespace my {
-static ComPtr<ID3D11Device> device;
-static ComPtr<ID3D11DeviceContext> context;
+ID3D11Device* device = nullptr;
+ID3D11DeviceContext* context = nullptr;
 
 static ComPtr<ID3D11VertexShader> vertexShader;
 static ComPtr<ID3D11PixelShader>
@@ -436,8 +436,8 @@ bool LoadShaders() {
 }
 }  // namespace ParticleSystem_Internal
 
-bool EmittedParticleSystem::InitParticle(ComPtr<ID3D11Device>& device,
-                                         ComPtr<ID3D11DeviceContext>& context) {
+bool EmittedParticleSystem::InitParticle(ID3D11Device* device,
+                                         ID3D11DeviceContext* context) {
   my::device = device;
   my::context = context;
 

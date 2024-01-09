@@ -237,7 +237,6 @@ class MY_API EmittedParticleSystem {
     }
   }
 
-  bool InitParticle(ComPtr<ID3D11Device>& device,
-                    ComPtr<ID3D11DeviceContext>& context);
+  bool InitParticle(ID3D11Device* device, ID3D11DeviceContext* context);
 };
 }  // namespace my

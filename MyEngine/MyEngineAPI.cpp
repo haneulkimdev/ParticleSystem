@@ -167,7 +167,7 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
 
-  g_emitter.InitParticle(g_device, g_context);
+  g_emitter.InitParticle(g_device.Get(), g_context.Get());
 
   return true;
 }
