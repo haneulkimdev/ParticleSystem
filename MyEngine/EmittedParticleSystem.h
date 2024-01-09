@@ -24,6 +24,7 @@ using namespace DirectX::SimpleMath;
 using float4x4 = Matrix;
 using float2 = Vector2;
 using float3 = Vector3;
+using float4 = Vector4;
 using uint = uint32_t;
 
 struct Particle {
@@ -116,7 +117,7 @@ struct IndirectDrawArgsInstanced {
 };
 
 struct Vertex {
-  float3 position;
+  float4 position;
   uint color;
 };
 

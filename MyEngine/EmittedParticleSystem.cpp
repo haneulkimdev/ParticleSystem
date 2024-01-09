@@ -108,8 +108,7 @@ void EmittedParticleSystem::CreateSelfBuffers() {
 
     bd.StructureByteStride = sizeof(Vertex);
     bd.ByteWidth = bd.StructureByteStride * 4 * MAX_PARTICLES;
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE |
-                   D3D11_BIND_UNORDERED_ACCESS;
+    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
     device->CreateBuffer(&bd, nullptr, vertexBuffer.ReleaseAndGetAddressOf());
 
     srvDesc.Format = DXGI_FORMAT_UNKNOWN;
