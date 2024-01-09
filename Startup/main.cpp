@@ -223,6 +223,20 @@ int main(int, char**) {
         static my::EmittedParticleSystem* emitter;
         my::GetEmitter(&emitter);
 
+        std::string ss;
+        ss +=
+            "Memory usage: " + std::to_string(emitter->GetMemorySizeInBytes()) +
+            " bytes";
+        ss += "\n";
+
+        auto data = emitter->GetStatistics();
+        ss +=
+            "Alive Particle Count = " + std::to_string(data.aliveCount) + "\n";
+        ss += "Dead Particle Count = " + std::to_string(data.deadCount) + "\n";
+        ss += "GPU Emit count = " + std::to_string(data.realEmitCount) + "\n";
+
+        ImGui::Text(ss.c_str());
+
         int maxCount = emitter->GetMaxParticleCount();
         ImGui::SliderInt("Max Count", (int*)&maxCount, 1, 1e6);
         emitter->SetMaxParticleCount(maxCount);
