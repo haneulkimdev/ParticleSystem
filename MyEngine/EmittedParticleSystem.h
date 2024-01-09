@@ -160,8 +160,10 @@ class MY_API EmittedParticleSystem {
 
   uint32_t MAX_PARTICLES = 1000;
 
+  Matrix transform;
+
  public:
-  void UpdateCPU(const Matrix& transform, float dt);
+  void UpdateCPU(float dt);
   void Burst(int num);
   void Restart();
 

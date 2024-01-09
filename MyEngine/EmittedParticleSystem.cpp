@@ -221,7 +221,7 @@ uint64_t EmittedParticleSystem::GetMemorySizeInBytes() const {
   return retVal;
 }
 
-void EmittedParticleSystem::UpdateCPU(const Matrix& transform, float dt) {
+void EmittedParticleSystem::UpdateCPU(float dt) {
   this->dt = dt;
   CreateSelfBuffers();
 
@@ -336,11 +336,10 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
     // finish updating, update draw argument buffer:
     context->CSSetShader(finishUpdateCS.Get(), nullptr, 0);
 
-    ID3D11ShaderResourceView* srvs[] = {counterBufferSRV.Get()};
-    context->CSSetShaderResources(0, 1, srvs);
+    context->CSSetShaderResources(0, 1, counterBufferSRV.GetAddressOf());
 
-    ID3D11UnorderedAccessView* uavs[] = {indirectBuffersUAV.Get()};
-    context->CSSetUnorderedAccessViews(0, 1, uavs, nullptr);
+    context->CSSetUnorderedAccessViews(0, 1, indirectBuffersUAV.GetAddressOf(),
+                                       nullptr);
 
     context->Dispatch(1, 1, 1);
   };
