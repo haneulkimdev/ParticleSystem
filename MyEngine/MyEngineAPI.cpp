@@ -405,7 +405,7 @@ bool LoadShaders() {
                                    const std::string& shaderProfile,
                                    ID3D11DeviceChild** deviceChild) -> bool {
     std::vector<BYTE> byteCode;
-    Helper::ReadData(enginePath + "/hlsl/obj/" + shaderObjFileName, byteCode);
+    Helper::ReadData(enginePath + "/hlsl/objs/" + shaderObjFileName, byteCode);
 
     if (shaderProfile == "VS") {
       HRESULT hr = g_device->CreateVertexShader(
