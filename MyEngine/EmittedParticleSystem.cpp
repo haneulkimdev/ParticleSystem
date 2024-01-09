@@ -409,7 +409,7 @@ bool LoadShaders() {
                                  vertexShader.ReleaseAndGetAddressOf())))
     return false;
 
-  if (!RegisterShaderObjFile("PS_Particle_RayMARCH", "PS",
+  if (!RegisterShaderObjFile("PS_Particle_Simple", "PS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  pixelShader[EmittedParticleSystem::SIMPLE]
                                      .ReleaseAndGetAddressOf())))
