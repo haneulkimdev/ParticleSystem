@@ -261,7 +261,7 @@ bool SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-void Update(float dt) { g_emitter.UpdateCPU(g_emitterTransform, dt); }
+void Update(float dt) { g_emitter.UpdateCPU(dt); }
 
 bool DoTest() {
   PostRenderer quadPostRenderer = {};

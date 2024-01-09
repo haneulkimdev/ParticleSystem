@@ -305,6 +305,9 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
     context->CSSetConstantBuffers(__CBUFFERBINDSLOT__EmittedParticleCB__, 1,
                                   constantBuffer.GetAddressOf());
 
+    ID3D11ShaderResourceView* nullSRV[] = {nullptr};
+    context->CSSetShaderResources(0, 1, nullSRV);
+
     context->CSSetUnorderedAccessViews(0, 1, particleBufferUAV.GetAddressOf(),
                                        nullptr);
     context->CSSetUnorderedAccessViews(1, 1, aliveListUAV[0].GetAddressOf(),
@@ -332,6 +335,10 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
     context->CSSetShader(simulateCS.Get(), nullptr, 0);
     context->DispatchIndirect(indirectBuffers.Get(),
                               ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION);
+
+    ID3D11UnorderedAccessView* nullUAV[] = {nullptr, nullptr, nullptr, nullptr,
+                                            nullptr, nullptr, nullptr};
+    context->CSSetUnorderedAccessViews(0, 7, nullUAV, nullptr);
 
     // finish updating, update draw argument buffer:
     context->CSSetShader(finishUpdateCS.Get(), nullptr, 0);

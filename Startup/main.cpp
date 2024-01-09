@@ -220,7 +220,7 @@ int main(int, char**) {
       ImGui::Begin("MyEngine Settings");
 
       if (ImGui::CollapsingHeader("Emitter")) {
-        my::EmittedParticleSystem* emitter;
+        static my::EmittedParticleSystem* emitter;
         my::GetEmitter(&emitter);
 
         int maxCount = emitter->GetMaxParticleCount();
