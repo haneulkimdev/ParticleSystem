@@ -367,6 +367,9 @@ void EmittedParticleSystem::Draw() {
 
   context->DrawInstancedIndirect(indirectBuffers.Get(),
                                  ARGUMENTBUFFER_OFFSET_DRAWPARTICLES);
+
+  ID3D11ShaderResourceView* nullSRV[] = {nullptr, nullptr, nullptr};
+  context->VSSetShaderResources(0, 3, nullSRV);
 }
 
 namespace ParticleSystem_Internal {
