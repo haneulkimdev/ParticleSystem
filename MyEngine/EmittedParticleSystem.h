@@ -45,6 +45,12 @@ struct ParticleCounters {
   uint realEmitCount;
 };
 
+static const uint ARGUMENTBUFFER_OFFSET_DISPATCHEMIT = 0;
+static const uint ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION =
+    ARGUMENTBUFFER_OFFSET_DISPATCHEMIT + (3 * 4);
+static const uint ARGUMENTBUFFER_OFFSET_DRAWPARTICLES =
+    ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION + (3 * 4);
+
 static const int __CBUFFERBINDSLOT__EmittedParticleCB__ = 0;
 struct alignas(16) EmittedParticleCB {
   float4x4 xEmitterTransform;

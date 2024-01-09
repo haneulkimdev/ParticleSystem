@@ -1,11 +1,5 @@
 #include "EmittedParticleSystem.h"
 
-static const uint ARGUMENTBUFFER_OFFSET_DISPATCHEMIT = 0;
-static const uint ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION =
-    ARGUMENTBUFFER_OFFSET_DISPATCHEMIT + (3 * 4);
-static const uint ARGUMENTBUFFER_OFFSET_DRAWPARTICLES =
-    ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION + (3 * 4);
-
 namespace my {
 static ComPtr<ID3D11Device> device;
 static ComPtr<ID3D11DeviceContext> context;
