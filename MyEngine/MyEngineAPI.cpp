@@ -272,6 +272,7 @@ void Update(float dt) {
   quadPostRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
                                     static_cast<float>(g_renderTargetHeight));
   quadPostRenderer.smoothingCoefficient = g_smoothingCoefficient;
+  quadPostRenderer.deltaTime = dt;
   quadPostRenderer.distBoxCenter = g_distBoxCenter;
   quadPostRenderer.distBoxSize = g_distBoxSize;
 
