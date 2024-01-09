@@ -467,42 +467,4 @@ bool EmittedParticleSystem::InitParticle(ComPtr<ID3D11Device>& device,
 
   if (!ParticleSystem_Internal::LoadShaders()) return false;
 }
-
-void EmittedParticleSystem::DeinitParticle() {
-  vertexShader.Reset();
-  pixelShader[SIMPLE].Reset();
-  kickoffUpdateCS.Reset();
-  finishUpdateCS.Reset();
-  emitCS.Reset();
-  simulateCS.Reset();
-
-  rasterizerState.Reset();
-  depthStencilState.Reset();
-
-  particleBuffer.Reset();
-  aliveList[0].Reset();
-  aliveList[1].Reset();
-  deadList.Reset();
-  counterBuffer.Reset();
-  indirectBuffers.Reset();
-  constantBuffer.Reset();
-  vertexBuffer.Reset();
-
-  particleBufferSRV.Reset();
-  aliveListSRV[0].Reset();
-  aliveListSRV[1].Reset();
-  deadListSRV.Reset();
-  counterBufferSRV.Reset();
-  constantBufferSRV.Reset();
-  vertexBufferSRV.Reset();
-
-  particleBufferUAV.Reset();
-  aliveListUAV[0].Reset();
-  aliveListUAV[1].Reset();
-  deadListUAV.Reset();
-  counterBufferUAV.Reset();
-  indirectBuffersUAV.Reset();
-  constantBufferUAV.Reset();
-  vertexBufferUAV.Reset();
-}
 }  // namespace my

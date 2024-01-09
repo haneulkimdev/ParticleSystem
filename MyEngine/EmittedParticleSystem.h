@@ -136,6 +136,9 @@ class MY_API EmittedParticleSystem {
   };
 
  private:
+  ParticleCounters statistics = {};
+  ComPtr<ID3D11Buffer> statisticsReadbackBuffer;
+
   ComPtr<ID3D11Buffer> particleBuffer;
   ComPtr<ID3D11Buffer> aliveList[2];
   ComPtr<ID3D11Buffer> deadList;
@@ -175,6 +178,8 @@ class MY_API EmittedParticleSystem {
 
   void UpdateGPU(uint32_t instanceIndex);
   void Draw();
+
+  ParticleCounters GetStatistics() const { return statistics; }
 
   enum FLAGS {
     FLAG_EMPTY = 0,
@@ -234,7 +239,5 @@ class MY_API EmittedParticleSystem {
 
   bool InitParticle(ComPtr<ID3D11Device>& device,
                     ComPtr<ID3D11DeviceContext>& context);
-
-  void DeinitParticle();
 };
 }  // namespace my

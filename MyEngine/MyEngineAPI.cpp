@@ -367,8 +367,6 @@ bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
 }
 
 void DeinitEngine() {
-  g_emitter.DeinitParticle();
-
   // States
   g_rasterizerState.Reset();
   g_depthStencilState.Reset();
