@@ -10,7 +10,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     uint deadCount = counterBuffer.Load(PARTICLECOUNTER_OFFSET_DEADCOUNT);
 
 	// Load alive particle count:
-    uint aliveCount = counterBuffer.Load(PARTICLECOUNTER_OFFSET_ALIVECOUNT);
+    uint aliveCount_NEW = counterBuffer.Load(PARTICLECOUNTER_OFFSET_ALIVECOUNT_AFTERSIMULATION);
 
 	// we can not emit more than there are free slots in the dead list:
     uint realEmitCount = min(deadCount, xEmitCount);
@@ -19,10 +19,13 @@ void main(uint3 DTid : SV_DispatchThreadID)
     indirectBuffers.Store3(ARGUMENTBUFFER_OFFSET_DISPATCHEMIT, uint3(ceil((float) realEmitCount / (float) THREADCOUNT_EMIT), 1, 1));
 
 	// Fill dispatch argument buffer for simulation (ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ):
-    indirectBuffers.Store3(ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION, uint3(ceil((float) (aliveCount + realEmitCount) / (float) THREADCOUNT_SIMULATION), 1, 1));
+    indirectBuffers.Store3(ARGUMENTBUFFER_OFFSET_DISPATCHSIMULATION, uint3(ceil((float) (aliveCount_NEW + realEmitCount) / (float) THREADCOUNT_SIMULATION), 1, 1));
+
+	// copy new alivelistcount to current alivelistcount:
+    counterBuffer.Store(PARTICLECOUNTER_OFFSET_ALIVECOUNT, aliveCount_NEW);
 
 	// reset new alivecount:
-    counterBuffer.Store(PARTICLECOUNTER_OFFSET_ALIVECOUNT, 0);
+    counterBuffer.Store(PARTICLECOUNTER_OFFSET_ALIVECOUNT_AFTERSIMULATION, 0);
 
 	// and write real emit count:
     counterBuffer.Store(PARTICLECOUNTER_OFFSET_REALEMITCOUNT, realEmitCount);

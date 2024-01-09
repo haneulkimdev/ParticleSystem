@@ -43,6 +43,7 @@ struct ParticleCounters {
   uint aliveCount;
   uint deadCount;
   uint realEmitCount;
+  uint aliveCount_afterSimulation;
 };
 
 static const uint ARGUMENTBUFFER_OFFSET_DISPATCHEMIT = 0;
