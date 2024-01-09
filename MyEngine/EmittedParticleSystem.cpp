@@ -189,6 +189,18 @@ void EmittedParticleSystem::CreateSelfBuffers() {
     bd.CPUAccessFlags = 0;
     bd.MiscFlags = 0;
     device->CreateBuffer(&bd, nullptr, constantBuffer.ReleaseAndGetAddressOf());
+
+    // Debug information CPU-readback buffer:
+    {
+      D3D11_BUFFER_DESC debugBufDesc;
+      counterBuffer->GetDesc(&debugBufDesc);
+      debugBufDesc.Usage = D3D11_USAGE_STAGING;
+      debugBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+      debugBufDesc.BindFlags = 0;
+      debugBufDesc.MiscFlags = 0;
+      device->CreateBuffer(&debugBufDesc, nullptr,
+                           statisticsReadbackBuffer.ReleaseAndGetAddressOf());
+    }
   }
 }
 
@@ -234,6 +246,13 @@ void EmittedParticleSystem::UpdateCPU(float dt) {
 
   // Swap CURRENT alivelist with NEW alivelist
   std::swap(aliveList[0], aliveList[1]);
+
+  // Read back statistics (with GPU delay):
+  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+  context->Map(statisticsReadbackBuffer.Get(), 0, D3D11_MAP_READ, 0,
+               &mappedResource);
+  memcpy(&statistics, mappedResource.pData, sizeof(statistics));
+  context->Unmap(statisticsReadbackBuffer.Get(), 0);
 }
 
 void EmittedParticleSystem::Burst(int num) {
@@ -343,6 +362,9 @@ void EmittedParticleSystem::UpdateGPU(uint32_t instanceIndex) {
 
     ID3D11ShaderResourceView* nullSRV[] = {nullptr};
     context->CSSetShaderResources(0, 1, nullSRV);
+
+    // Statistics is copied to readback:
+    context->CopyResource(statisticsReadbackBuffer.Get(), counterBuffer.Get());
   };
 }
 
