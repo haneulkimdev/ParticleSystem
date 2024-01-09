@@ -239,7 +239,8 @@ bool SetRenderTargetSize(int w, int h) {
 
   // Bind the render target view and depth/stencil view to the pipeline.
 
-  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
+  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
+                                g_depthStencilView.Get());
 
   // Set the viewport transform.
 
@@ -260,9 +261,7 @@ bool SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-void Update(float dt) { g_emitter.UpdateCPU(dt); }
-
-bool DoTest() {
+void Update(float dt) {
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_camera.GetPosition();
   quadPostRenderer.lightColor = g_pointLight.color;
@@ -282,6 +281,10 @@ bool DoTest() {
   memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
   g_context->Unmap(g_quadRendererCB.Get(), 0);
 
+  g_emitter.UpdateCPU(dt);
+}
+
+bool DoTest() {
   uint32_t stride = sizeof(Vector3);
   uint32_t offset = 0;
   g_context->IASetInputLayout(g_inputLayout.Get());
