@@ -6,8 +6,6 @@ RWByteAddressBuffer indirectBuffers : register(u5);
 [numthreads(1, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-    // fxc /E main /T cs_5_0 ./CS_Particle_KickoffUpdate.hlsl /Fo ./obj/CS_Particle_KickoffUpdate
-    
 	// Load dead particle count:
     uint deadCount = counterBuffer.Load(PARTICLECOUNTER_OFFSET_DEADCOUNT);
 

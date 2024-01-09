@@ -127,7 +127,6 @@ float3 GetLight(float3 pos)
 
 float4 PS_RayMARCH(float4 position : SV_POSITION) : SV_Target
 {
-    // fxc /E PS_RayMARCH /T ps_5_0 ./PS_RayMARCH.hlsl /Fo ./obj/PS_RayMARCH
     float x = position.x;
     float y = position.y;
 

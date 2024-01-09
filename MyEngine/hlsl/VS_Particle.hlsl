@@ -22,11 +22,10 @@ struct VS_PARTICLE_OUTPUT
 
 VS_PARTICLE_OUTPUT main(uint vid : SV_VertexID, uint instanceID : SV_InstanceID)
 {
-    // fxc /E main /T vs_5_0 ./VS_Particle.hlsl /Fo ./obj/VS_Particle
     uint particleIndex = aliveList[instanceID];
     uint vertexID = particleIndex * 4 + vid;
 
-    float3 position = vertexBuffer[vertexID].position;
+    float3 position = vertexBuffer[vertexID].position.xyz;
     float4 color = vertexBuffer[vertexID].color;
 
 	// load particle data:
