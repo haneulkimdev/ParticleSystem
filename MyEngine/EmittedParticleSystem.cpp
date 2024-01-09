@@ -372,7 +372,7 @@ void EmittedParticleSystem::Draw() {
   context->VSSetShaderResources(0, 3, nullSRV);
 }
 
-namespace ParticleSystem_Internal {
+namespace EmittedParticleSystem_Internal {
 bool LoadShaders() {
   std::string enginePath;
   if (!Helper::GetEnginePath(enginePath)) return false;
@@ -434,7 +434,7 @@ bool LoadShaders() {
 
   return true;
 }
-}  // namespace ParticleSystem_Internal
+}  // namespace EmittedParticleSystem_Internal
 
 bool EmittedParticleSystem::InitParticle(ID3D11Device* device,
                                          ID3D11DeviceContext* context) {
@@ -465,6 +465,6 @@ bool EmittedParticleSystem::InitParticle(ID3D11Device* device,
           &depthStencilDesc, depthStencilState.ReleaseAndGetAddressOf())))
     return false;
 
-  if (!ParticleSystem_Internal::LoadShaders()) return false;
+  if (!EmittedParticleSystem_Internal::LoadShaders()) return false;
 }
 }  // namespace my
