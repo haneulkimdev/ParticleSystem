@@ -469,6 +469,8 @@ void DeinitEngine() {
   // States
   g_rasterizerState.Reset();
   g_depthStencilState.Reset();
+  g_particlesGPU.Reset();
+  g_particlesStagingGPU.Reset();
 
   // InputLayouts
   g_inputLayout.Reset();
@@ -484,6 +486,8 @@ void DeinitEngine() {
   g_renderTargetView.Reset();
   g_depthStencilView.Reset();
   g_sharedSRV.Reset();
+  g_particlesSRV.Reset();
+  g_particlesUAV.Reset();
 
   // Resources
   g_renderTargetBuffer.Reset();
