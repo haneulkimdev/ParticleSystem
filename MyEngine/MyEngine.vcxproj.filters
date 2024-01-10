@@ -49,5 +49,11 @@
       <Filter>hlsl</Filter>
     </None>
     <None Include="cpp.hint" />
+    <None Include="hlsl\PS_ParticleSystem.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\VS_ParticleSystem.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
   </ItemGroup>
 </Project>

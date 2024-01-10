@@ -8,6 +8,7 @@
 #include <wrl/client.h>
 
 #include <fstream>
+#include <random>
 #include <vector>
 
 #include "Camera.h"
@@ -30,9 +31,4 @@ extern "C" MY_API bool GetDX11SharedRenderTarget(
 extern "C" MY_API void DeinitEngine();
 
 extern "C" MY_API bool LoadShaders();
-
-bool BuildScreenQuadGeometryBuffers();
-
-DirectX::SimpleMath::Color ColorConvertU32ToFloat4(uint32_t color);
-uint32_t ColorConvertFloat4ToU32(const DirectX::SimpleMath::Color& color);
 }  // namespace my
