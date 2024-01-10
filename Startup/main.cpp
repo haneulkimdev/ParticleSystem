@@ -219,64 +219,6 @@ int main(int, char**) {
 
       ImGui::Begin("MyEngine Settings");
 
-      if (ImGui::CollapsingHeader("Emitter")) {
-        static my::EmittedParticleSystem* emitter;
-        my::GetEmitter(&emitter);
-
-        std::string ss;
-        ss +=
-            "Memory usage: " + std::to_string(emitter->GetMemorySizeInBytes()) +
-            " bytes";
-        ss += "\n";
-
-        auto data = emitter->GetStatistics();
-        ss +=
-            "Alive Particle Count = " + std::to_string(data.aliveCount) + "\n";
-        ss += "Dead Particle Count = " + std::to_string(data.deadCount) + "\n";
-        ss += "GPU Emit count = " + std::to_string(data.realEmitCount) + "\n";
-
-        ImGui::Text(ss.c_str());
-
-        int maxCount = emitter->GetMaxParticleCount();
-        ImGui::SliderInt("Max Count", (int*)&maxCount, 1, 1e6);
-        emitter->SetMaxParticleCount(maxCount);
-
-        ImGui::SliderFloat("Emit", &emitter->count, 0.0f, 10000.0f);
-        ImGui::SliderFloat("Size", &emitter->size, 0.01f, 10.0f);
-        ImGui::SliderFloat("Rotation", &emitter->rotation, 0.0f, 1.0f);
-        ImGui::SliderFloat("Normal", &emitter->normal_factor, 0.0f, 100.0f);
-        ImGui::SliderFloat("Scale X", &emitter->scaleX, 0.0f, 100.0f);
-        ImGui::SliderFloat("Scale Y", &emitter->scaleY, 0.0f, 100.0f);
-        ImGui::SliderFloat("Life Span", &emitter->life, 0.0f, 100.0f);
-        ImGui::SliderFloat("Life Randomness", &emitter->random_life, 0.0f,
-                           2.0f);
-        ImGui::SliderFloat("Randomness", &emitter->random_factor, 0.0f, 10.0f);
-        ImGui::SliderFloat("Color Randomness", &emitter->random_color, 0.0f,
-                           2.0f);
-        ImGui::SliderFloat("Motion Blur", &emitter->motionBlurAmount, 0.0f,
-                           1.0f);
-        ImGui::SliderFloat("Mass", &emitter->mass, 0.1f, 100.0f);
-        ImGui::SliderFloat("Timestep", &emitter->FIXED_TIMESTEP, -1.0f, 1.0f);
-        ImGui::SliderFloat("Drag", &emitter->drag, 0.0f, 1.0f);
-        ImGui::SliderFloat("Restitution", &emitter->restitution, 0.0f, 1.0f);
-
-        float velocity[3] = {emitter->velocity.x, emitter->velocity.y,
-                             emitter->velocity.z};
-        ImGui::InputFloat3("Velocity", velocity);
-
-        float gravity[3] = {emitter->gravity.x, emitter->gravity.y,
-                            emitter->gravity.z};
-        ImGui::InputFloat3("Gravity", gravity);
-
-        ImGui::InputFloat("Frame Rate", &emitter->frameRate);
-
-        int frames[2] = {(int)emitter->framesX, (int)emitter->framesY};
-        ImGui::InputInt2("Frames", frames);
-
-        ImGui::InputInt("Frame Count", (int*)&emitter->frameCount);
-        ImGui::InputInt("Start Frame", (int*)&emitter->frameStart);
-      }
-
       if (ImGui::CollapsingHeader("Debug")) {
         ImGui::SeparatorText("Shaders");
         if (ImGui::Button("Reload Shaders")) {

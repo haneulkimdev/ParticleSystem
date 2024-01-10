@@ -63,8 +63,6 @@ ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 // InputLayouts
 ComPtr<ID3D11InputLayout> g_inputLayout;
 
-EmittedParticleSystem g_emitter;
-
 PointLight g_pointLight;
 
 Camera g_camera;
@@ -166,8 +164,6 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
-
-  g_emitter.InitParticle(g_device.Get(), g_context.Get());
 
   return true;
 }
@@ -281,18 +277,9 @@ void Update(float dt) {
                  &mappedResource);
   memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
   g_context->Unmap(g_quadRendererCB.Get(), 0);
-
-  g_emitter.UpdateCPU(dt);
 }
 
-bool DoTest() {
-  g_emitter.UpdateGPU(0);
-  g_emitter.Draw();
-
-  g_context->Flush();
-
-  return true;
-}
+bool DoTest() { return true; }
 
 bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
                                ID3D11ShaderResourceView** sharedSRV, int& w,
@@ -429,8 +416,6 @@ bool LoadShaders() {
 
   return true;
 }
-
-void GetEmitter(EmittedParticleSystem** emitter) { *emitter = &g_emitter; }
 
 bool BuildScreenQuadGeometryBuffers() {
   Vector3 vertices[4] = {

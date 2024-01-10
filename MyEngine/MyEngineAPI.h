@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "Camera.h"
-#include "EmittedParticleSystem.h"
 #include "Helper.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
@@ -31,8 +30,6 @@ extern "C" MY_API bool GetDX11SharedRenderTarget(
 extern "C" MY_API void DeinitEngine();
 
 extern "C" MY_API bool LoadShaders();
-
-extern "C" MY_API void GetEmitter(EmittedParticleSystem** emitter);
 
 bool BuildScreenQuadGeometryBuffers();
 
