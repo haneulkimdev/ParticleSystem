@@ -28,6 +28,7 @@ VertexOut main(uint vertexID : SV_VertexID)
     vout.position = float4(p.position.xyz, 1.0);
     vout.color = p.color * saturate(p.life / fadeLife);
     vout.life = p.life;
+    vout.size = p.size;
 
     return vout;
 }

@@ -1,5 +1,4 @@
 #include "Header.hlsli"
-#include "Header_Particle.hlsli"
 
 #define MAX_STEPS 100
 #define SURF_DIST 1e-5f
@@ -96,7 +95,7 @@ float3 GetColor(float3 pos)
         float3 center = particleBuffer[i].position;
         float radius = GetParticleSize(i) / 2.0f;
         float weight = 1.0f / SphereSDF(pos, center, radius);
-        color += ColorConvertU32ToFloat4(particleBuffer[i].color).rgb * weight;
+        color += unpack_rgba(particleBuffer[i].color).rgb * weight;
         weightSum += weight;
     }
     color /= weightSum;
@@ -107,7 +106,7 @@ float3 GetLight(float3 pos)
 {
     float3 toEye = normalize(quadRenderer.posCam - pos);
 
-    float3 lightColor = ColorConvertU32ToFloat4(quadRenderer.lightColor).rgb;
+    float3 lightColor = unpack_rgba(quadRenderer.lightColor).rgb;
 
     float4 diffuseAlbedo = float4(GetColor(pos), 1.0f);
     const float3 fresnelR0 = float3(0.05f, 0.05f, 0.05f);

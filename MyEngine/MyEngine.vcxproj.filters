@@ -25,9 +25,6 @@
     <None Include="hlsl\VS_QUAD.hlsl">
       <Filter>hlsl</Filter>
     </None>
-    <None Include="hlsl\Header_Particle.hlsli">
-      <Filter>hlsl</Filter>
-    </None>
     <None Include="cpp.hint" />
     <None Include="hlsl\PS_ParticleSystem.hlsl">
       <Filter>hlsl</Filter>

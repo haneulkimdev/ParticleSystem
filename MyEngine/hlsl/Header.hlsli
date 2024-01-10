@@ -1,5 +1,18 @@
 #define MAX_PARTICLES 4
 
+struct Particle
+{
+    float3 position;
+    float mass;
+    float3 force;
+    float rotationalVelocity;
+    float3 velocity;
+    float maxLife;
+    float2 sizeBeginEnd;
+    float life;
+    uint color;
+};
+
 struct PostRenderer
 {
     float3 posCam; // WS
@@ -25,16 +38,6 @@ struct Material
     float3 FresnelR0;
     float Shininess;
 };
-
-float4 ColorConvertU32ToFloat4(uint color)
-{
-    float s = 1.0f / 255.0f;
-    return float4(
-        ((color) & 0xFF) * s,
-        ((color >> 8) & 0xFF) * s,
-        ((color >> 16) & 0xFF) * s,
-        ((color >> 24) & 0xFF) * s);
-}
 
 float2 ComputeAABBHits(const float3 posStart, const float3 posMin,
                        const float3 posMax, const float3 vecDir)
@@ -85,4 +88,85 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
     specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 
     return (mat.DiffuseAlbedo.rgb + specAlbedo) * lightStrength;
+}
+
+// Random number generator based on: https://github.com/diharaw/helios/blob/master/src/engine/shader/random.glsl
+struct RNG
+{
+    uint2 s; // state
+
+	// xoroshiro64* random number generator.
+	// http://prng.di.unimi.it/xoroshiro64star.c
+    uint rotl(uint x, uint k)
+    {
+        return (x << k) | (x >> (32 - k));
+    }
+	// Xoroshiro64* RNG
+    uint next()
+    {
+        uint result = s.x * 0x9e3779bb;
+
+        s.y ^= s.x;
+        s.x = rotl(s.x, 26) ^ s.y ^ (s.y << 9);
+        s.y = rotl(s.y, 13);
+
+        return result;
+    }
+	// Thomas Wang 32-bit hash.
+	// http://www.reedbeta.com/blog/quick-and-easy-gpu-random-numbers-in-d3d11/
+    uint hash(uint seed)
+    {
+        seed = (seed ^ 61) ^ (seed >> 16);
+        seed *= 9;
+        seed = seed ^ (seed >> 4);
+        seed *= 0x27d4eb2d;
+        seed = seed ^ (seed >> 15);
+        return seed;
+    }
+
+    void init(uint2 id, uint frameIndex)
+    {
+        uint s0 = (id.x << 16) | id.y;
+        uint s1 = frameIndex;
+        s.x = hash(s0);
+        s.y = hash(s1);
+        next();
+    }
+    float next_float()
+    {
+        uint u = 0x3f800000 | (next() >> 9);
+        return asfloat(u) - 1.0;
+    }
+    uint next_uint(uint nmax)
+    {
+        float f = next_float();
+        return uint(floor(f * nmax));
+    }
+    float2 next_float2()
+    {
+        return float2(next_float(), next_float());
+    }
+    float3 next_float3()
+    {
+        return float3(next_float(), next_float(), next_float());
+    }
+};
+
+inline uint pack_rgba(in float4 value)
+{
+    uint retVal = 0;
+    retVal |= (uint) (value.x * 255.0) << 0u;
+    retVal |= (uint) (value.y * 255.0) << 8u;
+    retVal |= (uint) (value.z * 255.0) << 16u;
+    retVal |= (uint) (value.w * 255.0) << 24u;
+    return retVal;
+}
+inline float4 unpack_rgba(in uint value)
+{
+    float4 retVal;
+    retVal.x = (float) ((value >> 0u) & 0xFF) / 255.0;
+    retVal.y = (float) ((value >> 8u) & 0xFF) / 255.0;
+    retVal.z = (float) ((value >> 16u) & 0xFF) / 255.0;
+    retVal.w = (float) ((value >> 24u) & 0xFF) / 255.0;
+    return retVal;
 }

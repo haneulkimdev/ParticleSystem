@@ -33,7 +33,6 @@
     <None Include="hlsl\Header.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="hlsl\Header_Particle.hlsli" />
     <None Include="hlsl\PS_RayMARCH.hlsl">
       <FileType>Document</FileType>
     </None>
