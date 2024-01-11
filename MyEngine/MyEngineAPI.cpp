@@ -32,13 +32,16 @@ ComPtr<ID3D11VertexShader> g_particleSystemVS;
 ComPtr<ID3D11PixelShader> g_particleSystemPS;
 
 // Buffers
-ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
 ComPtr<ID3D11Buffer> g_frameCB;
+ComPtr<ID3D11Buffer> g_particleSystemCB;
+ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
 ComPtr<ID3D11Buffer> g_quadRendererCB;
 
 // States
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
+
+ParticleSystemCB g_particleSystemData = {};
 
 ParticleCounters g_statistics = {};
 
@@ -91,20 +94,22 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   if (featureLevel != D3D_FEATURE_LEVEL_11_0)
     FailRet("Direct3D Feature Level 11 unsupported.");
 
+  // Particle System constant buffer:
   {
     D3D11_BUFFER_DESC bd = {};
-    bd.ByteWidth = sizeof(PostRenderer);
+    bd.ByteWidth = sizeof(ParticleSystemCB);
     bd.Usage = D3D11_USAGE_DYNAMIC;
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     bd.MiscFlags = 0;
 
     hr = g_device->CreateBuffer(&bd, nullptr,
-                                g_quadRendererCB.ReleaseAndGetAddressOf());
+                                g_particleSystemCB.ReleaseAndGetAddressOf());
 
     if (FAILED(hr)) FailRet("CreateBuffer Failed.");
   }
 
+  // Frame constant buffer:
   {
     D3D11_BUFFER_DESC bd = {};
     bd.ByteWidth = sizeof(FrameCB);
@@ -115,6 +120,21 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
     hr = g_device->CreateBuffer(&bd, nullptr,
                                 g_frameCB.ReleaseAndGetAddressOf());
+
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+  }
+
+  // PostRenderer constant buffer:
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.ByteWidth = sizeof(PostRenderer);
+    bd.Usage = D3D11_USAGE_DYNAMIC;
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    bd.MiscFlags = 0;
+
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_quadRendererCB.ReleaseAndGetAddressOf());
 
     if (FAILED(hr)) FailRet("CreateBuffer Failed.");
   }
@@ -456,6 +476,7 @@ bool DoTest() {
   {
     g_context->CSSetShader(g_particleSystemCS_emit.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
@@ -475,6 +496,7 @@ bool DoTest() {
   {
     g_context->CSSetShader(g_particleSystemCS_update.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
@@ -583,8 +605,9 @@ void DeinitEngine() {
   g_depthStencilState.Reset();
 
   // Buffers
-  g_statisticsReadbackBuffer.Reset();
   g_frameCB.Reset();
+  g_particleSystemCB.Reset();
+  g_statisticsReadbackBuffer.Reset();
   g_quadRendererCB.Reset();
 
   // Shaders

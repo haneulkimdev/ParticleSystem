@@ -5,6 +5,11 @@ cbuffer cbFrame : register(b0)
     FrameCB frameCB;
 }
 
+cbuffer cbParticleSystem : register(b1)
+{
+    ParticleSystemCB particleSystemCB;
+}
+
 RWStructuredBuffer<Particle> particleBuffer : register(u0);
 RWStructuredBuffer<uint> aliveBuffer_CURRENT : register(u1);
 RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
