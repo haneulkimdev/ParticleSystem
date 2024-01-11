@@ -219,6 +219,17 @@ int main(int, char**) {
 
       ImGui::Begin("MyEngine Settings");
 
+      {
+        std::string ss;
+        auto data = my::GetStatistics();
+        ss +=
+            "Alive Particle Count = " + std::to_string(data.aliveCount) + "\n";
+        ss += "Dead Particle Count = " + std::to_string(data.deadCount) + "\n";
+        ss += "GPU Emit count = " + std::to_string(data.realEmitCount) + "\n";
+
+        ImGui::Text(ss.c_str());
+      }
+
       if (ImGui::CollapsingHeader("Debug")) {
         ImGui::SeparatorText("Shaders");
         if (ImGui::Button("Reload Shaders")) {

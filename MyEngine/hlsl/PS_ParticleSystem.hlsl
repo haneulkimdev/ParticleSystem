@@ -9,7 +9,7 @@ struct PixelIn
 float4 main(PixelIn pin) : SV_TARGET
 {
     if (pin.life < 0.0f)
-        discard;
+        return float4(0.0f, 0.0f, 0.0f, 0.0f);
     
     return float4(pin.color, 1.0f);
 }

@@ -1,46 +1,5 @@
 #include "MyEngineAPI.h"
 
-using Microsoft::WRL::ComPtr;
-using namespace DirectX;
-using namespace DirectX::SimpleMath;
-
-using float4x4 = Matrix;
-using float2 = Vector2;
-using float3 = Vector3;
-using uint = uint32_t;
-
-struct Particle {
-  float3 position;
-  float3 velocity;
-  float3 color;
-  float life = 0.0f;
-  float radius = 1.0f;
-};
-
-struct PointLight {
-  float3 position;
-  float intensity;
-  uint color;
-};
-
-struct PostRenderer {
-  float3 posCam;  // WS
-  uint lightColor;
-
-  float3 posLight;  // WS
-  float lightIntensity;
-
-  float4x4 matWS2CS;
-  float4x4 matPS2WS;
-
-  float2 rtSize;
-  float smoothingCoefficient;
-  float deltaTime;
-
-  float3 distBoxCenter;  // WS
-  float distBoxSize;     // WS
-};
-
 namespace my {
 std::shared_ptr<spdlog::logger> g_apiLogger;
 
@@ -50,8 +9,10 @@ ComPtr<ID3D11DeviceContext> g_context;
 // Resources
 ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 ComPtr<ID3D11Texture2D> g_depthStencilBuffer;
-ComPtr<ID3D11Buffer> g_particlesGPU;
-ComPtr<ID3D11Buffer> g_particlesStagingGPU;
+ComPtr<ID3D11Buffer> g_particleBuffer;
+ComPtr<ID3D11Buffer> g_aliveList[2];
+ComPtr<ID3D11Buffer> g_deadList;
+ComPtr<ID3D11Buffer> g_counterBuffer;
 
 // Views
 ComPtr<ID3D11RenderTargetView> g_renderTargetView;
@@ -59,24 +20,31 @@ ComPtr<ID3D11DepthStencilView> g_depthStencilView;
 ComPtr<ID3D11ShaderResourceView> g_sharedSRV;
 ComPtr<ID3D11ShaderResourceView> g_particlesSRV;
 ComPtr<ID3D11UnorderedAccessView> g_particlesUAV;
+ComPtr<ID3D11ShaderResourceView> g_aliveListSRV[2];
+ComPtr<ID3D11UnorderedAccessView> g_aliveListUAV[2];
+ComPtr<ID3D11UnorderedAccessView> g_deadListUAV;
+ComPtr<ID3D11UnorderedAccessView> g_counterBufferUAV;
 
 // Shaders
-ComPtr<ID3D11VertexShader> g_vertexShader;
-ComPtr<ID3D11PixelShader> g_pixelShader;
+ComPtr<ID3D11ComputeShader> g_particleSystemCS_emit;
+ComPtr<ID3D11ComputeShader> g_particleSystemCS_update;
+ComPtr<ID3D11VertexShader> g_particleSystemVS;
+ComPtr<ID3D11PixelShader> g_particleSystemPS;
 
 // Buffers
+ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
+ComPtr<ID3D11Buffer> g_frameCB;
 ComPtr<ID3D11Buffer> g_quadRendererCB;
 
 // States
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 
-// InputLayouts
-ComPtr<ID3D11InputLayout> g_inputLayout;
+ParticleCounters g_statistics = {};
 
-std::vector<Particle> g_particlesCPU;
+const int MAX_PARTICLES = 1000;
 
-const int MAX_PARTICLES = 2048;
+uint32_t g_frameCount = 0;
 
 PointLight g_pointLight;
 
@@ -96,6 +64,8 @@ auto FailRet = [](const std::string& msg) {
   g_apiLogger->error(msg);
   return false;
 };
+
+ParticleCounters GetStatistics() { return g_statistics; }
 
 bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_apiLogger = spdlogPtr;
@@ -121,17 +91,33 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   if (featureLevel != D3D_FEATURE_LEVEL_11_0)
     FailRet("Direct3D Feature Level 11 unsupported.");
 
-  D3D11_BUFFER_DESC constantBufferDesc = {};
-  constantBufferDesc.ByteWidth = sizeof(PostRenderer);
-  constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-  constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-  constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-  constantBufferDesc.MiscFlags = 0;
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.ByteWidth = sizeof(PostRenderer);
+    bd.Usage = D3D11_USAGE_DYNAMIC;
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    bd.MiscFlags = 0;
 
-  hr = g_device->CreateBuffer(&constantBufferDesc, nullptr,
-                              g_quadRendererCB.ReleaseAndGetAddressOf());
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_quadRendererCB.ReleaseAndGetAddressOf());
 
-  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+  }
+
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.ByteWidth = sizeof(FrameCB);
+    bd.Usage = D3D11_USAGE_DYNAMIC;
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    bd.MiscFlags = 0;
+
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_frameCB.ReleaseAndGetAddressOf());
+
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+  }
 
   D3D11_RASTERIZER_DESC rasterizerDesc = {};
   rasterizerDesc.FillMode = D3D11_FILL_SOLID;
@@ -178,68 +164,165 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
 
-  g_particlesCPU.resize(MAX_PARTICLES);
+  // Particle buffer:
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(Particle) * MAX_PARTICLES;
+    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    bd.StructureByteStride = sizeof(Particle);
 
-  std::vector<Vector3> rainbow = {
-      {1.0f, 0.0f, 0.0f},   // Red
-      {1.0f, 0.65f, 0.0f},  // Orange
-      {1.0f, 1.0f, 0.0f},   // Yellow
-      {0.0f, 1.0f, 0.0f},   // Green
-      {0.0f, 0.0f, 1.0f},   // Blue
-      {0.3f, 0.0f, 0.5f},   // Indigo
-      {0.5f, 0.0f, 1.0f}    // Violet/Purple
-  };
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_particleBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> dp(-1.0f, 1.0f);
-  std::uniform_int_distribution<size_t> dc(0, rainbow.size() - 1);
-  for (auto& p : g_particlesCPU) {
-    p.position = Vector3(dp(gen), dp(gen), 1.0f);
-    p.color = rainbow[dc(gen)];
-    p.radius = (dp(gen) + 1.3f) * 0.02f;
-    p.life = -1.0f;
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    srvDesc.BufferEx.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateShaderResourceView(
+        g_particleBuffer.Get(), &srvDesc,
+        g_particlesSRV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_particleBuffer.Get(), &uavDesc,
+        g_particlesUAV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
   }
 
-  D3D11_BUFFER_DESC bd = {};
-  bd.Usage = D3D11_USAGE_DEFAULT;
-  bd.ByteWidth = sizeof(Particle) * MAX_PARTICLES;
-  bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-  bd.CPUAccessFlags = 0;
-  bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-  bd.StructureByteStride = sizeof(Particle);
+  // Alive index lists (double buffered):
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(uint32_t) * MAX_PARTICLES;
+    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    bd.StructureByteStride = sizeof(uint32_t);
 
-  D3D11_SUBRESOURCE_DATA initData = {};
-  initData.pSysMem = g_particlesCPU.data();
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_aliveList[0].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
-  hr = g_device->CreateBuffer(&bd, &initData,
-                              g_particlesGPU.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_aliveList[1].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
-  D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-  srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-  srvDesc.BufferEx.NumElements = MAX_PARTICLES;
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    srvDesc.BufferEx.NumElements = MAX_PARTICLES;
 
-  hr = g_device->CreateShaderResourceView(
-      g_particlesGPU.Get(), &srvDesc, g_particlesSRV.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+    hr = g_device->CreateShaderResourceView(
+        g_aliveList[0].Get(), &srvDesc,
+        g_aliveListSRV[0].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
 
-  D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-  uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-  uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-  uavDesc.Buffer.NumElements = MAX_PARTICLES;
+    hr = g_device->CreateShaderResourceView(
+        g_aliveList[1].Get(), &srvDesc,
+        g_aliveListSRV[1].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
 
-  hr = g_device->CreateUnorderedAccessView(
-      g_particlesGPU.Get(), &uavDesc, g_particlesUAV.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = MAX_PARTICLES;
 
-  bd.Usage = D3D11_USAGE_STAGING;
-  bd.BindFlags = 0;
-  bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE;
+    hr = g_device->CreateUnorderedAccessView(
+        g_aliveList[0].Get(), &uavDesc,
+        g_aliveListUAV[0].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
 
-  hr = g_device->CreateBuffer(&bd, &initData,
-                              g_particlesStagingGPU.ReleaseAndGetAddressOf());
+    hr = g_device->CreateUnorderedAccessView(
+        g_aliveList[1].Get(), &uavDesc,
+        g_aliveListUAV[1].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+  }
+
+  // Dead index list:
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(uint32_t) * MAX_PARTICLES;
+    bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    bd.StructureByteStride = sizeof(uint32_t);
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    std::vector<uint32_t> indices(MAX_PARTICLES);
+    for (uint32_t i = 0; i < MAX_PARTICLES; i++) indices[i] = i;
+    initData.pSysMem = indices.data();
+
+    hr = g_device->CreateBuffer(&bd, &initData,
+                                g_deadList.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_deadList.Get(), &uavDesc, g_deadListUAV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+  }
+
+  // Particle System statistics:
+  {
+    ParticleCounters counters = {};
+    counters.aliveCount = 0;
+    counters.deadCount = MAX_PARTICLES;
+    counters.realEmitCount = 0;
+
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(counters);
+    bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    initData.pSysMem = &counters;
+
+    hr = g_device->CreateBuffer(&bd, &initData,
+                                g_counterBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = sizeof(counters) / sizeof(uint32_t);
+    uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_counterBuffer.Get(), &uavDesc,
+        g_counterBufferUAV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+  }
+
+  // Debug information CPU-readback buffer:
+  {
+    D3D11_BUFFER_DESC bd;
+    g_counterBuffer->GetDesc(&bd);
+    bd.Usage = D3D11_USAGE_STAGING;
+    bd.BindFlags = 0;
+    bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    bd.MiscFlags = 0;
+
+    hr = g_device->CreateBuffer(
+        &bd, nullptr, g_statisticsReadbackBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+  }
 
   return true;
 }
@@ -334,77 +417,106 @@ bool SetRenderTargetSize(int w, int h) {
 }
 
 void Update(float dt) {
-  PostRenderer quadPostRenderer = {};
-  quadPostRenderer.posCam = g_camera.GetPosition();
-  quadPostRenderer.lightColor = g_pointLight.color;
-  quadPostRenderer.posLight = g_pointLight.position;
-  quadPostRenderer.lightIntensity = g_pointLight.intensity;
-  quadPostRenderer.matWS2CS = g_camera.View().Transpose();
-  quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
-  quadPostRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
-                                    static_cast<float>(g_renderTargetHeight));
-  quadPostRenderer.smoothingCoefficient = g_smoothingCoefficient;
-  quadPostRenderer.deltaTime = dt;
-  quadPostRenderer.distBoxCenter = g_distBoxCenter;
-  quadPostRenderer.distBoxSize = g_distBoxSize;
+  {
+    FrameCB frameCB = {};
+    frameCB.delta_time = dt;
+    frameCB.frame_count = g_frameCount++;
 
-  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-  g_context->Map(g_quadRendererCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
-                 &mappedResource);
-  memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
-  g_context->Unmap(g_quadRendererCB.Get(), 0);
-
-  dt *= 0.5f;
-
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> randomTheta(-3.141592f, 3.141592f);
-  std::uniform_real_distribution<float> randomSpeed(1.5f, 2.0f);
-  std::uniform_real_distribution<float> randomLife(0.0f, 1.0f);
-
-  int newCount = 10;
-  for (auto& p : g_particlesCPU) {
-    if (p.life < 0.0f && newCount > 0) {
-      const float theta = randomTheta(gen);
-      p.position =
-          Vector3(cos(theta), -sin(theta), 0.0f) * randomLife(gen) * 0.1f;
-      p.velocity = Vector3(-1.0f, 0.0f, 0.0f) * randomSpeed(gen);
-      p.life = randomLife(gen) * 1.5f;
-      newCount--;
-    }
+    D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+    g_context->Map(g_frameCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+                   &mappedResource);
+    memcpy(mappedResource.pData, &frameCB, sizeof(frameCB));
   }
 
-  const Vector3 gravity = Vector3(0.0f, -9.8f, 0.0f);
+  {
+    PostRenderer quadPostRenderer = {};
+    quadPostRenderer.posCam = g_camera.GetPosition();
+    quadPostRenderer.lightColor = g_pointLight.color;
+    quadPostRenderer.posLight = g_pointLight.position;
+    quadPostRenderer.lightIntensity = g_pointLight.intensity;
+    quadPostRenderer.matWS2CS = g_camera.View().Transpose();
+    quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
+    quadPostRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
+                                      static_cast<float>(g_renderTargetHeight));
+    quadPostRenderer.smoothingCoefficient = g_smoothingCoefficient;
+    quadPostRenderer.deltaTime = dt;
+    quadPostRenderer.distBoxCenter = g_distBoxCenter;
+    quadPostRenderer.distBoxSize = g_distBoxSize;
 
-  for (auto& p : g_particlesCPU) {
-    if (p.life < 0.0f) continue;
-
-    p.velocity += gravity * dt;
-    p.position += p.velocity * dt;
-    p.life -= dt;
+    D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+    g_context->Map(g_quadRendererCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+                   &mappedResource);
+    memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
+    g_context->Unmap(g_quadRendererCB.Get(), 0);
   }
-
-  D3D11_MAPPED_SUBRESOURCE ms = {};
-  g_context->Map(g_particlesStagingGPU.Get(), 0, D3D11_MAP_WRITE, 0, &ms);
-  memcpy(ms.pData, g_particlesCPU.data(), sizeof(Particle) * MAX_PARTICLES);
-  g_context->Unmap(g_particlesStagingGPU.Get(), 0);
-
-  g_context->CopyResource(g_particlesGPU.Get(), g_particlesStagingGPU.Get());
 }
 
 bool DoTest() {
-  const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-  g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
+  // Emission stage
+  {
+    g_context->CSSetShader(g_particleSystemCS_emit.Get(), nullptr, 0);
+    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+    g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(2, 1, g_aliveListUAV[1].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(3, 1, g_deadListUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(
+        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
+    g_context->Dispatch(MAX_PARTICLES, 1, 1);
 
-  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
-  g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
-  g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
+    GPUBarrier();
+  }
 
-  g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-  g_context->VSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
-  g_context->Draw(static_cast<UINT>(g_particlesCPU.size()), 0);
+  // Simulation stage
+  {
+    g_context->CSSetShader(g_particleSystemCS_update.Get(), nullptr, 0);
+    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+    g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(2, 1, g_aliveListUAV[1].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(3, 1, g_deadListUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(
+        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
+    g_context->Dispatch(MAX_PARTICLES, 1, 1);
 
-  g_context->Flush();
+    GPUBarrier();
+  }
+
+  g_context->CopyResource(g_statisticsReadbackBuffer.Get(),
+                          g_counterBuffer.Get());
+
+  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+  g_context->Map(g_statisticsReadbackBuffer.Get(), 0, D3D11_MAP_READ, 0,
+                 &mappedResource);
+  memcpy(&g_statistics, mappedResource.pData, sizeof(g_statistics));
+  g_context->Unmap(g_statisticsReadbackBuffer.Get(), 0);
+
+  // Rendering stage
+  {
+    const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
+
+    g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
+                                  nullptr);
+    g_context->VSSetShader(g_particleSystemVS.Get(), nullptr, 0);
+    g_context->PSSetShader(g_particleSystemPS.Get(), nullptr, 0);
+
+    g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    g_context->VSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
+    g_context->Draw(static_cast<UINT>(MAX_PARTICLES), 0);
+
+    GPUBarrier();
+
+    g_context->Flush();
+  }
 
   return true;
 }
@@ -469,18 +581,17 @@ void DeinitEngine() {
   // States
   g_rasterizerState.Reset();
   g_depthStencilState.Reset();
-  g_particlesGPU.Reset();
-  g_particlesStagingGPU.Reset();
-
-  // InputLayouts
-  g_inputLayout.Reset();
 
   // Buffers
+  g_statisticsReadbackBuffer.Reset();
+  g_frameCB.Reset();
   g_quadRendererCB.Reset();
 
   // Shaders
-  g_vertexShader.Reset();
-  g_pixelShader.Reset();
+  g_particleSystemCS_emit.Reset();
+  g_particleSystemCS_update.Reset();
+  g_particleSystemVS.Reset();
+  g_particleSystemPS.Reset();
 
   // Views
   g_renderTargetView.Reset();
@@ -488,10 +599,21 @@ void DeinitEngine() {
   g_sharedSRV.Reset();
   g_particlesSRV.Reset();
   g_particlesUAV.Reset();
+  g_aliveListSRV[0].Reset();
+  g_aliveListSRV[1].Reset();
+  g_aliveListUAV[0].Reset();
+  g_aliveListUAV[1].Reset();
+  g_deadListUAV.Reset();
+  g_counterBufferUAV.Reset();
 
   // Resources
   g_renderTargetBuffer.Reset();
   g_depthStencilBuffer.Reset();
+  g_particleBuffer.Reset();
+  g_aliveList[0].Reset();
+  g_aliveList[1].Reset();
+  g_deadList.Reset();
+  g_counterBuffer.Reset();
 
   g_context.Reset();
   g_device.Reset();
@@ -514,37 +636,56 @@ bool LoadShaders() {
           byteCode.data(), byteCode.size(), nullptr,
           reinterpret_cast<ID3D11VertexShader**>(deviceChild));
       if (FAILED(hr)) FailRet("CreateVertexShader Failed.");
-
-      // Create the vertex input layout.
-      D3D11_INPUT_ELEMENT_DESC vertexDesc[] = {
-          {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-           D3D11_INPUT_PER_VERTEX_DATA, 0},
-      };
-
-      // Create the input layout
-      hr = g_device->CreateInputLayout(vertexDesc, 1, byteCode.data(),
-                                       byteCode.size(),
-                                       g_inputLayout.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateInputLayout Failed.");
     } else if (shaderProfile == "PS") {
       HRESULT hr = g_device->CreatePixelShader(
           byteCode.data(), byteCode.size(), nullptr,
           reinterpret_cast<ID3D11PixelShader**>(deviceChild));
       if (FAILED(hr)) FailRet("CreatePixelShader Failed.");
+    } else if (shaderProfile == "CS") {
+      HRESULT hr = g_device->CreateComputeShader(
+          byteCode.data(), byteCode.size(), nullptr,
+          reinterpret_cast<ID3D11ComputeShader**>(deviceChild));
+      if (FAILED(hr)) FailRet("CreateComputeShader Failed.");
+    } else {
+      return FailRet("Unknown Shader Profile.");
     }
 
     return true;
   };
 
+  if (!RegisterShaderObjFile(
+          "CS_ParticleSystem_Emit", "CS",
+          reinterpret_cast<ID3D11DeviceChild**>(
+              g_particleSystemCS_emit.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
+  if (!RegisterShaderObjFile(
+          "CS_ParticleSystem_Update", "CS",
+          reinterpret_cast<ID3D11DeviceChild**>(
+              g_particleSystemCS_update.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
   if (!RegisterShaderObjFile("VS_ParticleSystem", "VS",
                              reinterpret_cast<ID3D11DeviceChild**>(
-                                 g_vertexShader.ReleaseAndGetAddressOf())))
+                                 g_particleSystemVS.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
   if (!RegisterShaderObjFile("PS_ParticleSystem", "PS",
                              reinterpret_cast<ID3D11DeviceChild**>(
-                                 g_pixelShader.ReleaseAndGetAddressOf())))
+                                 g_particleSystemPS.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
 
   return true;
+}
+
+void GPUBarrier() {
+  ID3D11ShaderResourceView*
+      nullSRV[D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT] = {nullptr};
+  g_context->CSSetShaderResources(
+      0, D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT, nullSRV);
+  g_context->VSSetShaderResources(
+      0, D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT, nullSRV);
+
+  ID3D11UnorderedAccessView* nullUAV[D3D11_PS_CS_UAV_REGISTER_COUNT] = {
+      nullptr};
+  g_context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT,
+                                       nullUAV, nullptr);
 }
 }  // namespace my

@@ -16,6 +16,7 @@ struct Particle
 };
 
 StructuredBuffer<Particle> particles : register(t0);
+StructuredBuffer<uint> aliveList : register(t1);
 
 VertexOut main(uint vertexID : SV_VertexID)
 {

@@ -1,16 +1,30 @@
-#define MAX_PARTICLES 4
+#define MAX_PARTICLES 1000
 
 struct Particle
 {
     float3 position;
-    float mass;
-    float3 force;
-    float rotationalVelocity;
     float3 velocity;
-    float maxLife;
-    float2 sizeBeginEnd;
+    float3 color;
     float life;
-    uint color;
+    float radius;
+};
+
+struct ParticleCounters
+{
+    uint aliveCount;
+    uint deadCount;
+    uint realEmitCount;
+};
+static const uint PARTICLECOUNTER_OFFSET_ALIVECOUNT = 0;
+static const uint PARTICLECOUNTER_OFFSET_DEADCOUNT = PARTICLECOUNTER_OFFSET_ALIVECOUNT + 4;
+static const uint PARTICLECOUNTER_OFFSET_REALEMITCOUNT = PARTICLECOUNTER_OFFSET_DEADCOUNT + 4;
+
+struct FrameCB
+{
+    float delta_time;
+    uint frame_count;
+    int dummy0;
+    int dummy1;
 };
 
 struct PostRenderer
@@ -20,13 +34,12 @@ struct PostRenderer
 
     float3 posLight; // WS
     float lightIntensity;
-
-    float4x4 matWS2CS;
+    
     float4x4 matPS2WS;
 
     float2 rtSize;
     float smoothingCoefficient;
-    float deltaTime;
+    float dummy0;
 
     float3 distBoxCenter; // WS
     float distBoxSize; // WS

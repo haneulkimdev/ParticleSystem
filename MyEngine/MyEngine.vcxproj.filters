@@ -19,17 +19,23 @@
     <None Include="hlsl\Header.hlsli">
       <Filter>hlsl</Filter>
     </None>
-    <None Include="hlsl\PS_RayMARCH.hlsl">
-      <Filter>hlsl</Filter>
-    </None>
-    <None Include="hlsl\VS_QUAD.hlsl">
-      <Filter>hlsl</Filter>
-    </None>
     <None Include="cpp.hint" />
     <None Include="hlsl\PS_ParticleSystem.hlsl">
       <Filter>hlsl</Filter>
     </None>
     <None Include="hlsl\VS_ParticleSystem.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\CS_ParticleSystem_Emit.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\CS_ParticleSystem_Update.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\PS_RayMARCH.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\VS_QUAD.hlsl">
       <Filter>hlsl</Filter>
     </None>
   </ItemGroup>
