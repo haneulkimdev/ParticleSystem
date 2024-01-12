@@ -13,7 +13,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     if (DTid.x >= aliveCount)
         return;
     
-    const float dt = delta_time * 0.5;
+    const float dt = delta_time;
     
     uint particleIndex = aliveBuffer_CURRENT[DTid.x];
     Particle particle = particleBuffer[particleIndex];
