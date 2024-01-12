@@ -1,18 +1,11 @@
+#include "Header.hlsli"
+
 struct VertexOut
 {
     float4 position : SV_POSITION;
     float3 color : COLOR;
     float life : PSIZE0;
     float size : PSIZE1;
-};
-
-struct Particle
-{
-    float3 position;
-    float3 velocity;
-    float3 color;
-    float life;
-    float size;
 };
 
 StructuredBuffer<Particle> particles : register(t0);
@@ -22,14 +15,18 @@ VertexOut main(uint vertexID : SV_VertexID)
 {
     const float fadeLife = 0.2f;
     
-    Particle p = particles[vertexID];
+    Particle particle = particles[vertexID];
+    
+    // calculate render properties from life:
+    float lifeLerp = 1 - particle.life / particle.maxLife;
+    float size = lerp(particle.sizeBeginEnd.x, particle.sizeBeginEnd.y, lifeLerp);
     
     VertexOut vout;
     
-    vout.position = float4(p.position.xyz, 1.0);
-    vout.color = p.color * saturate(p.life / fadeLife);
-    vout.life = p.life;
-    vout.size = p.size;
+    vout.position = float4(particle.position.xyz, 1.0);
+    vout.color = unpack_rgba(particle.color).xyz;
+    vout.life = particle.life;
+    vout.size = size;
 
     return vout;
 }

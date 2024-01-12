@@ -1,15 +1,5 @@
 #include "Header.hlsli"
 
-cbuffer cbFrame : register(b0)
-{
-    FrameCB frameCB;
-}
-
-cbuffer cbParticleSystem : register(b1)
-{
-    ParticleSystemCB particleSystemCB;
-}
-
 RWStructuredBuffer<Particle> particleBuffer : register(u0);
 RWStructuredBuffer<uint> aliveBuffer_CURRENT : register(u1);
 RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
@@ -23,15 +13,24 @@ void main(uint3 DTid : SV_DispatchThreadID)
     if (DTid.x >= aliveCount)
         return;
     
-    const float dt = frameCB.delta_time * 0.5;
+    const float dt = delta_time * 0.5;
     
     uint particleIndex = aliveBuffer_CURRENT[DTid.x];
     Particle particle = particleBuffer[particleIndex];
     
-    const float3 gravity = float3(0.0f, -9.8f, 0.0f);
+    const float lifeLerp = 1 - particle.life / particle.maxLife;
+    const float particleSize = lerp(particle.sizeBeginEnd.x, particle.sizeBeginEnd.y, lifeLerp);
     
-    particle.velocity += gravity * dt;
+	// integrate:
+    particle.force += particleGravity;
+    particle.velocity += particle.force * dt;
     particle.position += particle.velocity * dt;
+    
+    // reset force for next frame:
+    particle.force = 0;
+    
+    // drag: 
+    particle.velocity *= particleDrag;
    
     if (particle.life > 0)
     {
@@ -39,12 +38,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
         
         // write back simulated particle:
         particleBuffer[particleIndex] = particle;
+        
+        // add to new alive list:
+        uint newAliveIndex;
+        counterBuffer.InterlockedAdd(PARTICLECOUNTER_OFFSET_ALIVECOUNT_AFTERSIMULATION, 1, newAliveIndex);
+        aliveBuffer_NEW[newAliveIndex] = particleIndex;
     }
     else
     {
-        uint aliveIndex;
-        counterBuffer.InterlockedAdd(PARTICLECOUNTER_OFFSET_ALIVECOUNT, -1, aliveIndex);
-        
         // kill:
         uint deadIndex;
         counterBuffer.InterlockedAdd(PARTICLECOUNTER_OFFSET_DEADCOUNT, 1, deadIndex);

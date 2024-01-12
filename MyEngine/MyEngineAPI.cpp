@@ -26,22 +26,23 @@ ComPtr<ID3D11UnorderedAccessView> g_deadListUAV;
 ComPtr<ID3D11UnorderedAccessView> g_counterBufferUAV;
 
 // Shaders
+ComPtr<ID3D11ComputeShader> g_particleSystemCS_kickoffUpdate;
 ComPtr<ID3D11ComputeShader> g_particleSystemCS_emit;
-ComPtr<ID3D11ComputeShader> g_particleSystemCS_update;
+ComPtr<ID3D11ComputeShader> g_particleSystemCS_simulate;
 ComPtr<ID3D11VertexShader> g_particleSystemVS;
 ComPtr<ID3D11PixelShader> g_particleSystemPS;
 
 // Buffers
 ComPtr<ID3D11Buffer> g_frameCB;
-ComPtr<ID3D11Buffer> g_particleSystemCB;
-ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
+ComPtr<ID3D11Buffer> g_emitterPropertiesCB;
 ComPtr<ID3D11Buffer> g_quadRendererCB;
+ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
 
 // States
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 
-ParticleSystemCB g_particleSystemData = {};
+EmitterProperties g_emitterProperties = {};
 
 ParticleCounters g_statistics = {};
 
@@ -67,6 +68,8 @@ auto FailRet = [](const std::string& msg) {
   g_apiLogger->error(msg);
   return false;
 };
+
+EmitterProperties* GetEmitterProperties() { return &g_emitterProperties; }
 
 ParticleCounters GetStatistics() { return g_statistics; }
 
@@ -96,15 +99,42 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   // Particle System constant buffer:
   {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+
+    g_emitterProperties.emitCount = 10;
+    g_emitterProperties.emitterRandomness = dis(gen);
+    g_emitterProperties.particleRandomColorFactor = 1.0f;
+    g_emitterProperties.particleSize = 1.0f;
+    g_emitterProperties.particleScaling = 1.0f;
+    g_emitterProperties.particleRotation = 0.0f;
+    g_emitterProperties.particleRandomFactor = 1.0f;
+    g_emitterProperties.particleNormalFactor = 1.0f;
+    g_emitterProperties.particleLifeSpan = 1.0f;
+    g_emitterProperties.particleLifeSpanRandomness = 1.0f;
+    g_emitterProperties.particleMass = 1.0f;
+    g_emitterProperties.emitterMaxParticleCount = MAX_PARTICLES;
+    g_emitterProperties.particleGravity = Vector3(0.0f, 0.0f, 0.0f);
+    g_emitterProperties.emitterRestitution = 0.98f;
+    g_emitterProperties.particleVelocity = Vector3(0.0f, 0.0f, 0.0f);
+    g_emitterProperties.particleDrag = 1.0f;
+
+    g_emitterProperties.emitterMaxParticleCount = MAX_PARTICLES;
+    g_emitterProperties.emitterRandomness;
+
     D3D11_BUFFER_DESC bd = {};
-    bd.ByteWidth = sizeof(ParticleSystemCB);
+    bd.ByteWidth = sizeof(EmitterProperties);
     bd.Usage = D3D11_USAGE_DYNAMIC;
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     bd.MiscFlags = 0;
 
-    hr = g_device->CreateBuffer(&bd, nullptr,
-                                g_particleSystemCB.ReleaseAndGetAddressOf());
+    D3D11_SUBRESOURCE_DATA initData = {};
+    initData.pSysMem = &g_emitterProperties;
+
+    hr = g_device->CreateBuffer(&bd, &initData,
+                                g_emitterPropertiesCB.ReleaseAndGetAddressOf());
 
     if (FAILED(hr)) FailRet("CreateBuffer Failed.");
   }
@@ -303,6 +333,7 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
     counters.aliveCount = 0;
     counters.deadCount = MAX_PARTICLES;
     counters.realEmitCount = 0;
+    counters.aliveCount_afterSimulation = 0;
 
     D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
@@ -437,6 +468,17 @@ bool SetRenderTargetSize(int w, int h) {
 }
 
 void Update(float dt) {
+  // Update emitter properties constant buffer.
+  {
+    D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+    g_context->Map(g_emitterPropertiesCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+                   &mappedResource);
+    memcpy(mappedResource.pData, &g_emitterProperties,
+           sizeof(g_emitterProperties));
+    g_context->Unmap(g_emitterPropertiesCB.Get(), 0);
+  }
+
+  // Update frame constant buffer.
   {
     FrameCB frameCB = {};
     frameCB.delta_time = dt;
@@ -448,6 +490,7 @@ void Update(float dt) {
     memcpy(mappedResource.pData, &frameCB, sizeof(frameCB));
   }
 
+  // Update post renderer constant buffer.
   {
     PostRenderer quadPostRenderer = {};
     quadPostRenderer.posCam = g_camera.GetPosition();
@@ -472,11 +515,22 @@ void Update(float dt) {
 }
 
 bool DoTest() {
-  // Emission stage
+  // kick off updating, set up state
+  {
+    g_context->CSSetShader(g_particleSystemCS_kickoffUpdate.Get(), nullptr, 0);
+    g_context->CSSetConstantBuffers(1, 1, g_emitterPropertiesCB.GetAddressOf());
+    g_context->CSSetUnorderedAccessViews(
+        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
+    g_context->Dispatch(1, 1, 1);
+
+    GPUBarrier();
+  }
+
+  // emit the required amount if there are free slots in dead list
   {
     g_context->CSSetShader(g_particleSystemCS_emit.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_emitterPropertiesCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
@@ -492,11 +546,11 @@ bool DoTest() {
     GPUBarrier();
   }
 
-  // Simulation stage
+  // update CURRENT alive list, write NEW alive list
   {
-    g_context->CSSetShader(g_particleSystemCS_update.Get(), nullptr, 0);
+    g_context->CSSetShader(g_particleSystemCS_simulate.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_emitterPropertiesCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
@@ -512,16 +566,23 @@ bool DoTest() {
     GPUBarrier();
   }
 
+  // Swap CURRENT alivelist with NEW alivelist
+  std::swap(g_aliveList[0], g_aliveList[1]);
+  std::swap(g_aliveListSRV[0], g_aliveListSRV[1]);
+  std::swap(g_aliveListUAV[0], g_aliveListUAV[1]);
+
+  // Statistics is copied to readback:
   g_context->CopyResource(g_statisticsReadbackBuffer.Get(),
                           g_counterBuffer.Get());
 
+  // Read back statistics
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
   g_context->Map(g_statisticsReadbackBuffer.Get(), 0, D3D11_MAP_READ, 0,
                  &mappedResource);
   memcpy(&g_statistics, mappedResource.pData, sizeof(g_statistics));
   g_context->Unmap(g_statisticsReadbackBuffer.Get(), 0);
 
-  // Rendering stage
+  // Draw
   {
     const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
     g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
@@ -606,13 +667,14 @@ void DeinitEngine() {
 
   // Buffers
   g_frameCB.Reset();
-  g_particleSystemCB.Reset();
+  g_emitterPropertiesCB.Reset();
   g_statisticsReadbackBuffer.Reset();
   g_quadRendererCB.Reset();
 
   // Shaders
+  g_particleSystemCS_kickoffUpdate.Reset();
   g_particleSystemCS_emit.Reset();
-  g_particleSystemCS_update.Reset();
+  g_particleSystemCS_simulate.Reset();
   g_particleSystemVS.Reset();
   g_particleSystemPS.Reset();
 
@@ -677,14 +739,19 @@ bool LoadShaders() {
   };
 
   if (!RegisterShaderObjFile(
+          "CS_ParticleSystem_KickoffUpdate", "CS",
+          reinterpret_cast<ID3D11DeviceChild**>(
+              g_particleSystemCS_kickoffUpdate.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
+  if (!RegisterShaderObjFile(
           "CS_ParticleSystem_Emit", "CS",
           reinterpret_cast<ID3D11DeviceChild**>(
               g_particleSystemCS_emit.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
   if (!RegisterShaderObjFile(
-          "CS_ParticleSystem_Update", "CS",
+          "CS_ParticleSystem_Simulate", "CS",
           reinterpret_cast<ID3D11DeviceChild**>(
-              g_particleSystemCS_update.ReleaseAndGetAddressOf())))
+              g_particleSystemCS_simulate.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
   if (!RegisterShaderObjFile("VS_ParticleSystem", "VS",
                              reinterpret_cast<ID3D11DeviceChild**>(

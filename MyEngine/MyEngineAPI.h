@@ -29,70 +29,44 @@ using uint = uint32_t;
 
 struct Particle {
   float3 position;
+  float mass;
+  float3 force;
+  float rotationalVelocity;
   float3 velocity;
-  float3 color;
-  float life = 0.0f;
-  float radius = 1.0f;
+  float maxLife;
+  float2 sizeBeginEnd;
+  float life;
+  uint color;
 };
 
 struct ParticleCounters {
   uint aliveCount;
   uint deadCount;
   uint realEmitCount;
+  uint aliveCount_afterSimulation;
 };
 
-struct ParticleSystemCB {
-  uint xEmitCount;
-  float xEmitterRandomness;
-  float xParticleRandomColorFactor;
-  float xParticleSize;
+struct EmitterProperties {
+  uint emitCount;
+  float emitterRandomness;
+  float particleRandomColorFactor;
+  float particleSize;
 
-  float xParticleScaling;
-  float xParticleRotation;
-  float xParticleRandomFactor;
-  float xParticleNormalFactor;
+  float particleScaling;
+  float particleRotation;
+  float particleRandomFactor;
+  float particleNormalFactor;
 
-  float xParticleLifeSpan;
-  float xParticleLifeSpanRandomness;
-  float xParticleMass;
-  float xParticleMotionBlurAmount;
+  float particleLifeSpan;
+  float particleLifeSpanRandomness;
+  float particleMass;
+  uint emitterMaxParticleCount;
 
-  uint xEmitterMaxParticleCount;
-  uint xEmitterInstanceIndex;
-  uint xEmitterMeshGeometryOffset;
-  uint xEmitterMeshGeometryCount;
+  float3 particleGravity;
+  float emitterRestitution;
 
-  uint xEmitterFramesX;
-  uint xEmitterFramesY;
-  uint xEmitterFrameCount;
-  uint xEmitterFrameStart;
-
-  float2 xEmitterTexMul;
-  float xEmitterFrameRate;
-  uint xEmitterLayerMask;
-
-  float xSPH_h;      // smoothing radius
-  float xSPH_h_rcp;  // 1.0f / smoothing radius
-  float xSPH_h2;     // smoothing radius ^ 2
-  float xSPH_h3;     // smoothing radius ^ 3
-
-  float xSPH_poly6_constant;  // precomputed Poly6 kernel constant term
-  float xSPH_spiky_constant;  // precomputed Spiky kernel function constant term
-  float xSPH_visc_constant;   // precomputed viscosity kernel function constant
-                              // term
-  float xSPH_K;               // pressure constant
-
-  float xSPH_e;   // viscosity constant
-  float xSPH_p0;  // reference density
-  uint xEmitterOptions;
-  float xEmitterFixedTimestep;  // we can force a fixed timestep (>0) onto the
-                                // simulation to avoid blowing up
-
-  float3 xParticleGravity;
-  float xEmitterRestitution;
-
-  float3 xParticleVelocity;
-  float xParticleDrag;
+  float3 particleVelocity;
+  float particleDrag;
 };
 
 struct PointLight {
@@ -127,6 +101,8 @@ struct PostRenderer {
 };
 
 namespace my {
+extern "C" MY_API EmitterProperties* GetEmitterProperties();
+
 extern "C" MY_API ParticleCounters GetStatistics();
 
 extern "C" MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);

@@ -29,13 +29,16 @@
     <None Include="hlsl\CS_ParticleSystem_Emit.hlsl">
       <Filter>hlsl</Filter>
     </None>
-    <None Include="hlsl\CS_ParticleSystem_Update.hlsl">
+    <None Include="hlsl\CS_ParticleSystem_Simulate.hlsl">
       <Filter>hlsl</Filter>
     </None>
     <None Include="hlsl\PS_RayMARCH.hlsl">
       <Filter>hlsl</Filter>
     </None>
     <None Include="hlsl\VS_QUAD.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
+    <None Include="hlsl\CS_ParticleSystem_KickoffUpdate.hlsl">
       <Filter>hlsl</Filter>
     </None>
   </ItemGroup>

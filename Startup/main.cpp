@@ -219,15 +219,49 @@ int main(int, char**) {
 
       ImGui::Begin("MyEngine Settings");
 
-      {
-        std::string ss;
+      if (ImGui::CollapsingHeader("Emitter")) {
         auto data = my::GetStatistics();
+
+        std::string ss;
         ss +=
             "Alive Particle Count = " + std::to_string(data.aliveCount) + "\n";
         ss += "Dead Particle Count = " + std::to_string(data.deadCount) + "\n";
         ss += "GPU Emit count = " + std::to_string(data.realEmitCount) + "\n";
 
         ImGui::Text(ss.c_str());
+
+        auto props = my::GetEmitterProperties();
+
+        ImGui::SliderInt("Emit:", (int*)&props->emitCount, 0, 10000);
+        ImGui::SliderFloat("Size:", &props->particleSize, 0.01f, 10.0f);
+        ImGui::SliderFloat("Rotation:", &props->particleRotation, 0.0f, 1.0f);
+        ImGui::SliderFloat("Normal factor:", &props->particleNormalFactor, 0.0f,
+                           100.0f);
+        ImGui::SliderFloat("Scaling:", &props->particleScaling, 0.0f, 100.0f);
+        ImGui::SliderFloat("Life span:", &props->particleLifeSpan, 0.0f,
+                           100.0f);
+        ImGui::SliderFloat(
+            "Life randomness:", &props->particleLifeSpanRandomness, 0.0f, 2.0f);
+        ImGui::SliderFloat("Randomness:", &props->particleRandomFactor, 0.0f,
+                           10.0f);
+        ImGui::SliderFloat(
+            "Color randomness:", &props->particleRandomColorFactor, 0.0f, 2.0f);
+        ImGui::SliderFloat("Mass", &props->particleMass, 0.1f, 100.0f);
+        ImGui::SliderFloat("Drag", &props->particleDrag, 0.0f, 1.0f);
+        ImGui::SliderFloat("Restitution", &props->emitterRestitution, 0.0f,
+                           1.0f);
+
+        float velocity[3] = {props->particleVelocity.x,
+                             props->particleVelocity.y,
+                             props->particleVelocity.z};
+        ImGui::InputFloat3("Velocity", velocity);
+        props->particleVelocity =
+            Vector3(velocity[0], velocity[1], velocity[2]);
+
+        float gravity[3] = {props->particleGravity.x, props->particleGravity.y,
+                            props->particleGravity.z};
+        ImGui::InputFloat3("Gravity", gravity);
+        props->particleGravity = Vector3(gravity[0], gravity[1], gravity[2]);
       }
 
       if (ImGui::CollapsingHeader("Debug")) {
