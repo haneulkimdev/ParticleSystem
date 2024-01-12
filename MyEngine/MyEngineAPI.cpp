@@ -35,7 +35,7 @@ ComPtr<ID3D11PixelShader> g_particleSystemPS;
 
 // Buffers
 ComPtr<ID3D11Buffer> g_frameCB;
-ComPtr<ID3D11Buffer> g_emitterPropertiesCB;
+ComPtr<ID3D11Buffer> g_particleSystemCB;
 ComPtr<ID3D11Buffer> g_quadRendererCB;
 ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
 
@@ -43,11 +43,12 @@ ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 
-EmitterProperties g_emitterProperties = {};
+ParticleEmitter g_particleEmitter = {};
 
 ParticleCounters g_statistics = {};
 
 const int MAX_PARTICLES = 1000;
+float g_emit = 0.0f;
 
 uint32_t g_frameCount = 0;
 
@@ -70,7 +71,7 @@ auto FailRet = [](const std::string& msg) {
   return false;
 };
 
-EmitterProperties* GetEmitterProperties() { return &g_emitterProperties; }
+ParticleEmitter* GetParticleEmitter() { return &g_particleEmitter; }
 
 ParticleCounters GetStatistics() { return g_statistics; }
 
@@ -100,42 +101,32 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   // Particle System constant buffer:
   {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-
-    g_emitterProperties.emitCount = 10;
-    g_emitterProperties.emitterRandomness = dis(gen);
-    g_emitterProperties.particleRandomColorFactor = 1.0f;
-    g_emitterProperties.particleSize = 1.0f;
-    g_emitterProperties.particleScaling = 1.0f;
-    g_emitterProperties.particleRotation = 0.0f;
-    g_emitterProperties.particleRandomFactor = 1.0f;
-    g_emitterProperties.particleNormalFactor = 1.0f;
-    g_emitterProperties.particleLifeSpan = 1.0f;
-    g_emitterProperties.particleLifeSpanRandomness = 1.0f;
-    g_emitterProperties.particleMass = 1.0f;
-    g_emitterProperties.emitterMaxParticleCount = MAX_PARTICLES;
-    g_emitterProperties.particleGravity = Vector3(0.0f, 0.0f, 0.0f);
-    g_emitterProperties.emitterRestitution = 0.98f;
-    g_emitterProperties.particleVelocity = Vector3(0.0f, 0.0f, 0.0f);
-    g_emitterProperties.particleDrag = 1.0f;
-
-    g_emitterProperties.emitterMaxParticleCount = MAX_PARTICLES;
-    g_emitterProperties.emitterRandomness;
+    g_particleEmitter.size = 1.0f;
+    g_particleEmitter.random_factor = 1.0f;
+    g_particleEmitter.normal_factor = 1.0f;
+    g_particleEmitter.count = 10.0f;
+    g_particleEmitter.life = 1.0f;
+    g_particleEmitter.random_life = 1.0f;
+    g_particleEmitter.scale = 1.0f;
+    g_particleEmitter.rotation = 0.0f;
+    g_particleEmitter.mass = 1.0f;
+    g_particleEmitter.random_color = 0;
+    g_particleEmitter.gravity[0] = 0.0f;
+    g_particleEmitter.gravity[1] = 0.0f;
+    g_particleEmitter.gravity[2] = 0.0f;
+    g_particleEmitter.velocity[0] = 0.0f;
+    g_particleEmitter.velocity[1] = 0.0f;
+    g_particleEmitter.velocity[2] = 0.0f;
 
     D3D11_BUFFER_DESC bd = {};
-    bd.ByteWidth = sizeof(EmitterProperties);
+    bd.ByteWidth = sizeof(ParticleSystemCB);
     bd.Usage = D3D11_USAGE_DYNAMIC;
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     bd.MiscFlags = 0;
 
-    D3D11_SUBRESOURCE_DATA initData = {};
-    initData.pSysMem = &g_emitterProperties;
-
-    hr = g_device->CreateBuffer(&bd, &initData,
-                                g_emitterPropertiesCB.ReleaseAndGetAddressOf());
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_particleSystemCB.ReleaseAndGetAddressOf());
 
     if (FAILED(hr)) FailRet("CreateBuffer Failed.");
   }
@@ -469,14 +460,43 @@ bool SetRenderTargetSize(int w, int h) {
 }
 
 void Update(float dt) {
+  g_emit = std::max(0.0f, g_emit - std::floor(g_emit));
+
+  g_emit += g_particleEmitter.count * dt;
+
   // Update emitter properties constant buffer.
   {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+
+    ParticleSystemCB particleSystemCB = {};
+    particleSystemCB.emitCount = static_cast<uint32_t>(g_emit);
+    particleSystemCB.emitterRandomness = dis(gen);
+    particleSystemCB.particleLifeSpan = g_particleEmitter.life;
+    particleSystemCB.particleLifeSpanRandomness = g_particleEmitter.random_life;
+    particleSystemCB.particleNormalFactor = g_particleEmitter.normal_factor;
+    particleSystemCB.particleRandomFactor = g_particleEmitter.random_factor;
+    particleSystemCB.particleScaling = g_particleEmitter.scale;
+    particleSystemCB.particleSize = g_particleEmitter.size;
+    particleSystemCB.particleRotation = g_particleEmitter.rotation;
+    particleSystemCB.particleMass = g_particleEmitter.mass;
+    particleSystemCB.emitterMaxParticleCount = MAX_PARTICLES;
+    particleSystemCB.emitterRestitution = g_particleEmitter.restitution;
+    particleSystemCB.particleGravity =
+        float3(g_particleEmitter.gravity[0], g_particleEmitter.gravity[1],
+               g_particleEmitter.gravity[2]);
+    particleSystemCB.particleDrag = g_particleEmitter.drag;
+    particleSystemCB.particleVelocity =
+        float3(g_particleEmitter.velocity[0], g_particleEmitter.velocity[1],
+               g_particleEmitter.velocity[2]);
+    particleSystemCB.particleRandomColorFactor = g_particleEmitter.random_color;
+
     D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-    g_context->Map(g_emitterPropertiesCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+    g_context->Map(g_particleSystemCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
                    &mappedResource);
-    memcpy(mappedResource.pData, &g_emitterProperties,
-           sizeof(g_emitterProperties));
-    g_context->Unmap(g_emitterPropertiesCB.Get(), 0);
+    memcpy(mappedResource.pData, &particleSystemCB, sizeof(particleSystemCB));
+    g_context->Unmap(g_particleSystemCB.Get(), 0);
   }
 
   // Update frame constant buffer.
@@ -519,7 +539,7 @@ bool DoTest() {
   // kick off updating, set up state
   {
     g_context->CSSetShader(g_particleSystemCS_kickoffUpdate.Get(), nullptr, 0);
-    g_context->CSSetConstantBuffers(1, 1, g_emitterPropertiesCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(
         4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
     g_context->Dispatch(1, 1, 1);
@@ -531,7 +551,7 @@ bool DoTest() {
   {
     g_context->CSSetShader(g_particleSystemCS_emit.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, g_emitterPropertiesCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
@@ -551,7 +571,7 @@ bool DoTest() {
   {
     g_context->CSSetShader(g_particleSystemCS_simulate.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, g_emitterPropertiesCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
@@ -670,7 +690,7 @@ void DeinitEngine() {
 
   // Buffers
   g_frameCB.Reset();
-  g_emitterPropertiesCB.Reset();
+  g_particleSystemCB.Reset();
   g_statisticsReadbackBuffer.Reset();
   g_quadRendererCB.Reset();
 

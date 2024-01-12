@@ -46,7 +46,28 @@ struct ParticleCounters {
   uint aliveCount_afterSimulation;
 };
 
-struct EmitterProperties {
+struct ParticleEmitter {
+  float size = 1.0f;
+  float random_factor = 1.0f;
+  float normal_factor = 1.0f;
+  float count = 0.0f;
+  float life = 1.0f;
+  float random_life = 1.0f;
+  float scale = 1.0f;
+  float rotation = 0.0f;
+  float mass = 1.0f;
+  float random_color = 0;
+
+  float velocity[3] = {};  // starting velocity of all new particles
+  float gravity[3] = {};   // constant gravity force
+  float drag = 1.0f;  // constant drag (per frame velocity multiplier, reducing
+                      // it will make particles slow down over time)
+  float restitution =
+      0.98f;  // if the particles have collision enabled, then after collision
+              // this is a multiplier for their bouncing velocities
+};
+
+struct ParticleSystemCB {
   uint emitCount;
   float emitterRandomness;
   float particleRandomColorFactor;
@@ -101,7 +122,7 @@ struct PostRenderer {
 };
 
 namespace my {
-extern "C" MY_API EmitterProperties* GetEmitterProperties();
+extern "C" MY_API ParticleEmitter* GetParticleEmitter();
 
 extern "C" MY_API ParticleCounters GetStatistics();
 

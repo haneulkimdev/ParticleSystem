@@ -32,7 +32,7 @@ cbuffer cbFrame : register(b0)
     int dummy1;
 }
 
-cbuffer cbEmitter : register(b1)
+cbuffer cbParticleSystem : register(b1)
 {
     uint emitCount;
     float emitterRandomness;
