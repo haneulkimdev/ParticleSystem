@@ -596,6 +596,7 @@ bool DoTest() {
 
     g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
     g_context->VSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
+    g_context->GSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
     g_context->Draw(static_cast<UINT>(MAX_PARTICLES), 0);
 
     GPUBarrier();
