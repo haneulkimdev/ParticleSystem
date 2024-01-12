@@ -232,20 +232,19 @@ int main(int, char**) {
 
         auto props = my::GetEmitterProperties();
 
-        ImGui::SliderInt("Emit:", (int*)&props->emitCount, 0, 10000);
-        ImGui::SliderFloat("Size:", &props->particleSize, 0.01f, 10.0f);
-        ImGui::SliderFloat("Rotation:", &props->particleRotation, 0.0f, 1.0f);
-        ImGui::SliderFloat("Normal factor:", &props->particleNormalFactor, 0.0f,
+        ImGui::SliderInt("Emit", (int*)&props->emitCount, 0, 10000);
+        ImGui::SliderFloat("Size", &props->particleSize, 0.01f, 10.0f);
+        ImGui::SliderFloat("Rotation", &props->particleRotation, 0.0f, 1.0f);
+        ImGui::SliderFloat("Normal factor", &props->particleNormalFactor, 0.0f,
                            100.0f);
-        ImGui::SliderFloat("Scaling:", &props->particleScaling, 0.0f, 100.0f);
-        ImGui::SliderFloat("Life span:", &props->particleLifeSpan, 0.0f,
-                           100.0f);
-        ImGui::SliderFloat(
-            "Life randomness:", &props->particleLifeSpanRandomness, 0.0f, 2.0f);
-        ImGui::SliderFloat("Randomness:", &props->particleRandomFactor, 0.0f,
+        ImGui::SliderFloat("Scaling", &props->particleScaling, 0.0f, 100.0f);
+        ImGui::SliderFloat("Life span", &props->particleLifeSpan, 0.0f, 100.0f);
+        ImGui::SliderFloat("Life randomness",
+                           &props->particleLifeSpanRandomness, 0.0f, 2.0f);
+        ImGui::SliderFloat("Randomness", &props->particleRandomFactor, 0.0f,
                            10.0f);
-        ImGui::SliderFloat(
-            "Color randomness:", &props->particleRandomColorFactor, 0.0f, 2.0f);
+        ImGui::SliderFloat("Color randomness",
+                           &props->particleRandomColorFactor, 0.0f, 2.0f);
         ImGui::SliderFloat("Mass", &props->particleMass, 0.1f, 100.0f);
         ImGui::SliderFloat("Drag", &props->particleDrag, 0.0f, 1.0f);
         ImGui::SliderFloat("Restitution", &props->emitterRestitution, 0.0f,

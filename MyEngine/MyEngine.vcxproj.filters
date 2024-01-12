@@ -41,5 +41,8 @@
     <None Include="hlsl\CS_ParticleSystem_KickoffUpdate.hlsl">
       <Filter>hlsl</Filter>
     </None>
+    <None Include="hlsl\GS_ParticleSystem.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
   </ItemGroup>
 </Project>

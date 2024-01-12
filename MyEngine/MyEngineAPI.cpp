@@ -30,6 +30,7 @@ ComPtr<ID3D11ComputeShader> g_particleSystemCS_kickoffUpdate;
 ComPtr<ID3D11ComputeShader> g_particleSystemCS_emit;
 ComPtr<ID3D11ComputeShader> g_particleSystemCS_simulate;
 ComPtr<ID3D11VertexShader> g_particleSystemVS;
+ComPtr<ID3D11GeometryShader> g_particleSystemGS;
 ComPtr<ID3D11PixelShader> g_particleSystemPS;
 
 // Buffers
@@ -590,6 +591,7 @@ bool DoTest() {
     g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
                                   nullptr);
     g_context->VSSetShader(g_particleSystemVS.Get(), nullptr, 0);
+    g_context->GSSetShader(g_particleSystemGS.Get(), nullptr, 0);
     g_context->PSSetShader(g_particleSystemPS.Get(), nullptr, 0);
 
     g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
@@ -676,6 +678,7 @@ void DeinitEngine() {
   g_particleSystemCS_emit.Reset();
   g_particleSystemCS_simulate.Reset();
   g_particleSystemVS.Reset();
+  g_particleSystemGS.Reset();
   g_particleSystemPS.Reset();
 
   // Views
@@ -721,6 +724,11 @@ bool LoadShaders() {
           byteCode.data(), byteCode.size(), nullptr,
           reinterpret_cast<ID3D11VertexShader**>(deviceChild));
       if (FAILED(hr)) FailRet("CreateVertexShader Failed.");
+    } else if (shaderProfile == "GS") {
+      HRESULT hr = g_device->CreateGeometryShader(
+          byteCode.data(), byteCode.size(), nullptr,
+          reinterpret_cast<ID3D11GeometryShader**>(deviceChild));
+      if (FAILED(hr)) FailRet("CreateGeometryShader Failed.");
     } else if (shaderProfile == "PS") {
       HRESULT hr = g_device->CreatePixelShader(
           byteCode.data(), byteCode.size(), nullptr,
@@ -753,9 +761,14 @@ bool LoadShaders() {
           reinterpret_cast<ID3D11DeviceChild**>(
               g_particleSystemCS_simulate.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
+
   if (!RegisterShaderObjFile("VS_ParticleSystem", "VS",
                              reinterpret_cast<ID3D11DeviceChild**>(
                                  g_particleSystemVS.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
+  if (!RegisterShaderObjFile("GS_ParticleSystem", "GS",
+                             reinterpret_cast<ID3D11DeviceChild**>(
+                                 g_particleSystemGS.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
   if (!RegisterShaderObjFile("PS_ParticleSystem", "PS",
                              reinterpret_cast<ID3D11DeviceChild**>(
