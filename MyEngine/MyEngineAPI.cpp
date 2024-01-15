@@ -509,6 +509,7 @@ void Update(float dt) {
     g_context->Map(g_frameCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
                    &mappedResource);
     memcpy(mappedResource.pData, &frameCB, sizeof(frameCB));
+    g_context->Unmap(g_frameCB.Get(), 0);
   }
 
   // Update post renderer constant buffer.
