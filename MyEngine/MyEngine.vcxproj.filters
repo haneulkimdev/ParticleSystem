@@ -4,11 +4,13 @@
     <ClCompile Include="MyEngineAPI.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Helper.cpp" />
+    <ClCompile Include="CameraController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Helper.h" />
+    <ClInclude Include="CameraController.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">

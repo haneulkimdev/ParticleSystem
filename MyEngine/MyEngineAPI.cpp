@@ -55,6 +55,7 @@ uint32_t g_frameCount = 0;
 PointLight g_pointLight;
 
 Camera g_camera;
+std::unique_ptr<CameraController> g_cameraController;
 
 float g_smoothingCoefficient = 10.0f;
 
@@ -198,6 +199,7 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   g_camera.LookAt(pos, pos + forward, up);
   g_camera.UpdateViewMatrix();
+  g_cameraController.reset(new FlyingFPSCamera(g_camera));
 
   g_pointLight.position = g_camera.GetPosition();
   g_pointLight.color = 0xffffffff;
@@ -460,6 +462,8 @@ bool SetRenderTargetSize(int w, int h) {
 }
 
 void Update(float dt) {
+  g_cameraController->Update(dt);
+
   g_emit = std::max(0.0f, g_emit - std::floor(g_emit));
 
   g_emit += g_particleEmitter.count * dt;

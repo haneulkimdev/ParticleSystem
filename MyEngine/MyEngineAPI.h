@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "Camera.h"
+#include "CameraController.h"
 #include "Helper.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
