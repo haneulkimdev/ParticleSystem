@@ -26,11 +26,11 @@ static const uint PARTICLECOUNTER_OFFSET_ALIVECOUNT_AFTERSIMULATION = PARTICLECO
 
 cbuffer cbFrame : register(b0)
 {
-    float delta_time;
     uint frame_count;
-    int dummy0;
-    int dummy1;
-}
+    float time;
+    float time_previous;
+    float delta_time;
+};
 
 cbuffer cbParticleSystem : register(b1)
 {
@@ -56,14 +56,15 @@ cbuffer cbParticleSystem : register(b1)
     float particleDrag;
 };
 
-struct PostRenderer
+cbuffer cbQuadRenderer : register(b2)
 {
     float3 posCam; // WS
     uint lightColor;
 
     float3 posLight; // WS
     float lightIntensity;
-    
+
+    float4x4 matWS2PS;
     float4x4 matPS2WS;
 
     float2 rtSize;

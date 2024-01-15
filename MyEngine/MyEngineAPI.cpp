@@ -193,7 +193,7 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   LoadShaders();
 
   // Build the view matrix.
-  Vector3 pos(0.0f, 0.0f, -5.0f);
+  Vector3 pos(0.0f, 0.0f, -1.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
@@ -518,24 +518,23 @@ void Update(float dt) {
 
   // Update post renderer constant buffer.
   {
-    PostRenderer quadPostRenderer = {};
-    quadPostRenderer.posCam = g_camera.GetPosition();
-    quadPostRenderer.lightColor = g_pointLight.color;
-    quadPostRenderer.posLight = g_pointLight.position;
-    quadPostRenderer.lightIntensity = g_pointLight.intensity;
-    quadPostRenderer.matWS2CS = g_camera.View().Transpose();
-    quadPostRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
-    quadPostRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
-                                      static_cast<float>(g_renderTargetHeight));
-    quadPostRenderer.smoothingCoefficient = g_smoothingCoefficient;
-    quadPostRenderer.deltaTime = dt;
-    quadPostRenderer.distBoxCenter = g_distBoxCenter;
-    quadPostRenderer.distBoxSize = g_distBoxSize;
+    PostRenderer quadRenderer = {};
+    quadRenderer.posCam = g_camera.GetPosition();
+    quadRenderer.lightColor = g_pointLight.color;
+    quadRenderer.posLight = g_pointLight.position;
+    quadRenderer.lightIntensity = g_pointLight.intensity;
+    quadRenderer.matWS2PS = g_camera.ViewProj().Transpose();
+    quadRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
+    quadRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
+                                  static_cast<float>(g_renderTargetHeight));
+    quadRenderer.smoothingCoefficient = g_smoothingCoefficient;
+    quadRenderer.distBoxCenter = g_distBoxCenter;
+    quadRenderer.distBoxSize = g_distBoxSize;
 
     D3D11_MAPPED_SUBRESOURCE mappedResource = {};
     g_context->Map(g_quadRendererCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
                    &mappedResource);
-    memcpy(mappedResource.pData, &quadPostRenderer, sizeof(quadPostRenderer));
+    memcpy(mappedResource.pData, &quadRenderer, sizeof(quadRenderer));
     g_context->Unmap(g_quadRendererCB.Get(), 0);
   }
 }
@@ -620,6 +619,7 @@ bool DoTest() {
     g_context->PSSetShader(g_particleSystemPS.Get(), nullptr, 0);
 
     g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
     g_context->VSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
     g_context->GSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
     g_context->Draw(static_cast<UINT>(MAX_PARTICLES), 0);

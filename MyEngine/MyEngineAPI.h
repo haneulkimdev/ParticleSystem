@@ -98,10 +98,10 @@ struct PointLight {
 };
 
 struct FrameCB {
-  float delta_time;
   uint frame_count;
-  int dummy0;
-  int dummy1;
+  float time;
+  float time_previous;
+  float delta_time;
 };
 
 struct PostRenderer {
@@ -111,12 +111,12 @@ struct PostRenderer {
   float3 posLight;  // WS
   float lightIntensity;
 
-  float4x4 matWS2CS;
+  float4x4 matWS2PS;
   float4x4 matPS2WS;
 
   float2 rtSize;
   float smoothingCoefficient;
-  float deltaTime;
+  float dummy0;
 
   float3 distBoxCenter;  // WS
   float distBoxSize;     // WS
