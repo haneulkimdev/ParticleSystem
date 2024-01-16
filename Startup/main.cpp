@@ -175,6 +175,7 @@ int main(int, char**) {
 
     {
       ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+      ImGui::PushStyleColor(ImGuiCol_WindowBg, clear_color);
       ImGui::Begin("DirectX11 Texture Test");
 
       static ImVec2 lastWindowSize = ImVec2(0, 0);
@@ -208,6 +209,7 @@ int main(int, char**) {
       ImGui::Image((void*)textureView, renderTargetSize);
       ImGui::End();
       ImGui::PopStyleVar();
+      ImGui::PopStyleColor();
     }
 
     {
