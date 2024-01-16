@@ -36,6 +36,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
     {
         particle.life -= dt;
         
+        float opacity = lerp(1, 0, lifeLerp);
+        float4 particleColor = unpack_rgba(particle.color);
+        particleColor.a *= opacity;
+        
+        particle.color = pack_rgba(particleColor);
+        
         // write back simulated particle:
         particleBuffer[particleIndex] = particle;
         

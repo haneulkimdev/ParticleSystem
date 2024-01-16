@@ -3,7 +3,7 @@
 struct VertexOut
 {
     float4 position : SV_POSITION;
-    float3 color : COLOR;
+    float4 color : COLOR;
     float life : PSIZE0;
     float size : PSIZE1;
 };
@@ -24,7 +24,7 @@ VertexOut main(uint vertexID : SV_VertexID)
     VertexOut vout;
     
     vout.position = mul(float4(particle.position.xyz, 1.0), matWS2PS);
-    vout.color = unpack_rgba(particle.color).xyz;
+    vout.color = unpack_rgba(particle.color);
     vout.life = particle.life;
     vout.size = size;
 

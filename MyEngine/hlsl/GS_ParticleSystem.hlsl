@@ -3,7 +3,7 @@
 struct VertexOut
 {
     float4 position : SV_POSITION;
-    float3 color : COLOR;
+    float4 color : COLOR;
     float life : PSIZE0;
     float size : PSIZE1;
 };
@@ -12,7 +12,7 @@ struct GeoOut
 {
     float4 pos : SV_POSITION; // not POSITION
     float2 texCoord : TEXCOORD;
-    float3 color : COLOR;
+    float4 color : COLOR;
     uint primID : SV_PrimitiveID;
 };
 
