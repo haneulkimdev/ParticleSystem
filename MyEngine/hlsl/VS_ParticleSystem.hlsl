@@ -13,8 +13,6 @@ StructuredBuffer<uint> aliveList : register(t1);
 
 VertexOut main(uint vertexID : SV_VertexID)
 {
-    const float fadeLife = 0.2f;
-    
     Particle particle = particles[vertexID];
     
     // calculate render properties from life:
