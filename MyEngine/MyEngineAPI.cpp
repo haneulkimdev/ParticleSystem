@@ -42,6 +42,7 @@ ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
 // States
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
+ComPtr<ID3D11BlendState> g_blendState;
 
 ParticleEmitter g_particleEmitter = {};
 
@@ -111,7 +112,7 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
     g_particleEmitter.scale = 1.0f;
     g_particleEmitter.rotation = 0.0f;
     g_particleEmitter.mass = 1.0f;
-    g_particleEmitter.random_color = 0;
+    g_particleEmitter.random_color = 1;
     g_particleEmitter.gravity[0] = 0.0f;
     g_particleEmitter.gravity[1] = 0.0f;
     g_particleEmitter.gravity[2] = 0.0f;
@@ -189,6 +190,24 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
       &depthStencilDesc, g_depthStencilState.ReleaseAndGetAddressOf());
 
   if (FAILED(hr)) FailRet("CreateDepthStencilState Failed.");
+
+  D3D11_BLEND_DESC blendDesc = {};
+  blendDesc.AlphaToCoverageEnable = false;
+  blendDesc.IndependentBlendEnable = false;
+  blendDesc.RenderTarget[0].BlendEnable = true;
+  blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+  blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+  blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+  blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+  blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+  blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+  blendDesc.RenderTarget[0].RenderTargetWriteMask =
+      D3D11_COLOR_WRITE_ENABLE_ALL;
+
+  hr = g_device->CreateBlendState(&blendDesc,
+                                  g_blendState.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateBlendState Failed.");
 
   LoadShaders();
 
@@ -617,6 +636,7 @@ bool DoTest() {
     g_context->VSSetShader(g_particleSystemVS.Get(), nullptr, 0);
     g_context->GSSetShader(g_particleSystemGS.Get(), nullptr, 0);
     g_context->PSSetShader(g_particleSystemPS.Get(), nullptr, 0);
+    g_context->OMSetBlendState(g_blendState.Get(), nullptr, 0xffffffff);
 
     g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
     g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
@@ -692,6 +712,7 @@ void DeinitEngine() {
   // States
   g_rasterizerState.Reset();
   g_depthStencilState.Reset();
+  g_blendState.Reset();
 
   // Buffers
   g_frameCB.Reset();

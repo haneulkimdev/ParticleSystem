@@ -8,5 +8,5 @@ struct PixelIn
 
 float4 main(PixelIn pin) : SV_TARGET
 {
-    return pin.color;
+    return float4(pin.color.rgb, 0.5);
 }
