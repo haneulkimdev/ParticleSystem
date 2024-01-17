@@ -51,16 +51,17 @@ struct ParticleEmitter {
   float size = 1.0f;
   float random_factor = 1.0f;
   float normal_factor = 1.0f;
-  float count = 0.0f;
+  float count = 10.0f;
   float life = 1.0f;
   float random_life = 1.0f;
   float scale = 1.0f;
   float rotation = 0.0f;
   float mass = 1.0f;
-  float random_color = 0;
+  float random_color = 1;
 
-  float velocity[3] = {};  // starting velocity of all new particles
-  float gravity[3] = {};   // constant gravity force
+  float velocity[3] = {0.0f, 0.0f,
+                       0.0f};  // starting velocity of all new particles
+  float gravity[3] = {0.0f, 0.0f, 0.0f};  // constant gravity force
   float drag = 1.0f;  // constant drag (per frame velocity multiplier, reducing
                       // it will make particles slow down over time)
   float restitution =
@@ -123,10 +124,6 @@ struct PostRenderer {
 };
 
 namespace my {
-extern "C" MY_API ParticleEmitter* GetParticleEmitter();
-
-extern "C" MY_API ParticleCounters GetStatistics();
-
 extern "C" MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
 extern "C" MY_API bool SetRenderTargetSize(int w, int h);
@@ -141,4 +138,16 @@ extern "C" MY_API void DeinitEngine();
 extern "C" MY_API bool LoadShaders();
 
 static void GPUBarrier();
+
+namespace ParticleSystem {
+void CreateSelfBuffers();
+
+void UpdateCPU(float dt);
+
+void UpdateGPU();
+void Draw();
+
+extern "C" MY_API ParticleEmitter* GetParticleEmitter();
+extern "C" MY_API ParticleCounters GetStatistics();
+}  // namespace ParticleSystem
 }  // namespace my

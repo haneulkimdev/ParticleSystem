@@ -13,6 +13,10 @@ ComPtr<ID3D11Buffer> g_particleBuffer;
 ComPtr<ID3D11Buffer> g_aliveList[2];
 ComPtr<ID3D11Buffer> g_deadList;
 ComPtr<ID3D11Buffer> g_counterBuffer;
+ComPtr<ID3D11Buffer> g_frameCB;
+ComPtr<ID3D11Buffer> g_particleSystemCB;
+ComPtr<ID3D11Buffer> g_quadRendererCB;
+ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
 
 // Views
 ComPtr<ID3D11RenderTargetView> g_renderTargetView;
@@ -33,23 +37,10 @@ ComPtr<ID3D11VertexShader> g_particleSystemVS;
 ComPtr<ID3D11GeometryShader> g_particleSystemGS;
 ComPtr<ID3D11PixelShader> g_particleSystemPS;
 
-// Buffers
-ComPtr<ID3D11Buffer> g_frameCB;
-ComPtr<ID3D11Buffer> g_particleSystemCB;
-ComPtr<ID3D11Buffer> g_quadRendererCB;
-ComPtr<ID3D11Buffer> g_statisticsReadbackBuffer;
-
 // States
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 ComPtr<ID3D11BlendState> g_blendState;
-
-ParticleEmitter g_particleEmitter = {};
-
-ParticleCounters g_statistics = {};
-
-const int MAX_PARTICLES = 1000;
-float g_emit = 0.0f;
 
 uint32_t g_frameCount = 0;
 
@@ -72,10 +63,6 @@ auto FailRet = [](const std::string& msg) {
   g_apiLogger->error(msg);
   return false;
 };
-
-ParticleEmitter* GetParticleEmitter() { return &g_particleEmitter; }
-
-ParticleCounters GetStatistics() { return g_statistics; }
 
 bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_apiLogger = spdlogPtr;
@@ -103,23 +90,6 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   // Particle System constant buffer:
   {
-    g_particleEmitter.size = 1.0f;
-    g_particleEmitter.random_factor = 1.0f;
-    g_particleEmitter.normal_factor = 1.0f;
-    g_particleEmitter.count = 10.0f;
-    g_particleEmitter.life = 1.0f;
-    g_particleEmitter.random_life = 1.0f;
-    g_particleEmitter.scale = 1.0f;
-    g_particleEmitter.rotation = 0.0f;
-    g_particleEmitter.mass = 1.0f;
-    g_particleEmitter.random_color = 1;
-    g_particleEmitter.gravity[0] = 0.0f;
-    g_particleEmitter.gravity[1] = 0.0f;
-    g_particleEmitter.gravity[2] = 0.0f;
-    g_particleEmitter.velocity[0] = 0.0f;
-    g_particleEmitter.velocity[1] = 0.0f;
-    g_particleEmitter.velocity[2] = 0.0f;
-
     D3D11_BUFFER_DESC bd = {};
     bd.ByteWidth = sizeof(ParticleSystemCB);
     bd.Usage = D3D11_USAGE_DYNAMIC;
@@ -211,6 +181,8 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   LoadShaders();
 
+  ParticleSystem::CreateSelfBuffers();
+
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -1.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
@@ -226,167 +198,6 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
   g_distBoxSize = 2.0f;
-
-  // Particle buffer:
-  {
-    D3D11_BUFFER_DESC bd = {};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(Particle) * MAX_PARTICLES;
-    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-    bd.CPUAccessFlags = 0;
-    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    bd.StructureByteStride = sizeof(Particle);
-
-    hr = g_device->CreateBuffer(&bd, nullptr,
-                                g_particleBuffer.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    srvDesc.BufferEx.NumElements = MAX_PARTICLES;
-
-    hr = g_device->CreateShaderResourceView(
-        g_particleBuffer.Get(), &srvDesc,
-        g_particlesSRV.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = MAX_PARTICLES;
-
-    hr = g_device->CreateUnorderedAccessView(
-        g_particleBuffer.Get(), &uavDesc,
-        g_particlesUAV.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-  }
-
-  // Alive index lists (double buffered):
-  {
-    D3D11_BUFFER_DESC bd = {};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(uint32_t) * MAX_PARTICLES;
-    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-    bd.CPUAccessFlags = 0;
-    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    bd.StructureByteStride = sizeof(uint32_t);
-
-    hr = g_device->CreateBuffer(&bd, nullptr,
-                                g_aliveList[0].ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-    hr = g_device->CreateBuffer(&bd, nullptr,
-                                g_aliveList[1].ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    srvDesc.BufferEx.NumElements = MAX_PARTICLES;
-
-    hr = g_device->CreateShaderResourceView(
-        g_aliveList[0].Get(), &srvDesc,
-        g_aliveListSRV[0].ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-
-    hr = g_device->CreateShaderResourceView(
-        g_aliveList[1].Get(), &srvDesc,
-        g_aliveListSRV[1].ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = MAX_PARTICLES;
-
-    hr = g_device->CreateUnorderedAccessView(
-        g_aliveList[0].Get(), &uavDesc,
-        g_aliveListUAV[0].ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-
-    hr = g_device->CreateUnorderedAccessView(
-        g_aliveList[1].Get(), &uavDesc,
-        g_aliveListUAV[1].ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-  }
-
-  // Dead index list:
-  {
-    D3D11_BUFFER_DESC bd = {};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(uint32_t) * MAX_PARTICLES;
-    bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
-    bd.CPUAccessFlags = 0;
-    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    bd.StructureByteStride = sizeof(uint32_t);
-
-    D3D11_SUBRESOURCE_DATA initData = {};
-    std::vector<uint32_t> indices(MAX_PARTICLES);
-    for (uint32_t i = 0; i < MAX_PARTICLES; i++) indices[i] = i;
-    initData.pSysMem = indices.data();
-
-    hr = g_device->CreateBuffer(&bd, &initData,
-                                g_deadList.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = MAX_PARTICLES;
-
-    hr = g_device->CreateUnorderedAccessView(
-        g_deadList.Get(), &uavDesc, g_deadListUAV.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-  }
-
-  // Particle System statistics:
-  {
-    ParticleCounters counters = {};
-    counters.aliveCount = 0;
-    counters.deadCount = MAX_PARTICLES;
-    counters.realEmitCount = 0;
-    counters.aliveCount_afterSimulation = 0;
-
-    D3D11_BUFFER_DESC bd = {};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(counters);
-    bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
-    bd.CPUAccessFlags = 0;
-    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-    D3D11_SUBRESOURCE_DATA initData = {};
-    initData.pSysMem = &counters;
-
-    hr = g_device->CreateBuffer(&bd, &initData,
-                                g_counterBuffer.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = sizeof(counters) / sizeof(uint32_t);
-    uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
-
-    hr = g_device->CreateUnorderedAccessView(
-        g_counterBuffer.Get(), &uavDesc,
-        g_counterBufferUAV.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-  }
-
-  // Debug information CPU-readback buffer:
-  {
-    D3D11_BUFFER_DESC bd;
-    g_counterBuffer->GetDesc(&bd);
-    bd.Usage = D3D11_USAGE_STAGING;
-    bd.BindFlags = 0;
-    bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    bd.MiscFlags = 0;
-
-    hr = g_device->CreateBuffer(
-        &bd, nullptr, g_statisticsReadbackBuffer.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-  }
 
   return true;
 }
@@ -481,46 +292,7 @@ bool SetRenderTargetSize(int w, int h) {
 }
 
 void Update(float dt) {
-  g_cameraController->Update(dt);
-
-  g_emit = std::max(0.0f, g_emit - std::floor(g_emit));
-
-  g_emit += g_particleEmitter.count * dt;
-
-  // Update emitter properties constant buffer.
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-
-    ParticleSystemCB particleSystemCB = {};
-    particleSystemCB.emitCount = static_cast<uint32_t>(g_emit);
-    particleSystemCB.emitterRandomness = dis(gen);
-    particleSystemCB.particleLifeSpan = g_particleEmitter.life;
-    particleSystemCB.particleLifeSpanRandomness = g_particleEmitter.random_life;
-    particleSystemCB.particleNormalFactor = g_particleEmitter.normal_factor;
-    particleSystemCB.particleRandomFactor = g_particleEmitter.random_factor;
-    particleSystemCB.particleScaling = g_particleEmitter.scale;
-    particleSystemCB.particleSize = g_particleEmitter.size;
-    particleSystemCB.particleRotation = g_particleEmitter.rotation;
-    particleSystemCB.particleMass = g_particleEmitter.mass;
-    particleSystemCB.emitterMaxParticleCount = MAX_PARTICLES;
-    particleSystemCB.emitterRestitution = g_particleEmitter.restitution;
-    particleSystemCB.particleGravity =
-        float3(g_particleEmitter.gravity[0], g_particleEmitter.gravity[1],
-               g_particleEmitter.gravity[2]);
-    particleSystemCB.particleDrag = g_particleEmitter.drag;
-    particleSystemCB.particleVelocity =
-        float3(g_particleEmitter.velocity[0], g_particleEmitter.velocity[1],
-               g_particleEmitter.velocity[2]);
-    particleSystemCB.particleRandomColorFactor = g_particleEmitter.random_color;
-
-    D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-    g_context->Map(g_particleSystemCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
-                   &mappedResource);
-    memcpy(mappedResource.pData, &particleSystemCB, sizeof(particleSystemCB));
-    g_context->Unmap(g_particleSystemCB.Get(), 0);
-  }
+  ParticleSystem::UpdateCPU(dt);
 
   // Update frame constant buffer.
   {
@@ -559,95 +331,8 @@ void Update(float dt) {
 }
 
 bool DoTest() {
-  // kick off updating, set up state
-  {
-    g_context->CSSetShader(g_particleSystemCS_kickoffUpdate.Get(), nullptr, 0);
-    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
-    g_context->CSSetUnorderedAccessViews(
-        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
-    g_context->Dispatch(1, 1, 1);
-
-    GPUBarrier();
-  }
-
-  // emit the required amount if there are free slots in dead list
-  {
-    g_context->CSSetShader(g_particleSystemCS_emit.Get(), nullptr, 0);
-    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
-    g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(2, 1, g_aliveListUAV[1].GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(3, 1, g_deadListUAV.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(
-        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
-    g_context->Dispatch(MAX_PARTICLES, 1, 1);
-
-    GPUBarrier();
-  }
-
-  // update CURRENT alive list, write NEW alive list
-  {
-    g_context->CSSetShader(g_particleSystemCS_simulate.Get(), nullptr, 0);
-    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
-    g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(2, 1, g_aliveListUAV[1].GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(3, 1, g_deadListUAV.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(
-        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
-    g_context->Dispatch(MAX_PARTICLES, 1, 1);
-
-    GPUBarrier();
-  }
-
-  // Swap CURRENT alivelist with NEW alivelist
-  std::swap(g_aliveList[0], g_aliveList[1]);
-  std::swap(g_aliveListSRV[0], g_aliveListSRV[1]);
-  std::swap(g_aliveListUAV[0], g_aliveListUAV[1]);
-
-  // Statistics is copied to readback:
-  g_context->CopyResource(g_statisticsReadbackBuffer.Get(),
-                          g_counterBuffer.Get());
-
-  // Read back statistics
-  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-  g_context->Map(g_statisticsReadbackBuffer.Get(), 0, D3D11_MAP_READ, 0,
-                 &mappedResource);
-  memcpy(&g_statistics, mappedResource.pData, sizeof(g_statistics));
-  g_context->Unmap(g_statisticsReadbackBuffer.Get(), 0);
-
-  // Draw
-  {
-    const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-    g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
-
-    g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(),
-                                  nullptr);
-    g_context->VSSetShader(g_particleSystemVS.Get(), nullptr, 0);
-    g_context->GSSetShader(g_particleSystemGS.Get(), nullptr, 0);
-    g_context->PSSetShader(g_particleSystemPS.Get(), nullptr, 0);
-    g_context->OMSetBlendState(g_blendState.Get(), nullptr, 0xffffffff);
-
-    g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-    g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
-    g_context->VSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
-    g_context->GSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
-    g_context->Draw(static_cast<UINT>(MAX_PARTICLES), 0);
-
-    GPUBarrier();
-
-    g_context->Flush();
-  }
+  ParticleSystem::UpdateGPU();
+  ParticleSystem::Draw();
 
   return true;
 }
@@ -714,12 +399,6 @@ void DeinitEngine() {
   g_depthStencilState.Reset();
   g_blendState.Reset();
 
-  // Buffers
-  g_frameCB.Reset();
-  g_particleSystemCB.Reset();
-  g_statisticsReadbackBuffer.Reset();
-  g_quadRendererCB.Reset();
-
   // Shaders
   g_particleSystemCS_kickoffUpdate.Reset();
   g_particleSystemCS_emit.Reset();
@@ -749,6 +428,10 @@ void DeinitEngine() {
   g_aliveList[1].Reset();
   g_deadList.Reset();
   g_counterBuffer.Reset();
+  g_frameCB.Reset();
+  g_particleSystemCB.Reset();
+  g_statisticsReadbackBuffer.Reset();
+  g_quadRendererCB.Reset();
 
   g_context.Reset();
   g_device.Reset();
@@ -840,4 +523,313 @@ void GPUBarrier() {
   g_context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT,
                                        nullUAV, nullptr);
 }
+
+namespace ParticleSystem {
+ParticleEmitter particleEmitter;
+
+ParticleCounters statistics = {};
+
+const int MAX_PARTICLES = 1000;
+float emit = 0.0f;
+
+void CreateSelfBuffers() {
+  // Particle buffer:
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(Particle) * MAX_PARTICLES;
+    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    bd.StructureByteStride = sizeof(Particle);
+
+    HRESULT hr = g_device->CreateBuffer(
+        &bd, nullptr, g_particleBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    srvDesc.BufferEx.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateShaderResourceView(
+        g_particleBuffer.Get(), &srvDesc,
+        g_particlesSRV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_particleBuffer.Get(), &uavDesc,
+        g_particlesUAV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+  }
+
+  // Alive index lists (double buffered):
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(uint32_t) * MAX_PARTICLES;
+    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    bd.StructureByteStride = sizeof(uint32_t);
+
+    HRESULT hr = g_device->CreateBuffer(
+        &bd, nullptr, g_aliveList[0].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+    hr = g_device->CreateBuffer(&bd, nullptr,
+                                g_aliveList[1].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    srvDesc.BufferEx.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateShaderResourceView(
+        g_aliveList[0].Get(), &srvDesc,
+        g_aliveListSRV[0].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
+    hr = g_device->CreateShaderResourceView(
+        g_aliveList[1].Get(), &srvDesc,
+        g_aliveListSRV[1].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_aliveList[0].Get(), &uavDesc,
+        g_aliveListUAV[0].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_aliveList[1].Get(), &uavDesc,
+        g_aliveListUAV[1].ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+  }
+
+  // Dead index list:
+  {
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(uint32_t) * MAX_PARTICLES;
+    bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    bd.StructureByteStride = sizeof(uint32_t);
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    std::vector<uint32_t> indices(MAX_PARTICLES);
+    for (uint32_t i = 0; i < MAX_PARTICLES; i++) indices[i] = i;
+    initData.pSysMem = indices.data();
+
+    HRESULT hr = g_device->CreateBuffer(&bd, &initData,
+                                        g_deadList.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = MAX_PARTICLES;
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_deadList.Get(), &uavDesc, g_deadListUAV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+  }
+
+  // Particle System statistics:
+  {
+    ParticleCounters counters = {};
+    counters.aliveCount = 0;
+    counters.deadCount = MAX_PARTICLES;
+    counters.realEmitCount = 0;
+    counters.aliveCount_afterSimulation = 0;
+
+    D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(counters);
+    bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+    D3D11_SUBRESOURCE_DATA initData = {};
+    initData.pSysMem = &counters;
+
+    HRESULT hr = g_device->CreateBuffer(
+        &bd, &initData, g_counterBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = sizeof(counters) / sizeof(uint32_t);
+    uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+
+    hr = g_device->CreateUnorderedAccessView(
+        g_counterBuffer.Get(), &uavDesc,
+        g_counterBufferUAV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+  }
+
+  // Debug information CPU-readback buffer:
+  {
+    D3D11_BUFFER_DESC bd;
+    g_counterBuffer->GetDesc(&bd);
+    bd.Usage = D3D11_USAGE_STAGING;
+    bd.BindFlags = 0;
+    bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    bd.MiscFlags = 0;
+
+    HRESULT hr = g_device->CreateBuffer(
+        &bd, nullptr, g_statisticsReadbackBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+  }
+}
+
+void UpdateGPU() {
+  // Update emitter properties constant buffer.
+  {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+
+    ParticleSystemCB particleSystemCB = {};
+    particleSystemCB.emitCount = static_cast<uint32_t>(emit);
+    particleSystemCB.emitterRandomness = dis(gen);
+    particleSystemCB.particleLifeSpan = particleEmitter.life;
+    particleSystemCB.particleLifeSpanRandomness = particleEmitter.random_life;
+    particleSystemCB.particleNormalFactor = particleEmitter.normal_factor;
+    particleSystemCB.particleRandomFactor = particleEmitter.random_factor;
+    particleSystemCB.particleScaling = particleEmitter.scale;
+    particleSystemCB.particleSize = particleEmitter.size;
+    particleSystemCB.particleRotation = particleEmitter.rotation;
+    particleSystemCB.particleMass = particleEmitter.mass;
+    particleSystemCB.emitterMaxParticleCount = MAX_PARTICLES;
+    particleSystemCB.emitterRestitution = particleEmitter.restitution;
+    particleSystemCB.particleGravity =
+        float3(particleEmitter.gravity[0], particleEmitter.gravity[1],
+               particleEmitter.gravity[2]);
+    particleSystemCB.particleDrag = particleEmitter.drag;
+    particleSystemCB.particleVelocity =
+        float3(particleEmitter.velocity[0], particleEmitter.velocity[1],
+               particleEmitter.velocity[2]);
+    particleSystemCB.particleRandomColorFactor = particleEmitter.random_color;
+
+    D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+    g_context->Map(g_particleSystemCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
+                   &mappedResource);
+    memcpy(mappedResource.pData, &particleSystemCB, sizeof(particleSystemCB));
+    g_context->Unmap(g_particleSystemCB.Get(), 0);
+  }
+
+  // kick off updating, set up state
+  {
+    g_context->CSSetShader(g_particleSystemCS_kickoffUpdate.Get(), nullptr, 0);
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
+    g_context->CSSetUnorderedAccessViews(
+        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
+    g_context->Dispatch(1, 1, 1);
+
+    GPUBarrier();
+  }
+
+  // emit the required amount if there are free slots in dead list
+  {
+    g_context->CSSetShader(g_particleSystemCS_emit.Get(), nullptr, 0);
+    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
+    g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(2, 1, g_aliveListUAV[1].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(3, 1, g_deadListUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(
+        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
+    g_context->Dispatch(MAX_PARTICLES, 1, 1);
+
+    GPUBarrier();
+  }
+
+  // update CURRENT alive list, write NEW alive list
+  {
+    g_context->CSSetShader(g_particleSystemCS_simulate.Get(), nullptr, 0);
+    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+    g_context->CSSetConstantBuffers(1, 1, g_particleSystemCB.GetAddressOf());
+    g_context->CSSetUnorderedAccessViews(0, 1, g_particlesUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(1, 1, g_aliveListUAV[0].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(2, 1, g_aliveListUAV[1].GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(3, 1, g_deadListUAV.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(
+        4, 1, g_counterBufferUAV.GetAddressOf(), nullptr);
+    g_context->Dispatch(MAX_PARTICLES, 1, 1);
+
+    GPUBarrier();
+  }
+
+  // Swap CURRENT alivelist with NEW alivelist
+  std::swap(g_aliveList[0], g_aliveList[1]);
+  std::swap(g_aliveListSRV[0], g_aliveListSRV[1]);
+  std::swap(g_aliveListUAV[0], g_aliveListUAV[1]);
+
+  // Statistics is copied to readback:
+  g_context->CopyResource(g_statisticsReadbackBuffer.Get(),
+                          g_counterBuffer.Get());
+
+  // Read back statistics
+  D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+  g_context->Map(g_statisticsReadbackBuffer.Get(), 0, D3D11_MAP_READ, 0,
+                 &mappedResource);
+  memcpy(&statistics, mappedResource.pData, sizeof(statistics));
+  g_context->Unmap(g_statisticsReadbackBuffer.Get(), 0);
+}
+
+void UpdateCPU(float dt) {
+  g_cameraController->Update(dt);
+
+  emit = std::max(0.0f, emit - std::floor(emit));
+
+  emit += particleEmitter.count * dt;
+}
+
+void Draw() {
+  const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+  g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
+
+  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
+  g_context->VSSetShader(g_particleSystemVS.Get(), nullptr, 0);
+  g_context->GSSetShader(g_particleSystemGS.Get(), nullptr, 0);
+  g_context->PSSetShader(g_particleSystemPS.Get(), nullptr, 0);
+  g_context->OMSetBlendState(g_blendState.Get(), nullptr, 0xffffffff);
+
+  g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+  g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
+  g_context->VSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
+  g_context->GSSetShaderResources(0, 1, g_particlesSRV.GetAddressOf());
+  g_context->Draw(static_cast<UINT>(MAX_PARTICLES), 0);
+
+  GPUBarrier();
+
+  g_context->Flush();
+}
+
+ParticleEmitter* GetParticleEmitter() { return &particleEmitter; }
+
+ParticleCounters GetStatistics() { return statistics; }
+}  // namespace ParticleSystem
 }  // namespace my

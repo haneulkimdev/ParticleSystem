@@ -222,7 +222,7 @@ int main(int, char**) {
       ImGui::Begin("MyEngine Settings");
 
       if (ImGui::CollapsingHeader("Emitter")) {
-        auto data = my::GetStatistics();
+        auto data = my::ParticleSystem::GetStatistics();
 
         std::string ss;
         ss +=
@@ -232,7 +232,7 @@ int main(int, char**) {
 
         ImGui::Text(ss.c_str());
 
-        auto props = my::GetParticleEmitter();
+        auto props = my::ParticleSystem::GetParticleEmitter();
 
         ImGui::SliderFloat("Emit", &props->count, 0, 10000);
         ImGui::SliderFloat("Size", &props->size, 0.01f, 10.0f);
