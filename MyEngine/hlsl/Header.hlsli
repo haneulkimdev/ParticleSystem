@@ -69,7 +69,7 @@ cbuffer cbQuadRenderer : register(b2)
 
     float2 rtSize;
     float smoothingCoefficient;
-    float dummy0;
+    float floorHeight;
 
     float3 distBoxCenter; // WS
     float distBoxSize; // WS

@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "Camera.h"
+#include "GeometryGenerator.h"
 #include "Helper.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
@@ -47,11 +48,11 @@ struct ParticleCounters {
 };
 
 struct ParticleEmitter {
-  float size = 1.0f;
+  float size = 0.01f;
   float random_factor = 1.0f;
   float normal_factor = 1.0f;
-  float count = 10.0f;
-  float life = 1.0f;
+  float count = 1000.0f;
+  float life = 100.0f;
   float random_life = 1.0f;
   float scale = 1.0f;
   float rotation = 0.0f;
@@ -121,7 +122,7 @@ struct PostRenderer {
 
   float2 rtSize;
   float smoothingCoefficient;
-  float dummy0;
+  float floorHeight;
 
   float3 distBoxCenter;  // WS
   float distBoxSize;     // WS
@@ -168,6 +169,9 @@ void Draw();
 extern "C" MY_API ParticleEmitter* GetParticleEmitter();
 extern "C" MY_API ParticleCounters GetStatistics();
 }  // namespace ParticleSystem
+
+extern "C" MY_API void SetFloorHeight(float value);
+extern "C" MY_API float GetFloorHeight();
 
 extern "C" MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 

@@ -34,6 +34,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
    
     if (particle.life > 0)
     {
+        // floor collision:
+        if (particle.position.y < floorHeight)
+        {
+            particle.velocity.y *= -emitterRestitution;
+        }
+        
         particle.life -= dt;
         
         float opacity = saturate(lerp(1, 0, lifeLerp));

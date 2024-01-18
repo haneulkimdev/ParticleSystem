@@ -252,6 +252,12 @@ int main(int, char**) {
         ImGui::InputFloat3("Gravity", props->gravity);
       }
 
+      if (ImGui::CollapsingHeader("Scene")) {
+        float floorHeight = my::GetFloorHeight();
+        ImGui::SliderFloat("Floor Height", &floorHeight, -1.0f, 0.0f);
+        my::SetFloorHeight(floorHeight);
+      }
+
       if (ImGui::CollapsingHeader("Debug")) {
         if (ImGui::Button("Reload Shaders")) {
           my::LoadShaders();

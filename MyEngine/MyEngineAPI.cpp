@@ -28,6 +28,7 @@ ComPtr<ID3D11RasterizerState> g_rasterizerState;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 ComPtr<ID3D11BlendState> g_blendState;
 
+namespace my {
 uint32_t g_frameCount = 0;
 
 PointLight g_pointLight;
@@ -35,6 +36,8 @@ PointLight g_pointLight;
 Camera g_camera;
 
 float g_smoothingCoefficient = 10.0f;
+
+float g_floorHeight = -1.0f;
 
 Vector3 g_distBoxCenter;
 float g_distBoxSize;
@@ -44,7 +47,6 @@ D3D11_VIEWPORT g_viewport;
 int g_renderTargetWidth;
 int g_renderTargetHeight;
 
-namespace my {
 namespace ParticleSystem {
 void CreateSelfBuffers() {
   // Particle buffer:
@@ -277,6 +279,7 @@ void UpdateGPU() {
     g_context->CSSetShader(ParticleSystem::simulateCS.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
     g_context->CSSetConstantBuffers(1, 1, constantBuffer.GetAddressOf());
+    g_context->CSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, particleBufferUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, aliveListUAV[0].GetAddressOf(),
@@ -596,6 +599,7 @@ void Update(float dt) {
     quadRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
                                   static_cast<float>(g_renderTargetHeight));
     quadRenderer.smoothingCoefficient = g_smoothingCoefficient;
+    quadRenderer.floorHeight = g_floorHeight;
     quadRenderer.distBoxCenter = g_distBoxCenter;
     quadRenderer.distBoxSize = g_distBoxSize;
 
@@ -806,4 +810,7 @@ void GPUBarrier() {
   g_context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT,
                                        nullUAV, nullptr);
 }
+float GetFloorHeight() { return g_floorHeight; }
+
+void SetFloorHeight(float floorHeight) { g_floorHeight = floorHeight; }
 }  // namespace my
