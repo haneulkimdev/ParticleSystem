@@ -14,29 +14,29 @@ void main(uint3 DTid : SV_DispatchThreadID)
         return;
   
     RNG rng;
-    rng.init(uint2(emitterRandomness, DTid.x), frame_count);
+    rng.init(uint2(xEmitterRandomness, DTid.x), frame_count);
     
     float3 emitPos = 0;
     float3 nor = 0;
-    float3 velocity = particleVelocity;
+    float3 velocity = xParticleVelocity;
     float4 baseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
     
-    float particleStartingSize = particleSize + particleSize * (rng.next_float() - 0.5f) * particleRandomFactor;
+    float particleStartingSize = xParticleSize + xParticleSize * (rng.next_float() - 0.5f) * xParticleRandomFactor;
     
     // create new particle:
     Particle particle = (Particle) 0;
     particle.position = emitPos;
     particle.force = 0;
-    particle.mass = particleMass;
-    particle.velocity = velocity + (nor + (float3(rng.next_float(), rng.next_float(), rng.next_float()) - 0.5f) * particleRandomFactor) * particleNormalFactor;
-    particle.rotationalVelocity = particleRotation * PI * 60 + (rng.next_float() - 0.5f) * particleRandomFactor;
-    particle.maxLife = particleLifeSpan + particleLifeSpan * (rng.next_float() - 0.5f) * particleLifeSpanRandomness;
+    particle.mass = xParticleMass;
+    particle.velocity = velocity + (nor + (float3(rng.next_float(), rng.next_float(), rng.next_float()) - 0.5f) * xParticleRandomFactor) * xParticleNormalFactor;
+    particle.rotationalVelocity = xParticleRotation * PI * 60 + (rng.next_float() - 0.5f) * xParticleRandomFactor;
+    particle.maxLife = xParticleLifeSpan + xParticleLifeSpan * (rng.next_float() - 0.5f) * xParticleLifeSpanRandomness;
     particle.life = particle.maxLife;
-    particle.sizeBeginEnd = float2(particleStartingSize, particleStartingSize * particleScaling);
+    particle.sizeBeginEnd = float2(particleStartingSize, particleStartingSize * xParticleScaling);
     
-    baseColor.r *= lerp(1, rng.next_float(), particleRandomColorFactor);
-    baseColor.g *= lerp(1, rng.next_float(), particleRandomColorFactor);
-    baseColor.b *= lerp(1, rng.next_float(), particleRandomColorFactor);
+    baseColor.r *= lerp(1, rng.next_float(), xParticleRandomColorFactor);
+    baseColor.g *= lerp(1, rng.next_float(), xParticleRandomColorFactor);
+    baseColor.b *= lerp(1, rng.next_float(), xParticleRandomColorFactor);
     particle.color = pack_rgba(baseColor);
     
     // new particle index retrieved from dead list (pop):

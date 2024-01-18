@@ -215,26 +215,26 @@ void UpdateGPU() {
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
 
     ParticleSystemCB particleSystemCB = {};
-    particleSystemCB.emitCount = static_cast<uint32_t>(emit);
-    particleSystemCB.emitterRandomness = dis(gen);
-    particleSystemCB.particleLifeSpan = particleEmitter.life;
-    particleSystemCB.particleLifeSpanRandomness = particleEmitter.random_life;
-    particleSystemCB.particleNormalFactor = particleEmitter.normal_factor;
-    particleSystemCB.particleRandomFactor = particleEmitter.random_factor;
-    particleSystemCB.particleScaling = particleEmitter.scale;
-    particleSystemCB.particleSize = particleEmitter.size;
-    particleSystemCB.particleRotation = particleEmitter.rotation;
-    particleSystemCB.particleMass = particleEmitter.mass;
-    particleSystemCB.emitterMaxParticleCount = MAX_PARTICLES;
-    particleSystemCB.emitterRestitution = particleEmitter.restitution;
-    particleSystemCB.particleGravity =
+    particleSystemCB.xEmitCount = static_cast<uint32_t>(emit);
+    particleSystemCB.xEmitterRandomness = dis(gen);
+    particleSystemCB.xParticleLifeSpan = particleEmitter.life;
+    particleSystemCB.xParticleLifeSpanRandomness = particleEmitter.random_life;
+    particleSystemCB.xParticleNormalFactor = particleEmitter.normal_factor;
+    particleSystemCB.xParticleRandomFactor = particleEmitter.random_factor;
+    particleSystemCB.xParticleScaling = particleEmitter.scale;
+    particleSystemCB.xParticleSize = particleEmitter.size;
+    particleSystemCB.xParticleRotation = particleEmitter.rotation;
+    particleSystemCB.xParticleMass = particleEmitter.mass;
+    particleSystemCB.xEmitterMaxParticleCount = MAX_PARTICLES;
+    particleSystemCB.xEmitterRestitution = particleEmitter.restitution;
+    particleSystemCB.xParticleGravity =
         float3(particleEmitter.gravity[0], particleEmitter.gravity[1],
                particleEmitter.gravity[2]);
-    particleSystemCB.particleDrag = particleEmitter.drag;
-    particleSystemCB.particleVelocity =
+    particleSystemCB.xParticleDrag = particleEmitter.drag;
+    particleSystemCB.xParticleVelocity =
         float3(particleEmitter.velocity[0], particleEmitter.velocity[1],
                particleEmitter.velocity[2]);
-    particleSystemCB.particleRandomColorFactor = particleEmitter.random_color;
+    particleSystemCB.xParticleRandomColorFactor = particleEmitter.random_color;
 
     D3D11_MAPPED_SUBRESOURCE mappedResource = {};
     g_context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,

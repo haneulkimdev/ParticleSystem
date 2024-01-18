@@ -12,7 +12,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     uint aliveCount_NEW = counterBuffer.Load(PARTICLECOUNTER_OFFSET_ALIVECOUNT_AFTERSIMULATION);
 
 	// we can not emit more than there are free slots in the dead list:
-    uint realEmitCount = min(deadCount, emitCount);
+    uint realEmitCount = min(deadCount, xEmitCount);
 
 	// copy new alivelistcount to current alivelistcount:
     counterBuffer.Store(PARTICLECOUNTER_OFFSET_ALIVECOUNT, aliveCount_NEW);

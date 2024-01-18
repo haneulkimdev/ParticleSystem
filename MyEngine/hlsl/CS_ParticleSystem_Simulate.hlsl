@@ -22,7 +22,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     const float particleSize = lerp(particle.sizeBeginEnd.x, particle.sizeBeginEnd.y, lifeLerp);
     
 	// integrate:
-    particle.force += particleGravity;
+    particle.force += xParticleGravity;
     particle.velocity += particle.force * dt;
     particle.position += particle.velocity * dt;
     
@@ -30,14 +30,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
     particle.force = 0;
     
     // drag: 
-    particle.velocity *= particleDrag;
+    particle.velocity *= xParticleDrag;
    
     if (particle.life > 0)
     {
         // floor collision:
         if (particle.position.y < floorHeight)
         {
-            particle.velocity.y *= -emitterRestitution;
+            particle.velocity.y *= -xEmitterRestitution;
         }
         
         particle.life -= dt;
