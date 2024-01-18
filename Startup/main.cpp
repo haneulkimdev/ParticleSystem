@@ -263,6 +263,11 @@ int main(int, char**) {
           my::LoadShaders();
           my::DoTest();
         }
+
+        bool isWireframe = my::IsWireframe();
+        if (ImGui::Checkbox("Wireframe", &isWireframe)) {
+          my::SetWireframe(isWireframe);
+        }
       }
 
       ImGui::End();

@@ -3,12 +3,14 @@ if not exist "hlsl\objs\\" (
 )
 
 :: VS
+fxc /E main /T vs_5_0 ./hlsl/VS_Default.hlsl /Fo ./hlsl/objs/VS_Default
 fxc /E main /T vs_5_0 ./hlsl/VS_ParticleSystem.hlsl /Fo ./hlsl/objs/VS_ParticleSystem
 
 :: GS
 fxc /E main /T gs_5_0 ./hlsl/GS_ParticleSystem.hlsl /Fo ./hlsl/objs/GS_ParticleSystem
 
 :: PS
+fxc /E main /T ps_5_0 ./hlsl/PS_Default.hlsl /Fo ./hlsl/objs/PS_Default
 fxc /E main /T ps_5_0 ./hlsl/PS_ParticleSystem.hlsl /Fo ./hlsl/objs/PS_ParticleSystem
 
 :: CS

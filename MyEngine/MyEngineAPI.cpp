@@ -15,6 +15,8 @@ ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 ComPtr<ID3D11Texture2D> g_depthStencilBuffer;
 ComPtr<ID3D11Buffer> g_frameCB;
 ComPtr<ID3D11Buffer> g_quadRendererCB;
+ComPtr<ID3D11Buffer> g_sphereVB;
+ComPtr<ID3D11Buffer> g_sphereIB;
 
 // Views
 ComPtr<ID3D11RenderTargetView> g_renderTargetView;
@@ -22,13 +24,21 @@ ComPtr<ID3D11DepthStencilView> g_depthStencilView;
 ComPtr<ID3D11ShaderResourceView> g_sharedSRV;
 
 // Shaders
+ComPtr<ID3D11VertexShader> g_vertexShader;
+ComPtr<ID3D11PixelShader> g_pixelShader;
 
 // States
 ComPtr<ID3D11RasterizerState> g_rasterizerState;
+ComPtr<ID3D11RasterizerState> g_wireframeRS;
 ComPtr<ID3D11DepthStencilState> g_depthStencilState;
 ComPtr<ID3D11BlendState> g_blendState;
 
+// Input Layouts
+ComPtr<ID3D11InputLayout> g_inputLayout;
+
 namespace my {
+bool g_isWireframe = false;
+
 uint32_t g_frameCount = 0;
 
 PointLight g_pointLight;
@@ -41,6 +51,8 @@ float g_floorHeight = -1.0f;
 
 Vector3 g_distBoxCenter;
 float g_distBoxSize;
+
+uint32_t g_sphereIndexCount;
 
 D3D11_VIEWPORT g_viewport;
 
@@ -318,10 +330,6 @@ void UpdateCPU(float dt) {
 }
 
 void Draw() {
-  const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-  g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
-
-  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
   g_context->VSSetShader(vertexShader.Get(), nullptr, 0);
   g_context->GSSetShader(geometryShader.Get(), nullptr, 0);
   g_context->PSSetShader(pixelShader.Get(), nullptr, 0);
@@ -342,6 +350,14 @@ ParticleEmitter* GetParticleEmitter() { return &particleEmitter; }
 
 ParticleCounters GetStatistics() { return statistics; }
 }  // namespace ParticleSystem
+
+void SetWireframe(bool value) { g_isWireframe = value; }
+
+bool IsWireframe() { return g_isWireframe; }
+
+void SetFloorHeight(float value) { g_floorHeight = value; }
+
+float GetFloorHeight() { return g_floorHeight; }
 
 bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_apiLogger = spdlogPtr;
@@ -429,6 +445,13 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   if (FAILED(hr)) FailRet("CreateRasterizerState Failed.");
 
+  rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
+
+  hr = g_device->CreateRasterizerState(&rasterizerDesc,
+                                       g_wireframeRS.ReleaseAndGetAddressOf());
+
+  if (FAILED(hr)) FailRet("CreateRasterizerState Failed.");
+
   D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
   depthStencilDesc.DepthEnable = true;
   depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
@@ -461,6 +484,8 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   LoadShaders();
 
   ParticleSystem::CreateSelfBuffers();
+
+  BuildGeometryBuffers();
 
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -1.0f);
@@ -564,7 +589,7 @@ bool SetRenderTargetSize(int w, int h) {
   g_camera.SetLens(0.25f * XM_PI,
                    static_cast<float>(g_renderTargetWidth) /
                        static_cast<float>(g_renderTargetHeight),
-                   1.0f, 1000.0f);
+                   0.1f, 1000.0f);
 
   return true;
 }
@@ -612,6 +637,20 @@ void Update(float dt) {
 }
 
 bool DoTest() {
+  const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+  g_context->ClearRenderTargetView(g_renderTargetView.Get(), clearColor);
+
+  g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
+
+  if (g_isWireframe)
+    g_context->RSSetState(g_wireframeRS.Get());
+  else
+    g_context->RSSetState(g_rasterizerState.Get());
+
+  g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 0);
+
+  DrawSphere();
+
   ParticleSystem::UpdateGPU();
   ParticleSystem::Draw();
 
@@ -699,12 +738,18 @@ void DeinitEngine() {
   ParticleSystem::emitCS.Reset();
   ParticleSystem::simulateCS.Reset();
 
+  // Input Layouts
+  g_inputLayout.Reset();
+
   // States
   g_rasterizerState.Reset();
+  g_wireframeRS.Reset();
   g_depthStencilState.Reset();
   g_blendState.Reset();
 
   // Shaders
+  g_vertexShader.Reset();
+  g_pixelShader.Reset();
 
   // Views
   g_renderTargetView.Reset();
@@ -716,6 +761,8 @@ void DeinitEngine() {
   g_depthStencilBuffer.Reset();
   g_frameCB.Reset();
   g_quadRendererCB.Reset();
+  g_sphereVB.Reset();
+  g_sphereIB.Reset();
 
   g_context.Reset();
   g_device.Reset();
@@ -738,6 +785,17 @@ bool LoadShaders() {
           byteCode.data(), byteCode.size(), nullptr,
           reinterpret_cast<ID3D11VertexShader**>(deviceChild));
       if (FAILED(hr)) FailRet("CreateVertexShader Failed.");
+
+      D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] = {
+          {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+           D3D11_INPUT_PER_VERTEX_DATA, 0},
+      };
+
+      hr = g_device->CreateInputLayout(inputLayoutDesc, 1, byteCode.data(),
+                                       byteCode.size(),
+                                       g_inputLayout.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateInputLayout Failed.");
+
     } else if (shaderProfile == "GS") {
       HRESULT hr = g_device->CreateGeometryShader(
           byteCode.data(), byteCode.size(), nullptr,
@@ -792,6 +850,15 @@ bool LoadShaders() {
               ParticleSystem::simulateCS.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
 
+  if (!RegisterShaderObjFile("VS_Default", "VS",
+                             reinterpret_cast<ID3D11DeviceChild**>(
+                                 g_vertexShader.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
+  if (!RegisterShaderObjFile("PS_Default", "PS",
+                             reinterpret_cast<ID3D11DeviceChild**>(
+                                 g_pixelShader.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
+
   return true;
 }
 
@@ -810,7 +877,64 @@ void GPUBarrier() {
   g_context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT,
                                        nullUAV, nullptr);
 }
-float GetFloorHeight() { return g_floorHeight; }
 
-void SetFloorHeight(float floorHeight) { g_floorHeight = floorHeight; }
+void DrawSphere() {
+  g_context->IASetInputLayout(g_inputLayout.Get());
+  g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  uint32_t stride = sizeof(Vertex);
+  uint32_t offset = 0;
+
+  g_context->IASetVertexBuffers(0, 1, g_sphereVB.GetAddressOf(), &stride,
+                                &offset);
+  g_context->IASetIndexBuffer(g_sphereIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+  g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
+  g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
+  g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
+
+  g_context->DrawIndexed(g_sphereIndexCount, 0, 0);
+
+  g_context->Flush();
+}
+
+void BuildGeometryBuffers() {
+  GeometryGenerator geoGen;
+  auto sphere = geoGen.CreateSphere(0.1f, 20, 20);
+
+  g_sphereIndexCount = static_cast<uint32_t>(sphere.indices.size());
+
+  std::vector<Vertex> vertices(sphere.vertices.size());
+  for (size_t i = 0; i < sphere.vertices.size(); i++) {
+    vertices[i].position = sphere.vertices[i].position;
+  }
+
+  D3D11_BUFFER_DESC vbd = {};
+  vbd.Usage = D3D11_USAGE_IMMUTABLE;
+  vbd.ByteWidth = sizeof(Vertex) * static_cast<UINT>(vertices.size());
+  vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+  vbd.CPUAccessFlags = 0;
+  vbd.MiscFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA vinitData = {};
+  vinitData.pSysMem = &vertices[0];
+
+  HRESULT hr = g_device->CreateBuffer(&vbd, &vinitData,
+                                      g_sphereVB.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+  D3D11_BUFFER_DESC ibd = {};
+  ibd.Usage = D3D11_USAGE_IMMUTABLE;
+  ibd.ByteWidth = sizeof(uint32_t) * g_sphereIndexCount;
+  ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+  ibd.CPUAccessFlags = 0;
+  ibd.MiscFlags = 0;
+
+  D3D11_SUBRESOURCE_DATA iinitData = {};
+  iinitData.pSysMem = &sphere.indices[0];
+
+  hr = g_device->CreateBuffer(&ibd, &iinitData,
+                              g_sphereIB.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+}
 }  // namespace my

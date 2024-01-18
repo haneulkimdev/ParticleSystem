@@ -162,6 +162,10 @@ struct PostRenderer {
   float distBoxSize;     // WS
 };
 
+struct Vertex {
+  Vector3 position;
+};
+
 namespace my {
 namespace ParticleSystem {
 ParticleCounters statistics = {};
@@ -204,6 +208,9 @@ extern "C" MY_API ParticleEmitter* GetParticleEmitter();
 extern "C" MY_API ParticleCounters GetStatistics();
 }  // namespace ParticleSystem
 
+extern "C" MY_API void SetWireframe(bool value);
+extern "C" MY_API bool IsWireframe();
+
 extern "C" MY_API void SetFloorHeight(float value);
 extern "C" MY_API float GetFloorHeight();
 
@@ -221,4 +228,8 @@ extern "C" MY_API void DeinitEngine();
 extern "C" MY_API bool LoadShaders();
 
 static void GPUBarrier();
+
+void DrawSphere();
+
+void BuildGeometryBuffers();
 }  // namespace my

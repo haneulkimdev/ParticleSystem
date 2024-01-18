@@ -48,5 +48,14 @@
     <None Include="hlsl\GS_ParticleSystem.hlsl">
       <Filter>hlsl</Filter>
     </None>
+    <None Include="ShaderCompile.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="hlsl\VS_Default.hlsl">
+      <Filter>hlsl</Filter>
+    </FxCompile>
+    <FxCompile Include="hlsl\PS_Default.hlsl">
+      <Filter>hlsl</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
