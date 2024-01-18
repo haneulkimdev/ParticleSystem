@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "Camera.h"
-#include "CameraController.h"
 #include "Helper.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
@@ -57,16 +56,21 @@ struct ParticleEmitter {
   float scale = 1.0f;
   float rotation = 0.0f;
   float mass = 1.0f;
-  float random_color = 1;
+  float random_color = 0;
 
-  float velocity[3] = {0.0f, 0.0f,
-                       0.0f};  // starting velocity of all new particles
-  float gravity[3] = {0.0f, 0.0f, 0.0f};  // constant gravity force
-  float drag = 1.0f;  // constant drag (per frame velocity multiplier, reducing
-                      // it will make particles slow down over time)
-  float restitution =
-      0.98f;  // if the particles have collision enabled, then after collision
-              // this is a multiplier for their bouncing velocities
+  // starting velocity of all new particles
+  float velocity[3] = {0.0f, 0.0f, 0.0f};
+
+  // constant gravity force
+  float gravity[3] = {0.0f, 0.0f, 0.0f};
+
+  // constant drag (per frame velocity multiplier, reducing it will make
+  // particles slow down over time)
+  float drag = 1.0f;
+
+  // if the particles have collision enabled, then after collision this is a
+  // multiplier for their bouncing velocities
+  float restitution = 0.98f;
 };
 
 struct ParticleSystemCB {
@@ -124,6 +128,47 @@ struct PostRenderer {
 };
 
 namespace my {
+namespace ParticleSystem {
+ParticleCounters statistics = {};
+ComPtr<ID3D11Buffer> statisticsReadbackBuffer;
+
+ComPtr<ID3D11Buffer> particleBuffer;
+ComPtr<ID3D11Buffer> aliveList[2];
+ComPtr<ID3D11Buffer> deadList;
+ComPtr<ID3D11Buffer> counterBuffer;
+ComPtr<ID3D11Buffer> constantBuffer;
+
+ComPtr<ID3D11ShaderResourceView> particleBufferSRV;
+ComPtr<ID3D11UnorderedAccessView> particleBufferUAV;
+ComPtr<ID3D11ShaderResourceView> aliveListSRV[2];
+ComPtr<ID3D11UnorderedAccessView> aliveListUAV[2];
+ComPtr<ID3D11UnorderedAccessView> deadListUAV;
+ComPtr<ID3D11UnorderedAccessView> counterBufferUAV;
+
+ComPtr<ID3D11VertexShader> vertexShader;
+ComPtr<ID3D11GeometryShader> geometryShader;
+ComPtr<ID3D11PixelShader> pixelShader;
+ComPtr<ID3D11ComputeShader> kickoffUpdateCS;
+ComPtr<ID3D11ComputeShader> emitCS;
+ComPtr<ID3D11ComputeShader> simulateCS;
+
+float emit = 0.0f;
+
+const uint32_t MAX_PARTICLES = 1000000;
+
+ParticleEmitter particleEmitter;
+
+void CreateSelfBuffers();
+
+void UpdateCPU(float dt);
+
+void UpdateGPU();
+void Draw();
+
+extern "C" MY_API ParticleEmitter* GetParticleEmitter();
+extern "C" MY_API ParticleCounters GetStatistics();
+}  // namespace ParticleSystem
+
 extern "C" MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
 
 extern "C" MY_API bool SetRenderTargetSize(int w, int h);
@@ -138,16 +183,4 @@ extern "C" MY_API void DeinitEngine();
 extern "C" MY_API bool LoadShaders();
 
 static void GPUBarrier();
-
-namespace ParticleSystem {
-void CreateSelfBuffers();
-
-void UpdateCPU(float dt);
-
-void UpdateGPU();
-void Draw();
-
-extern "C" MY_API ParticleEmitter* GetParticleEmitter();
-extern "C" MY_API ParticleCounters GetStatistics();
-}  // namespace ParticleSystem
 }  // namespace my
