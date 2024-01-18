@@ -223,7 +223,7 @@ void UpdateGPU() {
     particleSystemCB.xParticleRandomFactor = particleEmitter.random_factor;
     particleSystemCB.xParticleScaling = particleEmitter.scale;
     particleSystemCB.xParticleSize = particleEmitter.size;
-    particleSystemCB.xParticleRotation = particleEmitter.rotation;
+    particleSystemCB.xParticleRotation = particleEmitter.rotation * XM_PI * 60;
     particleSystemCB.xParticleMass = particleEmitter.mass;
     particleSystemCB.xEmitterMaxParticleCount = MAX_PARTICLES;
     particleSystemCB.xEmitterRestitution = particleEmitter.restitution;
