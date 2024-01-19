@@ -202,7 +202,7 @@ void CreateSelfBuffers();
 
 void UpdateCPU(float dt);
 
-void UpdateGPU(std::shared_ptr<Mesh> mesh);
+void UpdateGPU(const std::shared_ptr<Mesh>& mesh);
 void Draw();
 
 extern "C" MY_API ParticleEmitter* GetParticleEmitter();
@@ -215,7 +215,8 @@ extern "C" MY_API bool IsWireframe();
 extern "C" MY_API void SetFloorHeight(float value);
 extern "C" MY_API float GetFloorHeight();
 
-extern "C" MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
+extern "C" MY_API bool InitEngine(
+    const std::shared_ptr<spdlog::logger>& spdlogPtr);
 
 extern "C" MY_API bool SetRenderTargetSize(int w, int h);
 

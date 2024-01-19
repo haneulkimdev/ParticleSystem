@@ -217,7 +217,7 @@ void CreateSelfBuffers() {
   }
 }
 
-void UpdateGPU(std::shared_ptr<Mesh> mesh) {
+void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
   // Update emitter properties constant buffer.
   {
     std::random_device rd;
@@ -357,7 +357,7 @@ void SetFloorHeight(float value) { floorHeight = value; }
 
 float GetFloorHeight() { return floorHeight; }
 
-bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
+bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   g_apiLogger = spdlogPtr;
 
   // Create the device and device context.
