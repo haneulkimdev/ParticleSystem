@@ -58,5 +58,8 @@
     <None Include="hlsl\VS_Default.hlsl">
       <Filter>hlsl</Filter>
     </None>
+    <None Include="hlsl\CS_ParticleSystem_Emit_FROMMESH.hlsl">
+      <Filter>hlsl</Filter>
+    </None>
   </ItemGroup>
 </Project>

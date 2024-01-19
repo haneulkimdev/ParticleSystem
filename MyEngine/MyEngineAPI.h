@@ -190,6 +190,7 @@ ComPtr<ID3D11GeometryShader> geometryShader;
 ComPtr<ID3D11PixelShader> pixelShader;
 ComPtr<ID3D11ComputeShader> kickoffUpdateCS;
 ComPtr<ID3D11ComputeShader> emitCS;
+ComPtr<ID3D11ComputeShader> emitCS_FROMMESH;
 ComPtr<ID3D11ComputeShader> simulateCS;
 
 float emit = 0.0f;

@@ -266,7 +266,8 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
 
   // emit the required amount if there are free slots in dead list
   {
-    g_context->CSSetShader(ParticleSystem::emitCS.Get(), nullptr, 0);
+    g_context->CSSetShader(
+        mesh == nullptr ? emitCS.Get() : emitCS_FROMMESH.Get(), nullptr, 0);
     g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
     g_context->CSSetConstantBuffers(1, 1, constantBuffer.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, particleBufferUAV.GetAddressOf(),
@@ -734,6 +735,7 @@ void DeinitEngine() {
   ParticleSystem::pixelShader.Reset();
   ParticleSystem::kickoffUpdateCS.Reset();
   ParticleSystem::emitCS.Reset();
+  ParticleSystem::emitCS_FROMMESH.Reset();
   ParticleSystem::simulateCS.Reset();
 
   sphereGeometry->vertexBuffer.Reset();
@@ -842,6 +844,11 @@ bool LoadShaders() {
           "CS_ParticleSystem_Emit", "CS",
           reinterpret_cast<ID3D11DeviceChild**>(
               ParticleSystem::emitCS.ReleaseAndGetAddressOf())))
+    FailRet("RegisterShaderObjFile Failed.");
+  if (!RegisterShaderObjFile(
+          "CS_ParticleSystem_Emit_FROMMESH", "CS",
+          reinterpret_cast<ID3D11DeviceChild**>(
+              ParticleSystem::emitCS_FROMMESH.ReleaseAndGetAddressOf())))
     FailRet("RegisterShaderObjFile Failed.");
   if (!RegisterShaderObjFile(
           "CS_ParticleSystem_Simulate", "CS",

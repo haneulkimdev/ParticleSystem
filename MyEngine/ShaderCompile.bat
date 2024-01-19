@@ -16,4 +16,5 @@ fxc /E main /T ps_5_0 ./hlsl/PS_ParticleSystem.hlsl /Fo ./hlsl/objs/PS_ParticleS
 :: CS
 fxc /E main /T cs_5_0 ./hlsl/CS_ParticleSystem_KickoffUpdate.hlsl /Fo ./hlsl/objs/CS_ParticleSystem_KickoffUpdate
 fxc /E main /T cs_5_0 ./hlsl/CS_ParticleSystem_Emit.hlsl /Fo ./hlsl/objs/CS_ParticleSystem_Emit
+fxc /E main /T cs_5_0 ./hlsl/CS_ParticleSystem_Emit_FROMMESH.hlsl /Fo ./hlsl/objs/CS_ParticleSystem_Emit_FROMMESH
 fxc /E main /T cs_5_0 ./hlsl/CS_ParticleSystem_Simulate.hlsl /Fo ./hlsl/objs/CS_ParticleSystem_Simulate
