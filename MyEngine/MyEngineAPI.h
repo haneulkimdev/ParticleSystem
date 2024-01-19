@@ -53,7 +53,7 @@ struct ParticleEmitter {
   float random_factor = 1.0f;
   float normal_factor = 1.0f;
   float count = 1000.0f;
-  float life = 100.0f;
+  float life = 1.0f;
   float random_life = 1.0f;
   float scale = 1.0f;
   float rotation = 0.0f;
@@ -195,7 +195,7 @@ ComPtr<ID3D11ComputeShader> simulateCS;
 
 float emit = 0.0f;
 
-const uint32_t MAX_PARTICLES = 1000000;
+const uint32_t MAX_PARTICLES = 10000;
 
 ParticleEmitter particleEmitter;
 
