@@ -30,6 +30,7 @@
     <ClInclude Include="CameraController.h" />
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="Helper.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshData.h" />
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="Vertex.h" />

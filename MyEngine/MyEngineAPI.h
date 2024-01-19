@@ -14,6 +14,7 @@
 #include "Camera.h"
 #include "GeometryGenerator.h"
 #include "Helper.h"
+#include "Mesh.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
 

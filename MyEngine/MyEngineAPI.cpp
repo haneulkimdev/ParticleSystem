@@ -15,8 +15,6 @@ ComPtr<ID3D11Texture2D> g_renderTargetBuffer;
 ComPtr<ID3D11Texture2D> g_depthStencilBuffer;
 ComPtr<ID3D11Buffer> g_frameCB;
 ComPtr<ID3D11Buffer> g_quadRendererCB;
-ComPtr<ID3D11Buffer> g_sphereVB;
-ComPtr<ID3D11Buffer> g_sphereIB;
 
 // Views
 ComPtr<ID3D11RenderTargetView> g_renderTargetView;
@@ -37,27 +35,27 @@ ComPtr<ID3D11BlendState> g_blendState;
 ComPtr<ID3D11InputLayout> g_inputLayout;
 
 namespace my {
-bool g_isWireframe = false;
+bool isWireframe = false;
 
-uint32_t g_frameCount = 0;
+uint32_t frameCount = 0;
 
-PointLight g_pointLight;
+PointLight pointLight;
 
-Camera g_camera;
+Camera camera;
 
-float g_smoothingCoefficient = 10.0f;
+float smoothingCoefficient = 10.0f;
 
-float g_floorHeight = -1.0f;
+float floorHeight = -1.0f;
 
-Vector3 g_distBoxCenter;
-float g_distBoxSize;
+Vector3 distBoxCenter;
+float distBoxSize;
 
-uint32_t g_sphereIndexCount;
+Mesh sphereGeometry;
 
-D3D11_VIEWPORT g_viewport;
+D3D11_VIEWPORT viewport;
 
-int g_renderTargetWidth;
-int g_renderTargetHeight;
+int renderTargetWidth;
+int renderTargetHeight;
 
 namespace ParticleSystem {
 void CreateSelfBuffers() {
@@ -351,13 +349,13 @@ ParticleEmitter* GetParticleEmitter() { return &particleEmitter; }
 ParticleCounters GetStatistics() { return statistics; }
 }  // namespace ParticleSystem
 
-void SetWireframe(bool value) { g_isWireframe = value; }
+void SetWireframe(bool value) { isWireframe = value; }
 
-bool IsWireframe() { return g_isWireframe; }
+bool IsWireframe() { return isWireframe; }
 
-void SetFloorHeight(float value) { g_floorHeight = value; }
+void SetFloorHeight(float value) { floorHeight = value; }
 
-float GetFloorHeight() { return g_floorHeight; }
+float GetFloorHeight() { return floorHeight; }
 
 bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_apiLogger = spdlogPtr;
@@ -485,35 +483,35 @@ bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   ParticleSystem::CreateSelfBuffers();
 
-  BuildGeometryBuffers();
+  BuildSphereGeometry();
 
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -1.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
-  g_camera.LookAt(pos, pos + forward, up);
-  g_camera.UpdateViewMatrix();
+  camera.LookAt(pos, pos + forward, up);
+  camera.UpdateViewMatrix();
 
-  g_pointLight.position = g_camera.GetPosition();
-  g_pointLight.color = 0xffffffff;
-  g_pointLight.intensity = 1.0f;
+  pointLight.position = camera.GetPosition();
+  pointLight.color = 0xffffffff;
+  pointLight.intensity = 1.0f;
 
-  g_distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
-  g_distBoxSize = 2.0f;
+  distBoxCenter = Vector3(0.0f, 0.0f, 0.0f);
+  distBoxSize = 2.0f;
 
   return true;
 }
 
 bool SetRenderTargetSize(int w, int h) {
-  g_renderTargetWidth = w;
-  g_renderTargetHeight = h;
+  renderTargetWidth = w;
+  renderTargetHeight = h;
 
   g_sharedSRV.Reset();
 
   D3D11_TEXTURE2D_DESC renderTargetBufferDesc = {};
-  renderTargetBufferDesc.Width = g_renderTargetWidth;
-  renderTargetBufferDesc.Height = g_renderTargetHeight;
+  renderTargetBufferDesc.Width = renderTargetWidth;
+  renderTargetBufferDesc.Height = renderTargetHeight;
   renderTargetBufferDesc.MipLevels = 0;
   renderTargetBufferDesc.ArraySize = 1;
   renderTargetBufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -546,8 +544,8 @@ bool SetRenderTargetSize(int w, int h) {
   // Create the depth/stencil buffer and view.
 
   D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
-  depthStencilBufferDesc.Width = g_renderTargetWidth;
-  depthStencilBufferDesc.Height = g_renderTargetHeight;
+  depthStencilBufferDesc.Width = renderTargetWidth;
+  depthStencilBufferDesc.Height = renderTargetHeight;
   depthStencilBufferDesc.MipLevels = 0;
   depthStencilBufferDesc.ArraySize = 1;
   depthStencilBufferDesc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -577,19 +575,19 @@ bool SetRenderTargetSize(int w, int h) {
 
   // Set the viewport transform.
 
-  g_viewport.TopLeftX = 0.0f;
-  g_viewport.TopLeftY = 0.0f;
-  g_viewport.Width = static_cast<float>(g_renderTargetWidth);
-  g_viewport.Height = static_cast<float>(g_renderTargetHeight);
-  g_viewport.MinDepth = 0.0f;
-  g_viewport.MaxDepth = 1.0f;
+  viewport.TopLeftX = 0.0f;
+  viewport.TopLeftY = 0.0f;
+  viewport.Width = static_cast<float>(renderTargetWidth);
+  viewport.Height = static_cast<float>(renderTargetHeight);
+  viewport.MinDepth = 0.0f;
+  viewport.MaxDepth = 1.0f;
 
-  g_context->RSSetViewports(1, &g_viewport);
+  g_context->RSSetViewports(1, &viewport);
 
-  g_camera.SetLens(0.25f * XM_PI,
-                   static_cast<float>(g_renderTargetWidth) /
-                       static_cast<float>(g_renderTargetHeight),
-                   0.1f, 1000.0f);
+  camera.SetLens(0.25f * XM_PI,
+                 static_cast<float>(renderTargetWidth) /
+                     static_cast<float>(renderTargetHeight),
+                 0.1f, 1000.0f);
 
   return true;
 }
@@ -603,7 +601,7 @@ void Update(float dt) {
   {
     FrameCB frameCB = {};
     frameCB.delta_time = dt;
-    frameCB.frame_count = g_frameCount++;
+    frameCB.frame_count = frameCount++;
 
     D3D11_MAPPED_SUBRESOURCE mappedResource = {};
     g_context->Map(g_frameCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
@@ -615,18 +613,18 @@ void Update(float dt) {
   // Update post renderer constant buffer.
   {
     PostRenderer quadRenderer = {};
-    quadRenderer.posCam = g_camera.GetPosition();
-    quadRenderer.lightColor = g_pointLight.color;
-    quadRenderer.posLight = g_pointLight.position;
-    quadRenderer.lightIntensity = g_pointLight.intensity;
-    quadRenderer.matWS2PS = g_camera.ViewProj().Transpose();
-    quadRenderer.matPS2WS = g_camera.ViewProj().Invert().Transpose();
-    quadRenderer.rtSize = Vector2(static_cast<float>(g_renderTargetWidth),
-                                  static_cast<float>(g_renderTargetHeight));
-    quadRenderer.smoothingCoefficient = g_smoothingCoefficient;
-    quadRenderer.floorHeight = g_floorHeight;
-    quadRenderer.distBoxCenter = g_distBoxCenter;
-    quadRenderer.distBoxSize = g_distBoxSize;
+    quadRenderer.posCam = camera.GetPosition();
+    quadRenderer.lightColor = pointLight.color;
+    quadRenderer.posLight = pointLight.position;
+    quadRenderer.lightIntensity = pointLight.intensity;
+    quadRenderer.matWS2PS = camera.ViewProj().Transpose();
+    quadRenderer.matPS2WS = camera.ViewProj().Invert().Transpose();
+    quadRenderer.rtSize = Vector2(static_cast<float>(renderTargetWidth),
+                                  static_cast<float>(renderTargetHeight));
+    quadRenderer.smoothingCoefficient = smoothingCoefficient;
+    quadRenderer.floorHeight = floorHeight;
+    quadRenderer.distBoxCenter = distBoxCenter;
+    quadRenderer.distBoxSize = distBoxSize;
 
     D3D11_MAPPED_SUBRESOURCE mappedResource = {};
     g_context->Map(g_quadRendererCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
@@ -642,7 +640,7 @@ bool DoTest() {
 
   g_context->OMSetRenderTargets(1, g_renderTargetView.GetAddressOf(), nullptr);
 
-  if (g_isWireframe)
+  if (isWireframe)
     g_context->RSSetState(g_wireframeRS.Get());
   else
     g_context->RSSetState(g_rasterizerState.Get());
@@ -651,17 +649,14 @@ bool DoTest() {
 
   DrawSphere();
 
-  ParticleSystem::UpdateGPU();
-  ParticleSystem::Draw();
-
   return true;
 }
 
 bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
                                ID3D11ShaderResourceView** sharedSRV, int& w,
                                int& h) {
-  w = g_renderTargetWidth;
-  h = g_renderTargetHeight;
+  w = renderTargetWidth;
+  h = renderTargetHeight;
 
   *sharedSRV = nullptr;
 
@@ -738,6 +733,9 @@ void DeinitEngine() {
   ParticleSystem::emitCS.Reset();
   ParticleSystem::simulateCS.Reset();
 
+  sphereGeometry.vertexBuffer.Reset();
+  sphereGeometry.indexBuffer.Reset();
+
   // Input Layouts
   g_inputLayout.Reset();
 
@@ -761,8 +759,6 @@ void DeinitEngine() {
   g_depthStencilBuffer.Reset();
   g_frameCB.Reset();
   g_quadRendererCB.Reset();
-  g_sphereVB.Reset();
-  g_sphereIB.Reset();
 
   g_context.Reset();
   g_device.Reset();
@@ -882,27 +878,29 @@ void DrawSphere() {
   g_context->IASetInputLayout(g_inputLayout.Get());
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-  uint32_t stride = sizeof(Vertex);
-  uint32_t offset = 0;
-
-  g_context->IASetVertexBuffers(0, 1, g_sphereVB.GetAddressOf(), &stride,
-                                &offset);
-  g_context->IASetIndexBuffer(g_sphereIB.Get(), DXGI_FORMAT_R32_UINT, 0);
+  g_context->IASetVertexBuffers(0, 1,
+                                sphereGeometry.vertexBuffer.GetAddressOf(),
+                                &sphereGeometry.stride, &sphereGeometry.offset);
+  g_context->IASetIndexBuffer(sphereGeometry.indexBuffer.Get(),
+                              DXGI_FORMAT_R32_UINT, 0);
 
   g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
   g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
   g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
 
-  g_context->DrawIndexed(g_sphereIndexCount, 0, 0);
+  g_context->DrawIndexed(sphereGeometry.indexCount, 0, 0);
 
   g_context->Flush();
 }
 
-void BuildGeometryBuffers() {
+void BuildSphereGeometry() {
   GeometryGenerator geoGen;
   auto sphere = geoGen.CreateSphere(0.1f, 20, 20);
 
-  g_sphereIndexCount = static_cast<uint32_t>(sphere.indices.size());
+  sphereGeometry.indexCount = static_cast<uint32_t>(sphere.indices.size());
+  sphereGeometry.vertexCount = static_cast<uint32_t>(sphere.vertices.size());
+  sphereGeometry.stride = sizeof(Vertex);
+  sphereGeometry.offset = 0;
 
   std::vector<Vertex> vertices(sphere.vertices.size());
   for (size_t i = 0; i < sphere.vertices.size(); i++) {
@@ -919,13 +917,13 @@ void BuildGeometryBuffers() {
   D3D11_SUBRESOURCE_DATA vinitData = {};
   vinitData.pSysMem = &vertices[0];
 
-  HRESULT hr = g_device->CreateBuffer(&vbd, &vinitData,
-                                      g_sphereVB.ReleaseAndGetAddressOf());
+  HRESULT hr = g_device->CreateBuffer(
+      &vbd, &vinitData, sphereGeometry.vertexBuffer.ReleaseAndGetAddressOf());
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
   D3D11_BUFFER_DESC ibd = {};
   ibd.Usage = D3D11_USAGE_IMMUTABLE;
-  ibd.ByteWidth = sizeof(uint32_t) * g_sphereIndexCount;
+  ibd.ByteWidth = sizeof(uint32_t) * sphereGeometry.indexCount;
   ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
   ibd.CPUAccessFlags = 0;
   ibd.MiscFlags = 0;
@@ -933,8 +931,8 @@ void BuildGeometryBuffers() {
   D3D11_SUBRESOURCE_DATA iinitData = {};
   iinitData.pSysMem = &sphere.indices[0];
 
-  hr = g_device->CreateBuffer(&ibd, &iinitData,
-                              g_sphereIB.ReleaseAndGetAddressOf());
+  hr = g_device->CreateBuffer(
+      &ibd, &iinitData, sphereGeometry.indexBuffer.ReleaseAndGetAddressOf());
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 }
 }  // namespace my
