@@ -50,7 +50,7 @@ float floorHeight = -1.0f;
 Vector3 distBoxCenter;
 float distBoxSize;
 
-Mesh sphereGeometry;
+std::shared_ptr<Mesh> sphereGeometry;
 
 D3D11_VIEWPORT viewport;
 
@@ -217,7 +217,7 @@ void CreateSelfBuffers() {
   }
 }
 
-void UpdateGPU() {
+void UpdateGPU(std::shared_ptr<Mesh> mesh) {
   // Update emitter properties constant buffer.
   {
     std::random_device rd;
@@ -649,6 +649,9 @@ bool DoTest() {
 
   DrawSphere();
 
+  ParticleSystem::UpdateGPU(sphereGeometry);
+  ParticleSystem::Draw();
+
   return true;
 }
 
@@ -733,8 +736,8 @@ void DeinitEngine() {
   ParticleSystem::emitCS.Reset();
   ParticleSystem::simulateCS.Reset();
 
-  sphereGeometry.vertexBuffer.Reset();
-  sphereGeometry.indexBuffer.Reset();
+  sphereGeometry->vertexBuffer.Reset();
+  sphereGeometry->indexBuffer.Reset();
 
   // Input Layouts
   g_inputLayout.Reset();
@@ -878,17 +881,17 @@ void DrawSphere() {
   g_context->IASetInputLayout(g_inputLayout.Get());
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-  g_context->IASetVertexBuffers(0, 1,
-                                sphereGeometry.vertexBuffer.GetAddressOf(),
-                                &sphereGeometry.stride, &sphereGeometry.offset);
-  g_context->IASetIndexBuffer(sphereGeometry.indexBuffer.Get(),
+  g_context->IASetVertexBuffers(
+      0, 1, sphereGeometry->vertexBuffer.GetAddressOf(),
+      &sphereGeometry->stride, &sphereGeometry->offset);
+  g_context->IASetIndexBuffer(sphereGeometry->indexBuffer.Get(),
                               DXGI_FORMAT_R32_UINT, 0);
 
   g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
   g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
   g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
 
-  g_context->DrawIndexed(sphereGeometry.indexCount, 0, 0);
+  g_context->DrawIndexed(sphereGeometry->indexCount, 0, 0);
 
   g_context->Flush();
 }
@@ -897,10 +900,12 @@ void BuildSphereGeometry() {
   GeometryGenerator geoGen;
   auto sphere = geoGen.CreateSphere(0.1f, 20, 20);
 
-  sphereGeometry.indexCount = static_cast<uint32_t>(sphere.indices.size());
-  sphereGeometry.vertexCount = static_cast<uint32_t>(sphere.vertices.size());
-  sphereGeometry.stride = sizeof(Vertex);
-  sphereGeometry.offset = 0;
+  sphereGeometry = std::make_shared<Mesh>();
+
+  sphereGeometry->indexCount = static_cast<uint32_t>(sphere.indices.size());
+  sphereGeometry->vertexCount = static_cast<uint32_t>(sphere.vertices.size());
+  sphereGeometry->stride = sizeof(Vertex);
+  sphereGeometry->offset = 0;
 
   std::vector<Vertex> vertices(sphere.vertices.size());
   for (size_t i = 0; i < sphere.vertices.size(); i++) {
@@ -918,12 +923,12 @@ void BuildSphereGeometry() {
   vinitData.pSysMem = &vertices[0];
 
   HRESULT hr = g_device->CreateBuffer(
-      &vbd, &vinitData, sphereGeometry.vertexBuffer.ReleaseAndGetAddressOf());
+      &vbd, &vinitData, sphereGeometry->vertexBuffer.ReleaseAndGetAddressOf());
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
   D3D11_BUFFER_DESC ibd = {};
   ibd.Usage = D3D11_USAGE_IMMUTABLE;
-  ibd.ByteWidth = sizeof(uint32_t) * sphereGeometry.indexCount;
+  ibd.ByteWidth = sizeof(uint32_t) * sphereGeometry->indexCount;
   ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
   ibd.CPUAccessFlags = 0;
   ibd.MiscFlags = 0;
@@ -932,7 +937,7 @@ void BuildSphereGeometry() {
   iinitData.pSysMem = &sphere.indices[0];
 
   hr = g_device->CreateBuffer(
-      &ibd, &iinitData, sphereGeometry.indexBuffer.ReleaseAndGetAddressOf());
+      &ibd, &iinitData, sphereGeometry->indexBuffer.ReleaseAndGetAddressOf());
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 }
 }  // namespace my

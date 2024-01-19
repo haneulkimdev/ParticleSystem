@@ -202,7 +202,7 @@ void CreateSelfBuffers();
 
 void UpdateCPU(float dt);
 
-void UpdateGPU();
+void UpdateGPU(std::shared_ptr<Mesh> mesh);
 void Draw();
 
 extern "C" MY_API ParticleEmitter* GetParticleEmitter();
