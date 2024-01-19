@@ -13,6 +13,8 @@
     <ClInclude Include="Helper.h" />
     <ClInclude Include="CameraController.h" />
     <ClInclude Include="GeometryGenerator.h" />
+    <ClInclude Include="Vertex.h" />
+    <ClInclude Include="MeshData.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">
@@ -49,13 +51,11 @@
       <Filter>hlsl</Filter>
     </None>
     <None Include="ShaderCompile.bat" />
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="hlsl\VS_Default.hlsl">
+    <None Include="hlsl\PS_Default.hlsl">
       <Filter>hlsl</Filter>
-    </FxCompile>
-    <FxCompile Include="hlsl\PS_Default.hlsl">
+    </None>
+    <None Include="hlsl\VS_Default.hlsl">
       <Filter>hlsl</Filter>
-    </FxCompile>
+    </None>
   </ItemGroup>
 </Project>

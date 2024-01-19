@@ -3,9 +3,9 @@
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
 
-GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius,
-                                                            UINT sliceCount,
-                                                            UINT stackCount) {
+namespace my {
+MeshData GeometryGenerator::CreateSphere(float radius, UINT sliceCount,
+                                         UINT stackCount) {
   MeshData meshData;
 
   Vertex topVertex{Vector3(0.0f, +radius, 0.0f), Vector3(0.0f, +1.0f, 0.0f),
@@ -75,9 +75,8 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius,
   return meshData;
 }
 
-GeometryGenerator::MeshData GeometryGenerator::CreateQuad(float x, float y,
-                                                          float w, float h,
-                                                          float depth) {
+MeshData GeometryGenerator::CreateQuad(float x, float y, float w, float h,
+                                       float depth) {
   MeshData meshData;
 
   meshData.vertices.resize(4);
@@ -109,3 +108,4 @@ GeometryGenerator::MeshData GeometryGenerator::CreateQuad(float x, float y,
 
   return meshData;
 }
+}  // namespace my
