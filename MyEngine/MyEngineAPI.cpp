@@ -329,6 +329,11 @@ void UpdateCPU(float dt) {
 }
 
 void Draw() {
+  g_context->IASetInputLayout(nullptr);
+
+  g_context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+  g_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+
   g_context->VSSetShader(vertexShader.Get(), nullptr, 0);
   g_context->GSSetShader(geometryShader.Get(), nullptr, 0);
   g_context->PSSetShader(pixelShader.Get(), nullptr, 0);
@@ -896,6 +901,7 @@ void DrawSphere() {
 
   g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
   g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
+  g_context->GSSetShader(nullptr, nullptr, 0);
   g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
 
   g_context->DrawIndexed(sphereGeometry->indexCount, 0, 0);
