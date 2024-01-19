@@ -232,24 +232,35 @@ int main(int, char**) {
 
         ImGui::Text(ss.c_str());
 
-        auto props = my::ParticleSystem::GetParticleEmitter();
+        auto emitter = my::ParticleSystem::GetParticleEmitter();
 
-        ImGui::SliderFloat("Emit", &props->count, 0, 10000);
-        ImGui::SliderFloat("Size", &props->size, 0.01f, 10.0f);
-        ImGui::SliderFloat("Rotation", &props->rotation, 0.0f, 1.0f);
-        ImGui::SliderFloat("Normal factor", &props->normal_factor, 0.0f,
+        Vector3 translation = emitter->transform.Translation();
+        float position[3] = {translation.x, translation.y, translation.z};
+        ImGui::SliderFloat3("Position", position, -1.0f, 1.0f);
+        emitter->transform =
+            Matrix::CreateTranslation(position[0], position[1], position[2]);
+
+        ImVec4 color = ImGui::ColorConvertU32ToFloat4(emitter->color);
+        ImGui::ColorEdit3("Color", (float*)&color);
+        emitter->color = ImGui::ColorConvertFloat4ToU32(color);
+
+        ImGui::SliderFloat("Emit", &emitter->count, 0, 10000);
+        ImGui::SliderFloat("Size", &emitter->size, 0.01f, 10.0f);
+        ImGui::SliderFloat("Rotation", &emitter->rotation, 0.0f, 1.0f);
+        ImGui::SliderFloat("Normal factor", &emitter->normal_factor, 0.0f,
                            100.0f);
-        ImGui::SliderFloat("Scaling", &props->scale, 0.0f, 100.0f);
-        ImGui::SliderFloat("Life span", &props->life, 0.0f, 100.0f);
-        ImGui::SliderFloat("Life randomness", &props->random_life, 0.0f, 2.0f);
-        ImGui::SliderFloat("Randomness", &props->random_factor, 0.0f, 1.0f);
-        ImGui::SliderFloat("Color randomness", &props->random_color, 0.0f,
+        ImGui::SliderFloat("Scaling", &emitter->scale, 0.0f, 100.0f);
+        ImGui::SliderFloat("Life span", &emitter->life, 0.0f, 100.0f);
+        ImGui::SliderFloat("Life randomness", &emitter->random_life, 0.0f,
                            2.0f);
-        ImGui::SliderFloat("Mass", &props->mass, 0.1f, 100.0f);
-        ImGui::SliderFloat("Drag", &props->drag, 0.0f, 1.0f);
-        ImGui::SliderFloat("Restitution", &props->restitution, 0.0f, 1.0f);
-        ImGui::InputFloat3("Velocity", props->velocity);
-        ImGui::InputFloat3("Gravity", props->gravity);
+        ImGui::SliderFloat("Randomness", &emitter->random_factor, 0.0f, 1.0f);
+        ImGui::SliderFloat("Color randomness", &emitter->random_color, 0.0f,
+                           2.0f);
+        ImGui::SliderFloat("Mass", &emitter->mass, 0.1f, 100.0f);
+        ImGui::SliderFloat("Drag", &emitter->drag, 0.0f, 1.0f);
+        ImGui::SliderFloat("Restitution", &emitter->restitution, 0.0f, 1.0f);
+        ImGui::InputFloat3("Velocity", emitter->velocity);
+        ImGui::InputFloat3("Gravity", emitter->gravity);
       }
 
       if (ImGui::CollapsingHeader("Scene")) {

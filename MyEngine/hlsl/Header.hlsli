@@ -34,28 +34,27 @@ cbuffer cbFrame : register(b0)
 
 cbuffer cbParticleSystem : register(b1)
 {
-    float4x4 xEmitterTransform;
-    float4x4 xEmitterBaseMeshUnormRemap;
+    float4x4 xEmitterWorld;
 
     uint xEmitCount;
+    uint xEmitterMeshIndexCount;
+    uint xEmitterMeshVertexPositionStride;
     float xEmitterRandomness;
-    float xParticleRandomColorFactor;
-    float xParticleSize;
 
+    float xParticleSize;
     float xParticleScaling;
     float xParticleRotation;
+    uint xParticleColor;
+
     float xParticleRandomFactor;
     float xParticleNormalFactor;
-
     float xParticleLifeSpan;
     float xParticleLifeSpanRandomness;
+
     float xParticleMass;
     float xParticleMotionBlurAmount;
-
+    float xParticleRandomColorFactor;
     uint xEmitterMaxParticleCount;
-    uint xEmitterInstanceIndex;
-    uint xEmitterMeshGeometryOffset;
-    uint xEmitterMeshGeometryCount;
 
     uint xEmitterFramesX;
     uint xEmitterFramesY;
@@ -79,7 +78,8 @@ cbuffer cbParticleSystem : register(b1)
     float xSPH_e; // viscosity constant
     float xSPH_p0; // reference density
     uint xEmitterOptions;
-    float xEmitterFixedTimestep; // we can force a fixed timestep (>0) onto the simulation to avoid blowing up
+    float xEmitterFixedTimestep; // we can force a fixed timestep (>0) onto the
+                                // simulation to avoid blowing up
 
     float3 xParticleGravity;
     float xEmitterRestitution;

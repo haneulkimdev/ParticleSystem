@@ -224,32 +224,32 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
 
-    ParticleSystemCB particleSystemCB = {};
-    particleSystemCB.xEmitCount = static_cast<uint32_t>(emit);
-    particleSystemCB.xEmitterRandomness = dis(gen);
-    particleSystemCB.xParticleLifeSpan = particleEmitter.life;
-    particleSystemCB.xParticleLifeSpanRandomness = particleEmitter.random_life;
-    particleSystemCB.xParticleNormalFactor = particleEmitter.normal_factor;
-    particleSystemCB.xParticleRandomFactor = particleEmitter.random_factor;
-    particleSystemCB.xParticleScaling = particleEmitter.scale;
-    particleSystemCB.xParticleSize = particleEmitter.size;
-    particleSystemCB.xParticleRotation = particleEmitter.rotation * XM_PI * 60;
-    particleSystemCB.xParticleMass = particleEmitter.mass;
-    particleSystemCB.xEmitterMaxParticleCount = MAX_PARTICLES;
-    particleSystemCB.xEmitterRestitution = particleEmitter.restitution;
-    particleSystemCB.xParticleGravity =
-        float3(particleEmitter.gravity[0], particleEmitter.gravity[1],
-               particleEmitter.gravity[2]);
-    particleSystemCB.xParticleDrag = particleEmitter.drag;
-    particleSystemCB.xParticleVelocity =
-        float3(particleEmitter.velocity[0], particleEmitter.velocity[1],
-               particleEmitter.velocity[2]);
-    particleSystemCB.xParticleRandomColorFactor = particleEmitter.random_color;
+    ParticleSystemCB cb = {};
+    cb.xEmitterWorld = particleEmitter.transform;
+    cb.xEmitCount = static_cast<uint32_t>(emit);
+    cb.xEmitterMeshIndexCount = mesh == nullptr ? 0 : mesh->indexCount;
+    cb.xEmitterMeshVertexPositionStride = sizeof(Vector3);
+    cb.xEmitterRandomness = dis(gen);
+    cb.xParticleLifeSpan = particleEmitter.life;
+    cb.xParticleLifeSpanRandomness = particleEmitter.random_life;
+    cb.xParticleNormalFactor = particleEmitter.normal_factor;
+    cb.xParticleRandomFactor = particleEmitter.random_factor;
+    cb.xParticleScaling = particleEmitter.scale;
+    cb.xParticleSize = particleEmitter.size;
+    cb.xParticleRotation = particleEmitter.rotation * XM_PI * 60;
+    cb.xParticleColor = particleEmitter.color;
+    cb.xParticleMass = particleEmitter.mass;
+    cb.xEmitterMaxParticleCount = MAX_PARTICLES;
+    cb.xEmitterRestitution = particleEmitter.restitution;
+    cb.xParticleGravity = float3(particleEmitter.gravity);
+    cb.xParticleDrag = particleEmitter.drag;
+    cb.xParticleVelocity = float3(particleEmitter.velocity);
+    cb.xParticleRandomColorFactor = particleEmitter.random_color;
 
     D3D11_MAPPED_SUBRESOURCE mappedResource = {};
     g_context->Map(constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
                    &mappedResource);
-    memcpy(mappedResource.pData, &particleSystemCB, sizeof(particleSystemCB));
+    memcpy(mappedResource.pData, &cb, sizeof(cb));
     g_context->Unmap(constantBuffer.Get(), 0);
   }
 
@@ -280,6 +280,8 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(4, 1, counterBufferUAV.GetAddressOf(),
                                          nullptr);
+    g_context->CSSetShaderResources(0, 1, mesh->vertexBufferSRV.GetAddressOf());
+    g_context->CSSetShaderResources(1, 1, mesh->indexBufferSRV.GetAddressOf());
     g_context->Dispatch(MAX_PARTICLES, 1, 1);
 
     GPUBarrier();
@@ -745,6 +747,8 @@ void DeinitEngine() {
 
   sphereGeometry->vertexBuffer.Reset();
   sphereGeometry->indexBuffer.Reset();
+  sphereGeometry->vertexBufferSRV.Reset();
+  sphereGeometry->indexBufferSRV.Reset();
 
   // Input Layouts
   g_inputLayout.Reset();
@@ -917,18 +921,18 @@ void BuildSphereGeometry() {
 
   sphereGeometry->indexCount = static_cast<uint32_t>(sphere.indices.size());
   sphereGeometry->vertexCount = static_cast<uint32_t>(sphere.vertices.size());
-  sphereGeometry->stride = sizeof(Vertex);
+  sphereGeometry->stride = sizeof(Vector3);
   sphereGeometry->offset = 0;
 
-  std::vector<Vertex> vertices(sphere.vertices.size());
+  std::vector<Vector3> vertices(sphere.vertices.size());
   for (size_t i = 0; i < sphere.vertices.size(); i++) {
-    vertices[i].position = sphere.vertices[i].position;
+    vertices[i] = sphere.vertices[i].position;
   }
 
   D3D11_BUFFER_DESC vbd = {};
   vbd.Usage = D3D11_USAGE_IMMUTABLE;
-  vbd.ByteWidth = sizeof(Vertex) * static_cast<UINT>(vertices.size());
-  vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+  vbd.ByteWidth = sizeof(Vector3) * sphereGeometry->vertexCount;
+  vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
   vbd.CPUAccessFlags = 0;
   vbd.MiscFlags = 0;
 
@@ -939,10 +943,21 @@ void BuildSphereGeometry() {
       &vbd, &vinitData, sphereGeometry->vertexBuffer.ReleaseAndGetAddressOf());
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
+  D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+  srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+  srvDesc.Buffer.FirstElement = 0;
+  srvDesc.Buffer.NumElements = sphereGeometry->vertexCount * 3;
+
+  hr = g_device->CreateShaderResourceView(
+      sphereGeometry->vertexBuffer.Get(), &srvDesc,
+      sphereGeometry->vertexBufferSRV.ReleaseAndGetAddressOf());
+  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+
   D3D11_BUFFER_DESC ibd = {};
   ibd.Usage = D3D11_USAGE_IMMUTABLE;
   ibd.ByteWidth = sizeof(uint32_t) * sphereGeometry->indexCount;
-  ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+  ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
   ibd.CPUAccessFlags = 0;
   ibd.MiscFlags = 0;
 
@@ -952,5 +967,10 @@ void BuildSphereGeometry() {
   hr = g_device->CreateBuffer(
       &ibd, &iinitData, sphereGeometry->indexBuffer.ReleaseAndGetAddressOf());
   if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+  srvDesc.Format = DXGI_FORMAT_R32_UINT;
+  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+  srvDesc.Buffer.FirstElement = 0;
+  srvDesc.Buffer.NumElements = sphereGeometry->indexCount;
 }
 }  // namespace my

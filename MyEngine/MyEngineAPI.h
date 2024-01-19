@@ -49,6 +49,9 @@ struct ParticleCounters {
 };
 
 struct ParticleEmitter {
+  Matrix transform;
+  uint color = 0xffffffff;
+
   float size = 0.01f;
   float random_factor = 1.0f;
   float normal_factor = 1.0f;
@@ -76,28 +79,27 @@ struct ParticleEmitter {
 };
 
 struct ParticleSystemCB {
-  float4x4 xEmitterTransform;
-  float4x4 xEmitterBaseMeshUnormRemap;
+  float4x4 xEmitterWorld;
 
   uint xEmitCount;
+  uint xEmitterMeshIndexCount;
+  uint xEmitterMeshVertexPositionStride;
   float xEmitterRandomness;
-  float xParticleRandomColorFactor;
-  float xParticleSize;
 
+  float xParticleSize;
   float xParticleScaling;
   float xParticleRotation;
+  uint xParticleColor;
+
   float xParticleRandomFactor;
   float xParticleNormalFactor;
-
   float xParticleLifeSpan;
   float xParticleLifeSpanRandomness;
+
   float xParticleMass;
   float xParticleMotionBlurAmount;
-
+  float xParticleRandomColorFactor;
   uint xEmitterMaxParticleCount;
-  uint xEmitterInstanceIndex;
-  uint xEmitterMeshGeometryOffset;
-  uint xEmitterMeshGeometryCount;
 
   uint xEmitterFramesX;
   uint xEmitterFramesY;
@@ -161,10 +163,6 @@ struct PostRenderer {
 
   float3 distBoxCenter;  // WS
   float distBoxSize;     // WS
-};
-
-struct Vertex {
-  Vector3 position;
 };
 
 namespace my {

@@ -6,6 +6,13 @@ RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
 RWStructuredBuffer<uint> deadBuffer : register(u3);
 RWByteAddressBuffer counterBuffer : register(u4);
 
+#define EMIT_FROM_MESH
+
+#ifdef EMIT_FROM_MESH
+Buffer<float> meshVertexBuffer : register(t0);
+Buffer<uint> meshIndexBuffer : register(t1);
+#endif
+
 [numthreads(1, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
@@ -19,13 +26,16 @@ void main(uint3 DTid : SV_DispatchThreadID)
     float3 emitPos = 0;
     float3 nor = 0;
     float3 velocity = xParticleVelocity;
-    float4 baseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    float4 baseColor = unpack_rgba(xParticleColor);
+ 
+    // Just emit from center point:
+    float3 pos = mul(xEmitterWorld, float4(emitPos, 1)).xyz;
     
     float particleStartingSize = xParticleSize + xParticleSize * (rng.next_float() - 0.5f) * xParticleRandomFactor;
     
     // create new particle:
     Particle particle = (Particle) 0;
-    particle.position = emitPos;
+    particle.position = pos;
     particle.force = 0;
     particle.mass = xParticleMass;
     particle.velocity = velocity + (nor + (float3(rng.next_float(), rng.next_float(), rng.next_float()) - 0.5f) * xParticleRandomFactor) * xParticleNormalFactor;
