@@ -232,5 +232,5 @@ static void GPUBarrier();
 
 void DrawSphere();
 
-void BuildGeometryBuffers();
+void BuildSphereGeometry();
 }  // namespace my
