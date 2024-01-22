@@ -663,7 +663,7 @@ bool DoTest() {
 
   DrawSphere();
 
-  ParticleSystem::UpdateGPU(nullptr);
+  ParticleSystem::UpdateGPU(sphereGeometry);
   ParticleSystem::Draw();
 
   return true;
