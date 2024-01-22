@@ -245,3 +245,26 @@ inline float4 unpack_rgba(in uint value)
     retVal.w = (float) ((value >> 24u) & 0xFF) / 255.0;
     return retVal;
 }
+
+// attribute computation with barycentric interpolation
+//	a0 : attribute at triangle corner 0
+//	a1 : attribute at triangle corner 1
+//	a2 : attribute at triangle corner 2
+//  bary : (u,v) barycentrics [same as you get from raytracing]; w is computed as 1 - u - w
+//	computation can be also written as: p0 * w + p1 * u + p2 * v
+inline float attribute_at_bary(in float a0, in float a1, in float a2, in float2 bary)
+{
+    return mad(a0, 1 - bary.x - bary.y, mad(a1, bary.x, a2 * bary.y));
+}
+inline float2 attribute_at_bary(in float2 a0, in float2 a1, in float2 a2, in float2 bary)
+{
+    return mad(a0, 1 - bary.x - bary.y, mad(a1, bary.x, a2 * bary.y));
+}
+inline float3 attribute_at_bary(in float3 a0, in float3 a1, in float3 a2, in float2 bary)
+{
+    return mad(a0, 1 - bary.x - bary.y, mad(a1, bary.x, a2 * bary.y));
+}
+inline float4 attribute_at_bary(in float4 a0, in float4 a1, in float4 a2, in float2 bary)
+{
+    return mad(a0, 1 - bary.x - bary.y, mad(a1, bary.x, a2 * bary.y));
+}

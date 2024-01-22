@@ -280,8 +280,14 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(4, 1, counterBufferUAV.GetAddressOf(),
                                          nullptr);
-    g_context->CSSetShaderResources(0, 1, mesh->vertexBufferSRV.GetAddressOf());
-    g_context->CSSetShaderResources(1, 1, mesh->indexBufferSRV.GetAddressOf());
+
+    if (mesh != nullptr) {
+      g_context->CSSetShaderResources(0, 1,
+                                      mesh->vertexBufferSRV.GetAddressOf());
+      g_context->CSSetShaderResources(1, 1,
+                                      mesh->indexBufferSRV.GetAddressOf());
+    }
+
     g_context->Dispatch(MAX_PARTICLES, 1, 1);
 
     GPUBarrier();
@@ -657,7 +663,7 @@ bool DoTest() {
 
   DrawSphere();
 
-  ParticleSystem::UpdateGPU(sphereGeometry);
+  ParticleSystem::UpdateGPU(nullptr);
   ParticleSystem::Draw();
 
   return true;

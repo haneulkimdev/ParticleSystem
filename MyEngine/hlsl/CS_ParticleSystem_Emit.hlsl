@@ -6,8 +6,6 @@ RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
 RWStructuredBuffer<uint> deadBuffer : register(u3);
 RWByteAddressBuffer counterBuffer : register(u4);
 
-#define EMIT_FROM_MESH
-
 #ifdef EMIT_FROM_MESH
 Buffer<float> meshVertexBuffer : register(t0);
 Buffer<uint> meshIndexBuffer : register(t1);
@@ -27,8 +25,44 @@ void main(uint3 DTid : SV_DispatchThreadID)
     float3 nor = 0;
     float3 velocity = xParticleVelocity;
     float4 baseColor = unpack_rgba(xParticleColor);
+
+#ifdef EMIT_FROM_MESH
+	// random triangle on emitter surface:
+    const uint triangleCount = xEmitterMeshIndexCount / 3;
+    const uint tri = rng.next_uint(triangleCount);
+
+	// load indices of triangle from index buffer
+    uint i0 = meshIndexBuffer[tri * 3 + 0];
+    uint i1 = meshIndexBuffer[tri * 3 + 1];
+    uint i2 = meshIndexBuffer[tri * 3 + 2];
+
+	// load vertices of triangle from vertex buffer:
+    float3 pos0 = meshVertexBuffer[i0 * xEmitterMeshVertexPositionStride];
+    float3 pos1 = meshVertexBuffer[i1 * xEmitterMeshVertexPositionStride];
+    float3 pos2 = meshVertexBuffer[i2 * xEmitterMeshVertexPositionStride];
+
+	// random barycentric coords:
+    float f = rng.next_float();
+    float g = rng.next_float();
+	[flatten]
+    if (f + g > 1)
+    {
+        f = 1 - f;
+        g = 1 - g;
+    }
+    float2 bary = float2(f, g);
+
+	// compute final surface position on triangle from barycentric coords:
+    emitPos = attribute_at_bary(pos0, pos1, pos2, bary);
+    emitPos = mul(xEmitterWorld, float4(emitPos, 1)).xyz;
+    nor = normalize(cross(pos1 - pos0, pos2 - pos0));
+    nor = normalize(mul((float3x3) xEmitterWorld, nor));
  
+#else
     // Just emit from center point:
+    emitPos = 0;
+#endif // EMIT_FROM_MESH
+    
     float3 pos = mul(xEmitterWorld, float4(emitPos, 1)).xyz;
     
     float particleStartingSize = xParticleSize + xParticleSize * (rng.next_float() - 0.5f) * xParticleRandomFactor;
