@@ -49,6 +49,8 @@ struct ParticleCounters {
 };
 
 struct ParticleEmitter {
+  std::string meshName;
+
   Matrix transform;
   uint color = 0xffffffff;
 
@@ -195,7 +197,7 @@ float emit = 0.0f;
 
 const uint32_t MAX_PARTICLES = 10000;
 
-ParticleEmitter particleEmitter;
+ParticleEmitter emitter;
 
 void CreateSelfBuffers();
 
@@ -232,5 +234,5 @@ static void GPUBarrier();
 
 void DrawSphere();
 
-void BuildSphereGeometry();
+void BuildGeometryBuffers();
 }  // namespace my

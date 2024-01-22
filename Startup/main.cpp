@@ -234,6 +234,10 @@ int main(int, char**) {
 
         auto emitter = my::ParticleSystem::GetParticleEmitter();
 
+        static char meshName[256] = "";
+        ImGui::InputText("Mesh", meshName, IM_ARRAYSIZE(meshName));
+        emitter->meshName = meshName;
+
         Vector3 translation = emitter->transform.Translation();
         float position[3] = {translation.x, translation.y, translation.z};
         ImGui::SliderFloat3("Position", position, -1.0f, 1.0f);

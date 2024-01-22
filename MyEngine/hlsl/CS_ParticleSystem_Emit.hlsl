@@ -1,5 +1,5 @@
 #include "Header.hlsli"
-#define EMIT_FROM_MESH
+
 RWStructuredBuffer<Particle> particleBuffer : register(u0);
 RWStructuredBuffer<uint> aliveBuffer_CURRENT : register(u1);
 RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
