@@ -447,7 +447,7 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   rasterizerDesc.DepthBias = 0;
   rasterizerDesc.DepthBiasClamp = 0;
   rasterizerDesc.SlopeScaledDepthBias = 0;
-  rasterizerDesc.DepthClipEnable = true;
+  rasterizerDesc.DepthClipEnable = false;
   rasterizerDesc.ScissorEnable = false;
   rasterizerDesc.MultisampleEnable = false;
   rasterizerDesc.AntialiasedLineEnable = false;
@@ -601,7 +601,7 @@ bool SetRenderTargetSize(int w, int h) {
   camera.SetLens(0.25f * XM_PI,
                  static_cast<float>(renderTargetWidth) /
                      static_cast<float>(renderTargetHeight),
-                 0.1f, 1000.0f);
+                 1.0f, 1000.0f);
 
   return true;
 }
