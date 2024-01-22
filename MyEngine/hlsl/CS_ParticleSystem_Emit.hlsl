@@ -1,4 +1,3 @@
-#define EMIT_FROM_MESH
 #include "Header.hlsli"
 
 RWStructuredBuffer<Particle> particleBuffer : register(u0);
@@ -8,7 +7,7 @@ RWStructuredBuffer<uint> deadBuffer : register(u3);
 RWByteAddressBuffer counterBuffer : register(u4);
 
 #ifdef EMIT_FROM_MESH
-Buffer<float> meshVertexBuffer : register(t0);
+ByteAddressBuffer meshVertexBuffer : register(t0);
 Buffer<uint> meshIndexBuffer : register(t1);
 #endif
 
@@ -38,20 +37,9 @@ void main(uint3 DTid : SV_DispatchThreadID)
     uint i2 = meshIndexBuffer[tri * 3 + 2];
 
 	// load vertices of triangle from vertex buffer:
-    float3 pos0;
-    pos0.x = meshVertexBuffer[i0 * 3 + 0];
-    pos0.y = meshVertexBuffer[i0 * 3 + 1];
-    pos0.z = meshVertexBuffer[i0 * 3 + 2];
-    
-    float3 pos1;
-    pos1.x = meshVertexBuffer[i1 * 3 + 0];
-    pos1.y = meshVertexBuffer[i1 * 3 + 1];
-    pos1.z = meshVertexBuffer[i1 * 3 + 2];
-    
-    float3 pos2;
-    pos2.x = meshVertexBuffer[i2 * 3 + 0];
-    pos2.y = meshVertexBuffer[i2 * 3 + 1];
-    pos2.z = meshVertexBuffer[i2 * 3 + 2];
+    float3 pos0 = asfloat(meshVertexBuffer.Load3(i0 * xEmitterMeshVertexPositionStride));
+    float3 pos1 = asfloat(meshVertexBuffer.Load3(i1 * xEmitterMeshVertexPositionStride));
+    float3 pos2 = asfloat(meshVertexBuffer.Load3(i2 * xEmitterMeshVertexPositionStride));
 
 	// random barycentric coords:
     float f = rng.next_float();
@@ -68,7 +56,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     emitPos = attribute_at_bary(pos0, pos1, pos2, bary);
     nor = normalize(cross(pos1 - pos0, pos2 - pos0));
     nor = normalize(mul(nor, (float3x3) xEmitterWorld));
- 
+    
 #else
     // Just emit from center point:
     emitPos = 0;

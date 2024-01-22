@@ -931,48 +931,56 @@ void BuildSphereGeometry() {
     vertices[i] = sphere.vertices[i].position;
   }
 
-  D3D11_BUFFER_DESC vbd = {};
-  vbd.Usage = D3D11_USAGE_IMMUTABLE;
-  vbd.ByteWidth = sizeof(Vector3) * sphereGeometry->vertexCount;
-  vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-  vbd.CPUAccessFlags = 0;
-  vbd.MiscFlags = 0;
+  {
+    D3D11_BUFFER_DESC vbd = {};
+    vbd.Usage = D3D11_USAGE_IMMUTABLE;
+    vbd.ByteWidth = sizeof(Vector3) * sphereGeometry->vertexCount;
+    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
+    vbd.CPUAccessFlags = 0;
+    vbd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 
-  D3D11_SUBRESOURCE_DATA vinitData = {};
-  vinitData.pSysMem = &vertices[0];
+    D3D11_SUBRESOURCE_DATA vinitData = {};
+    vinitData.pSysMem = &vertices[0];
 
-  HRESULT hr = g_device->CreateBuffer(
-      &vbd, &vinitData, sphereGeometry->vertexBuffer.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+    HRESULT hr = g_device->CreateBuffer(
+        &vbd, &vinitData,
+        sphereGeometry->vertexBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
-  D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-  srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-  srvDesc.Buffer.FirstElement = 0;
-  srvDesc.Buffer.NumElements = sphereGeometry->vertexCount * 3;
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+    srvDesc.BufferEx.FirstElement = 0;
+    srvDesc.BufferEx.NumElements =
+        sphereGeometry->vertexCount * (sizeof(Vector3) / sizeof(float));
+    srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
 
-  hr = g_device->CreateShaderResourceView(
-      sphereGeometry->vertexBuffer.Get(), &srvDesc,
-      sphereGeometry->vertexBufferSRV.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+    hr = g_device->CreateShaderResourceView(
+        sphereGeometry->vertexBuffer.Get(), &srvDesc,
+        sphereGeometry->vertexBufferSRV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+  }
 
-  D3D11_BUFFER_DESC ibd = {};
-  ibd.Usage = D3D11_USAGE_IMMUTABLE;
-  ibd.ByteWidth = sizeof(uint32_t) * sphereGeometry->indexCount;
-  ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-  ibd.CPUAccessFlags = 0;
-  ibd.MiscFlags = 0;
+  {
+    D3D11_BUFFER_DESC ibd = {};
+    ibd.Usage = D3D11_USAGE_IMMUTABLE;
+    ibd.ByteWidth = sizeof(uint32_t) * sphereGeometry->indexCount;
+    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
+    ibd.CPUAccessFlags = 0;
+    ibd.MiscFlags = 0;
 
-  D3D11_SUBRESOURCE_DATA iinitData = {};
-  iinitData.pSysMem = &sphere.indices[0];
+    D3D11_SUBRESOURCE_DATA iinitData = {};
+    iinitData.pSysMem = &sphere.indices[0];
 
-  hr = g_device->CreateBuffer(
-      &ibd, &iinitData, sphereGeometry->indexBuffer.ReleaseAndGetAddressOf());
-  if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+    HRESULT hr = g_device->CreateBuffer(
+        &ibd, &iinitData, sphereGeometry->indexBuffer.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
-  srvDesc.Format = DXGI_FORMAT_R32_UINT;
-  srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-  srvDesc.Buffer.FirstElement = 0;
-  srvDesc.Buffer.NumElements = sphereGeometry->indexCount;
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_R32_UINT;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    srvDesc.Buffer.FirstElement = 0;
+    srvDesc.Buffer.NumElements = sphereGeometry->indexCount;
+  }
 }
 }  // namespace my
