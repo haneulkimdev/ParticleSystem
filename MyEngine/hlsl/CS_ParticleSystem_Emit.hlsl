@@ -55,6 +55,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// compute final surface position on triangle from barycentric coords:
     emitPos = attribute_at_bary(pos0, pos1, pos2, bary);
+    emitPos /= 10;
     nor = normalize(cross(pos1 - pos0, pos2 - pos0));
     nor = normalize(mul(nor, (float3x3) xEmitterWorld));
     
@@ -68,8 +69,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
     float particleStartingSize = xParticleSize + xParticleSize * (rng.next_float() - 0.5f) * xParticleRandomFactor;
     
     // create new particle:
-    Particle particle = (Particle) 0;
-    particle.position = pos;
+    Particle particle;
+    particle.position = mul(float4(pos, 1), matWS2PS).xyz;
     particle.force = 0;
     particle.mass = xParticleMass;
     particle.velocity = velocity + (nor + (float3(rng.next_float(), rng.next_float(), rng.next_float()) - 0.5f) * xParticleRandomFactor) * xParticleNormalFactor;

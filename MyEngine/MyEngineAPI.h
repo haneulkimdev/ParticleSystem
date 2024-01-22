@@ -80,7 +80,7 @@ struct ParticleEmitter {
   float restitution = 0.98f;
 };
 
-struct ParticleSystemCB {
+struct alignas(16) ParticleSystemCB {
   float4x4 xEmitterWorld;
 
   uint xEmitCount;
@@ -142,14 +142,14 @@ struct PointLight {
   uint color;
 };
 
-struct FrameCB {
+struct alignas(16) FrameCB {
   uint frame_count;
   float time;
   float time_previous;
   float delta_time;
 };
 
-struct PostRenderer {
+struct alignas(16) PostRenderer {
   float3 posCam;  // WS
   uint lightColor;
 
@@ -232,7 +232,7 @@ extern "C" MY_API bool LoadShaders();
 
 static void GPUBarrier();
 
-void DrawSphere();
+void DrawScene();
 
 void BuildGeometryBuffers();
 }  // namespace my

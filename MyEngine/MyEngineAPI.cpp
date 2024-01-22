@@ -500,7 +500,7 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   BuildGeometryBuffers();
 
   // Build the view matrix.
-  Vector3 pos(0.0f, 0.0f, -1.0f);
+  Vector3 pos(0.0f, 0.0f, -5.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
@@ -660,6 +660,8 @@ bool DoTest() {
     g_context->RSSetState(g_rasterizerState.Get());
 
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 0);
+
+  DrawScene();
 
   ParticleSystem::UpdateGPU(meshes[ParticleSystem::emitter.meshName]);
   ParticleSystem::Draw();
@@ -896,11 +898,33 @@ void GPUBarrier() {
   g_context->CSSetUnorderedAccessViews(0, numUAVs, nullUAV, nullptr);
 }
 
+void DrawScene() {
+  g_context->IASetInputLayout(g_inputLayout.Get());
+  g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
+  g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
+  g_context->GSSetShader(nullptr, nullptr, 0);
+  g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
+
+  for (auto& mesh : meshes) {
+    if (mesh.second == nullptr) continue;
+
+    g_context->IASetVertexBuffers(0, 1,
+                                  mesh.second->vertexBuffer.GetAddressOf(),
+                                  &mesh.second->stride, &mesh.second->offset);
+    g_context->IASetIndexBuffer(mesh.second->indexBuffer.Get(),
+                                DXGI_FORMAT_R32_UINT, 0);
+
+    g_context->DrawIndexed(mesh.second->indexCount, 0, 0);
+  }
+}
+
 void BuildGeometryBuffers() {
   GeometryGenerator geoGen;
 
   {
-    auto meshData = geoGen.CreateSphere(0.1f, 20, 20);
+    auto meshData = geoGen.CreateSphere(0.5f, 20, 20);
 
     Mesh sphere;
     sphere.indexCount = static_cast<uint32_t>(meshData.indices.size());
@@ -974,7 +998,7 @@ void BuildGeometryBuffers() {
   }
 
   {
-    auto meshData = geoGen.CreateBox(0.2f, 0.2f, 0.2f);
+    auto meshData = geoGen.CreateBox(1.0f, 1.0f, 1.0f);
 
     Mesh box;
     box.indexCount = static_cast<uint32_t>(meshData.indices.size());

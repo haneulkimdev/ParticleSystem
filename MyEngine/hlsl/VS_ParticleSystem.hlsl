@@ -21,7 +21,8 @@ VertexOut main(uint vertexID : SV_VertexID)
     
     VertexOut vout;
     
-    vout.position = mul(float4(particle.position.xyz, 1.0), matWS2PS);
+    vout.position = float4(particle.position, 1.0f);
+    vout.position = mul(vout.position, matWS2PS);
     vout.color = unpack_rgba(particle.color);
     vout.life = particle.life;
     vout.size = size;
