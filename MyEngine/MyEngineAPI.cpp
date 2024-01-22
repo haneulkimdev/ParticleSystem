@@ -225,7 +225,7 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
 
     ParticleSystemCB cb = {};
-    cb.xEmitterWorld = particleEmitter.transform;
+    cb.xEmitterWorld = particleEmitter.transform.Transpose();
     cb.xEmitCount = static_cast<uint32_t>(emit);
     cb.xEmitterMeshIndexCount = mesh == nullptr ? 0 : mesh->indexCount;
     cb.xEmitterMeshVertexPositionStride = sizeof(Vector3);
