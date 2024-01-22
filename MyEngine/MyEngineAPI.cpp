@@ -967,7 +967,7 @@ void BuildSphereGeometry() {
     ibd.ByteWidth = sizeof(uint32_t) * sphereGeometry->indexCount;
     ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
     ibd.CPUAccessFlags = 0;
-    ibd.MiscFlags = 0;
+    ibd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 
     D3D11_SUBRESOURCE_DATA iinitData = {};
     iinitData.pSysMem = &sphere.indices[0];
@@ -977,10 +977,16 @@ void BuildSphereGeometry() {
     if (FAILED(hr)) FailRet("CreateBuffer Failed.");
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_R32_UINT;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    srvDesc.Buffer.FirstElement = 0;
-    srvDesc.Buffer.NumElements = sphereGeometry->indexCount;
+    srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+    srvDesc.BufferEx.FirstElement = 0;
+    srvDesc.BufferEx.NumElements = sphereGeometry->indexCount;
+    srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+
+    hr = g_device->CreateShaderResourceView(
+        sphereGeometry->indexBuffer.Get(), &srvDesc,
+        sphereGeometry->indexBufferSRV.ReleaseAndGetAddressOf());
+    if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
   }
 }
 }  // namespace my

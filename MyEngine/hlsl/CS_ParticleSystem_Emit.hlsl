@@ -1,5 +1,5 @@
 #include "Header.hlsli"
-
+#define EMIT_FROM_MESH
 RWStructuredBuffer<Particle> particleBuffer : register(u0);
 RWStructuredBuffer<uint> aliveBuffer_CURRENT : register(u1);
 RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
@@ -8,7 +8,7 @@ RWByteAddressBuffer counterBuffer : register(u4);
 
 #ifdef EMIT_FROM_MESH
 ByteAddressBuffer meshVertexBuffer : register(t0);
-Buffer<uint> meshIndexBuffer : register(t1);
+ByteAddressBuffer meshIndexBuffer : register(t1);
 #endif
 
 [numthreads(1, 1, 1)]
@@ -32,9 +32,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
     const uint tri = rng.next_uint(triangleCount);
 
 	// load indices of triangle from index buffer
-    uint i0 = meshIndexBuffer[tri * 3 + 0];
-    uint i1 = meshIndexBuffer[tri * 3 + 1];
-    uint i2 = meshIndexBuffer[tri * 3 + 2];
+    const uint emitterMeshIndexStride = 4;
+    uint i0 = meshIndexBuffer.Load(tri * 3 * emitterMeshIndexStride);
+    uint i1 = meshIndexBuffer.Load(tri * 3 * emitterMeshIndexStride + emitterMeshIndexStride);
+    uint i2 = meshIndexBuffer.Load(tri * 3 * emitterMeshIndexStride + emitterMeshIndexStride * 2);
 
 	// load vertices of triangle from vertex buffer:
     float3 pos0 = asfloat(meshVertexBuffer.Load3(i0 * xEmitterMeshVertexPositionStride));
