@@ -884,19 +884,15 @@ bool LoadShaders() {
 }
 
 void GPUBarrier() {
-  ID3D11ShaderResourceView*
-      nullSRV[D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT] = {nullptr};
-  g_context->CSSetShaderResources(
-      0, D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT, nullSRV);
-  g_context->VSSetShaderResources(
-      0, D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT, nullSRV);
-  g_context->GSSetShaderResources(
-      0, D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT, nullSRV);
+  const uint32_t numSRVs = D3D11_COMMONSHADER_INPUT_RESOURCE_REGISTER_COUNT;
+  ID3D11ShaderResourceView* nullSRV[numSRVs] = {nullptr};
+  g_context->CSSetShaderResources(0, numSRVs, nullSRV);
+  g_context->VSSetShaderResources(0, numSRVs, nullSRV);
+  g_context->GSSetShaderResources(0, numSRVs, nullSRV);
 
-  ID3D11UnorderedAccessView* nullUAV[D3D11_PS_CS_UAV_REGISTER_COUNT] = {
-      nullptr};
-  g_context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT,
-                                       nullUAV, nullptr);
+  const uint32_t numUAVs = D3D11_PS_CS_UAV_REGISTER_COUNT;
+  ID3D11UnorderedAccessView* nullUAV[numUAVs] = {nullptr};
+  g_context->CSSetUnorderedAccessViews(0, numUAVs, nullUAV, nullptr);
 }
 
 void DrawSphere() {
