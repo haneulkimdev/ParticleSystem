@@ -140,3 +140,7 @@ void Camera::UpdateViewMatrix() {
   m_view(2, 3) = 0.0f;
   m_view(3, 3) = 1.0f;
 }
+
+void Camera::TransformView(const DirectX::SimpleMath::Matrix& transform) {
+  m_view *= transform;
+}

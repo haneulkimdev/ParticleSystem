@@ -42,6 +42,7 @@ uint32_t frameCount = 0;
 PointLight pointLight;
 
 Camera camera;
+std::shared_ptr<OrbitCamera> cameraController;
 
 float smoothingCoefficient = 10.0f;
 
@@ -371,6 +372,12 @@ void SetFloorHeight(float value) { floorHeight = value; }
 
 float GetFloorHeight() { return floorHeight; }
 
+void UpdateCamera(int mouseButton, Vector2 lastMousePos, Vector2 mousePos,
+                  Vector2 screenSize) {
+  cameraController->OnMouseInput(mouseButton, lastMousePos, mousePos,
+                                 screenSize);
+}
+
 bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   g_apiLogger = spdlogPtr;
 
@@ -506,6 +513,8 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
 
   camera.LookAt(pos, pos + forward, up);
   camera.UpdateViewMatrix();
+
+  cameraController.reset(new OrbitCamera(camera));
 
   pointLight.position = camera.GetPosition();
   pointLight.color = 0xffffffff;
