@@ -916,21 +916,101 @@ void DrawScene() {
   g_context->GSSetShader(nullptr, nullptr, 0);
   g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
 
-  for (auto& mesh : meshes) {
-    if (mesh.second == nullptr) continue;
+  auto mesh = meshes[ParticleSystem::emitter.meshName];
 
-    g_context->IASetVertexBuffers(0, 1,
-                                  mesh.second->vertexBuffer.GetAddressOf(),
-                                  &mesh.second->stride, &mesh.second->offset);
-    g_context->IASetIndexBuffer(mesh.second->indexBuffer.Get(),
-                                DXGI_FORMAT_R32_UINT, 0);
+  if (mesh == nullptr) return;
 
-    g_context->DrawIndexed(mesh.second->indexCount, 0, 0);
-  }
+  g_context->IASetVertexBuffers(0, 1, mesh->vertexBuffer.GetAddressOf(),
+                                &mesh->stride, &mesh->offset);
+  g_context->IASetIndexBuffer(mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+  g_context->DrawIndexed(mesh->indexCount, 0, 0);
 }
 
 void BuildGeometryBuffers() {
   GeometryGenerator geoGen;
+
+  {
+    auto model =
+        geoGen.LoadModel("../assets/models/free_-_tire_001_r17/scene.gltf");
+
+    Mesh tire;
+    tire.stride = sizeof(Vector3);
+    tire.offset = 0;
+
+    std::vector<Vector3> vertices;
+    std::vector<uint32_t> indices;
+    for (auto& x : model) {
+      tire.vertexCount += static_cast<uint32_t>(x.vertices.size());
+      for (size_t i = 0; i < x.vertices.size(); i++) {
+        vertices.push_back(x.vertices[i].position);
+      }
+
+      tire.indexCount += static_cast<uint32_t>(x.indices.size());
+      for (size_t i = 0; i < x.indices.size(); i++) {
+        indices.push_back(x.indices[i]);
+      }
+    }
+
+    {
+      D3D11_BUFFER_DESC vbd = {};
+      vbd.Usage = D3D11_USAGE_IMMUTABLE;
+      vbd.ByteWidth = sizeof(Vector3) * tire.vertexCount;
+      vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
+      vbd.CPUAccessFlags = 0;
+      vbd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+      D3D11_SUBRESOURCE_DATA vinitData = {};
+      vinitData.pSysMem = &vertices[0];
+
+      HRESULT hr = g_device->CreateBuffer(
+          &vbd, &vinitData, tire.vertexBuffer.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+      srvDesc.BufferEx.FirstElement = 0;
+      srvDesc.BufferEx.NumElements =
+          tire.vertexCount * (sizeof(Vector3) / sizeof(float));
+      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+
+      hr = g_device->CreateShaderResourceView(
+          tire.vertexBuffer.Get(), &srvDesc,
+          tire.vertexBufferSRV.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+    }
+
+    {
+      D3D11_BUFFER_DESC ibd = {};
+      ibd.Usage = D3D11_USAGE_IMMUTABLE;
+      ibd.ByteWidth = sizeof(uint32_t) * tire.indexCount;
+      ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
+      ibd.CPUAccessFlags = 0;
+      ibd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+      D3D11_SUBRESOURCE_DATA iinitData = {};
+      iinitData.pSysMem = &indices[0];
+
+      HRESULT hr = g_device->CreateBuffer(
+          &ibd, &iinitData, tire.indexBuffer.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
+
+      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+      srvDesc.BufferEx.FirstElement = 0;
+      srvDesc.BufferEx.NumElements = tire.indexCount;
+      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+
+      hr = g_device->CreateShaderResourceView(
+          tire.indexBuffer.Get(), &srvDesc,
+          tire.indexBufferSRV.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+    }
+
+    meshes["tire"] = std::make_shared<Mesh>(tire);
+  }
 
   {
     auto meshData = geoGen.CreateSphere(0.5f, 20, 20);

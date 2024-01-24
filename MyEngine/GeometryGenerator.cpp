@@ -237,4 +237,11 @@ MeshData GeometryGenerator::CreateQuad(float x, float y, float w, float h,
 
   return meshData;
 }
+
+std::vector<MeshData> GeometryGenerator::LoadModel(
+    const std::string& filename) {
+  ModelImporter importer;
+  importer.ImportModel(filename);
+  return importer.m_meshData;
+}
 }  // namespace my

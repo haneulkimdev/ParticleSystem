@@ -23,6 +23,7 @@
     <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="Helper.cpp" />
+    <ClCompile Include="ModelImporter.cpp" />
     <ClCompile Include="MyEngineAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +33,7 @@
     <ClInclude Include="Helper.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="MeshData.h" />
+    <ClInclude Include="ModelImporter.h" />
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="Vertex.h" />
   </ItemGroup>

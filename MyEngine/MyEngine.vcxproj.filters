@@ -6,6 +6,7 @@
     <ClCompile Include="Helper.cpp" />
     <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
+    <ClCompile Include="ModelImporter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyEngineAPI.h" />
@@ -16,6 +17,7 @@
     <ClInclude Include="Vertex.h" />
     <ClInclude Include="MeshData.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="ModelImporter.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">
