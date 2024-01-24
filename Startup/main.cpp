@@ -200,16 +200,6 @@ int main(int, char**) {
           "Invisible Button", renderTargetSize,
           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
       ImGui::SetItemAllowOverlap();
-      if (ImGui::IsItemActivated()) {
-        mouseButton = ImGui::IsMouseDown(ImGuiMouseButton_Left)
-                          ? ImGuiMouseButton_Left
-                          : ImGuiMouseButton_Right;
-        lastMousePos = mousePos;
-      } else if (ImGui::IsItemActive()) {
-        my::UpdateCamera(mouseButton, lastMousePos, mousePos,
-                         Vector2(renderTargetSize.x, renderTargetSize.y));
-        lastMousePos = mousePos;
-      }
 
       my::Update(ImGui::GetIO().DeltaTime);
       my::DoTest();

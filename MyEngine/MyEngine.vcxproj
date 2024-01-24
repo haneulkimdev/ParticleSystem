@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="Helper.cpp" />
     <ClCompile Include="ModelImporter.cpp" />
@@ -28,7 +27,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="CameraController.h" />
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="Helper.h" />
     <ClInclude Include="Mesh.h" />

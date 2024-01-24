@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "Camera.h"
-#include "CameraController.h"
 #include "GeometryGenerator.h"
 #include "Helper.h"
 #include "Mesh.h"
@@ -216,9 +215,6 @@ extern "C" MY_API bool IsWireframe();
 
 extern "C" MY_API void SetFloorHeight(float value);
 extern "C" MY_API float GetFloorHeight();
-
-extern "C" MY_API void UpdateCamera(int mouseButton, Vector2 lastMousePos,
-                                    Vector2 mousePos, Vector2 screenSize);
 
 extern "C" MY_API bool InitEngine(
     const std::shared_ptr<spdlog::logger>& spdlogPtr);

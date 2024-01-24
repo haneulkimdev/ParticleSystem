@@ -4,7 +4,6 @@
     <ClCompile Include="MyEngineAPI.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Helper.cpp" />
-    <ClCompile Include="CameraController.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="ModelImporter.cpp" />
   </ItemGroup>
@@ -12,7 +11,6 @@
     <ClInclude Include="MyEngineAPI.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Helper.h" />
-    <ClInclude Include="CameraController.h" />
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="Vertex.h" />
     <ClInclude Include="MeshData.h" />
