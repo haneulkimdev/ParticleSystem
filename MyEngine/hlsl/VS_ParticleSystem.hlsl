@@ -10,6 +10,8 @@ struct VertexOut
 
 StructuredBuffer<Particle> particles : register(t0);
 StructuredBuffer<uint> aliveList : register(t1);
+Buffer<float4> vertexBuffer_POSCOL : register(t2);
+Buffer<float4> vertexBuffer_NOR : register(t3);
 
 VertexOut main(uint vertexID : SV_VertexID)
 {
