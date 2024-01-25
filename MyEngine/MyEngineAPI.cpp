@@ -253,10 +253,11 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
     g_context->Unmap(constantBuffer.Get(), 0);
   }
 
+  g_context->CSSetConstantBuffers(1, 1, constantBuffer.GetAddressOf());
+
   // kick off updating, set up state
   {
     g_context->CSSetShader(ParticleSystem::kickoffUpdateCS.Get(), nullptr, 0);
-    g_context->CSSetConstantBuffers(1, 1, constantBuffer.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(4, 1, counterBufferUAV.GetAddressOf(),
                                          nullptr);
     g_context->Dispatch(1, 1, 1);
@@ -268,8 +269,6 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
   {
     g_context->CSSetShader(
         mesh == nullptr ? emitCS.Get() : emitCS_FROMMESH.Get(), nullptr, 0);
-    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, constantBuffer.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, particleBufferUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, aliveListUAV[0].GetAddressOf(),
@@ -296,9 +295,6 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
   // update CURRENT alive list, write NEW alive list
   {
     g_context->CSSetShader(ParticleSystem::simulateCS.Get(), nullptr, 0);
-    g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
-    g_context->CSSetConstantBuffers(1, 1, constantBuffer.GetAddressOf());
-    g_context->CSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
     g_context->CSSetUnorderedAccessViews(0, 1, particleBufferUAV.GetAddressOf(),
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(1, 1, aliveListUAV[0].GetAddressOf(),
@@ -348,7 +344,6 @@ void Draw() {
   g_context->OMSetBlendState(g_blendState.Get(), nullptr, 0xffffffff);
 
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-  g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
   g_context->VSSetShaderResources(0, 1, particleBufferSRV.GetAddressOf());
   g_context->GSSetShaderResources(0, 1, particleBufferSRV.GetAddressOf());
   g_context->Draw(static_cast<UINT>(MAX_PARTICLES), 0);
@@ -626,6 +621,11 @@ void Update(float dt) {
     g_context->Unmap(g_frameCB.Get(), 0);
   }
 
+  g_context->VSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+  g_context->GSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+  g_context->PSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+  g_context->CSSetConstantBuffers(0, 1, g_frameCB.GetAddressOf());
+
   // Update post renderer constant buffer.
   {
     PostRenderer quadRenderer = {};
@@ -648,6 +648,11 @@ void Update(float dt) {
     memcpy(mappedResource.pData, &quadRenderer, sizeof(quadRenderer));
     g_context->Unmap(g_quadRendererCB.Get(), 0);
   }
+
+  g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
+  g_context->GSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
+  g_context->PSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
+  g_context->CSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
 }
 
 bool DoTest() {
@@ -905,7 +910,6 @@ void DrawScene() {
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
   g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
-  g_context->VSSetConstantBuffers(2, 1, g_quadRendererCB.GetAddressOf());
   g_context->GSSetShader(nullptr, nullptr, 0);
   g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
 
