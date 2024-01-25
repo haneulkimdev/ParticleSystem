@@ -913,7 +913,7 @@ void DrawScene() {
   g_context->GSSetShader(nullptr, nullptr, 0);
   g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
 
-  auto mesh = meshes[ParticleSystem::emitter.meshName];
+  auto& mesh = meshes[ParticleSystem::emitter.meshName];
 
   if (mesh == nullptr) return;
 
