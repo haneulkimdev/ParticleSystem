@@ -243,7 +243,7 @@ int main(int, char**) {
 
         Vector3 translation = emitter->transform.Translation();
         float position[3] = {translation.x, translation.y, translation.z};
-        ImGui::SliderFloat3("Position", position, -1.0f, 1.0f);
+        ImGui::SliderFloat3("Position", position, -10.0f, 10.0f);
         emitter->transform =
             Matrix::CreateTranslation(position[0], position[1], position[2]);
 
@@ -271,8 +271,19 @@ int main(int, char**) {
       }
 
       if (ImGui::CollapsingHeader("Scene")) {
+        ImGui::SeparatorText("Camera");
+        auto camera = my::GetCamera();
+        Vector3 cameraPos = camera->GetPosition();
+        float position[3] = {cameraPos.x, cameraPos.y, cameraPos.z};
+        ImGui::SliderFloat3("Camera Position", position, -10.0f, 10.0f);
+
+        camera->LookAt(Vector3(position[0], position[1], position[2]),
+                       Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));
+        camera->UpdateViewMatrix();
+
+        ImGui::SeparatorText("Floor");
         float floorHeight = my::GetFloorHeight();
-        ImGui::SliderFloat("Floor Height", &floorHeight, -1.0f, 0.0f);
+        ImGui::SliderFloat("Floor Height", &floorHeight, -10.0f, 0.0f);
         my::SetFloorHeight(floorHeight);
       }
 

@@ -52,6 +52,14 @@ void main(uint3 DTid : SV_DispatchThreadID)
         uint newAliveIndex;
         counterBuffer.InterlockedAdd(PARTICLECOUNTER_OFFSET_ALIVECOUNT_AFTERSIMULATION, 1, newAliveIndex);
         aliveBuffer_NEW[newAliveIndex] = particleIndex;
+        
+        // Write out render buffers:
+        float opacity = saturate(lerp(1, 0, lifeLerp));
+        float4 particleColor = unpack_rgba(particle.color);
+        particleColor.a *= opacity;
+        
+        vertexBuffer_POSCOL[particleIndex] = float4(particle.position, pack_rgba(particleColor));
+        vertexBuffer_NOR[particleIndex] = float4(normalize(-camDir), 0);
     }
     else
     {
@@ -59,5 +67,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
         uint deadIndex;
         counterBuffer.InterlockedAdd(PARTICLECOUNTER_OFFSET_DEADCOUNT, 1, deadIndex);
         deadBuffer[deadIndex] = particleIndex;
+        
+        vertexBuffer_POSCOL[particleIndex] = 0;
     }
 }

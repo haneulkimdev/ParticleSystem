@@ -569,7 +569,7 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   BuildGeometryBuffers();
 
   // Build the view matrix.
-  Vector3 pos(0.0f, 0.0f, -5.0f);
+  Vector3 pos(0.0f, 0.0f, -3.0f);
   Vector3 forward(0.0f, 0.0f, 1.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
