@@ -189,7 +189,7 @@ void CreateSelfBuffers() {
       D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
       srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
       srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = buffer_offset / sizeof(Vector4);
+      srvDesc.Buffer.FirstElement = uint32_t(buffer_offset / sizeof(Vector4));
       srvDesc.Buffer.NumElements = MAX_PARTICLES;
 
       hr = g_device->CreateShaderResourceView(
@@ -199,39 +199,37 @@ void CreateSelfBuffers() {
       D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
       uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
       uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-      uavDesc.Buffer.FirstElement = buffer_offset / sizeof(Vector4);
+      uavDesc.Buffer.FirstElement = uint32_t(buffer_offset / sizeof(Vector4));
       uavDesc.Buffer.NumElements = MAX_PARTICLES;
 
       hr = g_device->CreateUnorderedAccessView(
           generalBuffer.Get(), &uavDesc, vbUAV_posCol.ReleaseAndGetAddressOf());
       if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
     }
-    buffer_offset += sizeof(Vector4);
+    buffer_offset += sizeof(Vector4) * MAX_PARTICLES;
 
     {
       D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
       srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
       srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = buffer_offset / sizeof(Vector4);
+      srvDesc.Buffer.FirstElement = uint32_t(buffer_offset / sizeof(Vector4));
       srvDesc.Buffer.NumElements = MAX_PARTICLES;
-      buffer_offset += sizeof(Vector4);
 
       hr = g_device->CreateShaderResourceView(
-          generalBuffer.Get(), &srvDesc, vbSRV_nor.ReleaseAndGetAddressOf());
+          generalBuffer.Get(), &srvDesc, vbSRV_posCol.ReleaseAndGetAddressOf());
       if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
 
       D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
       uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
       uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-      uavDesc.Buffer.FirstElement = buffer_offset / sizeof(Vector4);
+      uavDesc.Buffer.FirstElement = uint32_t(buffer_offset / sizeof(Vector4));
       uavDesc.Buffer.NumElements = MAX_PARTICLES;
-      buffer_offset += sizeof(Vector4);
 
       hr = g_device->CreateUnorderedAccessView(
-          generalBuffer.Get(), &uavDesc, vbUAV_nor.ReleaseAndGetAddressOf());
+          generalBuffer.Get(), &uavDesc, vbUAV_posCol.ReleaseAndGetAddressOf());
       if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
     }
-    buffer_offset += sizeof(Vector4);
+    buffer_offset += sizeof(Vector4) * MAX_PARTICLES;
   }
 
   // Particle System statistics:
