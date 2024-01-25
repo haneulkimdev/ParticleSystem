@@ -363,6 +363,8 @@ ParticleEmitter* GetParticleEmitter() { return &emitter; }
 ParticleCounters GetStatistics() { return statistics; }
 }  // namespace ParticleSystem
 
+Camera* GetCamera() { return &my::camera; }
+
 void SetWireframe(bool value) { isWireframe = value; }
 
 bool IsWireframe() { return isWireframe; }

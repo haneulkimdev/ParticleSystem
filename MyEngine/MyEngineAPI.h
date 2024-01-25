@@ -210,6 +210,8 @@ extern "C" MY_API ParticleEmitter* GetParticleEmitter();
 extern "C" MY_API ParticleCounters GetStatistics();
 }  // namespace ParticleSystem
 
+extern "C" MY_API Camera* GetCamera();
+
 extern "C" MY_API void SetWireframe(bool value);
 extern "C" MY_API bool IsWireframe();
 

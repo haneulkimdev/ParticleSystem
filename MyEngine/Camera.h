@@ -2,7 +2,9 @@
 
 #include "SimpleMath.h"
 
-class Camera {
+#define MY_API __declspec(dllexport)
+
+class MY_API Camera {
  public:
   Camera();
   ~Camera();
