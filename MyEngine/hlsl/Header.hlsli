@@ -100,6 +100,9 @@ cbuffer cbQuadRenderer : register(b2)
     float4x4 matWS2PS;
     float4x4 matPS2WS;
 
+    float3 camDir;
+    float dummy0;
+
     float2 rtSize;
     float smoothingCoefficient;
     float floorHeight;
