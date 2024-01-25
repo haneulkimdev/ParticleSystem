@@ -160,6 +160,9 @@ struct alignas(16) PostRenderer {
   float4x4 matWS2PS;
   float4x4 matPS2WS;
 
+  float3 camDir;
+  float dummy0;
+
   float2 rtSize;
   float smoothingCoefficient;
   float floorHeight;
@@ -178,6 +181,7 @@ ComPtr<ID3D11Buffer> aliveList[2];
 ComPtr<ID3D11Buffer> deadList;
 ComPtr<ID3D11Buffer> counterBuffer;
 ComPtr<ID3D11Buffer> constantBuffer;
+ComPtr<ID3D11Buffer> generalBuffer;
 
 ComPtr<ID3D11ShaderResourceView> particleBufferSRV;
 ComPtr<ID3D11UnorderedAccessView> particleBufferUAV;
@@ -185,6 +189,10 @@ ComPtr<ID3D11ShaderResourceView> aliveListSRV[2];
 ComPtr<ID3D11UnorderedAccessView> aliveListUAV[2];
 ComPtr<ID3D11UnorderedAccessView> deadListUAV;
 ComPtr<ID3D11UnorderedAccessView> counterBufferUAV;
+ComPtr<ID3D11ShaderResourceView> vbSRV_posCol;
+ComPtr<ID3D11UnorderedAccessView> vbUAV_posCol;
+ComPtr<ID3D11ShaderResourceView> vbSRV_nor;
+ComPtr<ID3D11UnorderedAccessView> vbUAV_nor;
 
 ComPtr<ID3D11VertexShader> vertexShader;
 ComPtr<ID3D11GeometryShader> geometryShader;
