@@ -57,8 +57,6 @@ class MY_API Camera {
   // matrix.
   void UpdateViewMatrix();
 
-  void TransformView(const DirectX::SimpleMath::Matrix& transform);
-
  private:
   // Camera coordinate system with coordinates relative to world space.
   DirectX::SimpleMath::Vector3 m_position;
