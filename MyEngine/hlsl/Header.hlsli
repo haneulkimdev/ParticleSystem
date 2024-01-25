@@ -96,6 +96,7 @@ cbuffer cbQuadRenderer : register(b2)
     float3 posLight; // WS
     float lightIntensity;
 
+    float4x4 matWS2CS;
     float4x4 matWS2PS;
     float4x4 matPS2WS;
 

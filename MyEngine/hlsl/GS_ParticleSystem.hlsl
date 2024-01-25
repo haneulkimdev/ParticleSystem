@@ -16,6 +16,14 @@ struct GeoOut
     uint primID : SV_PrimitiveID;
 };
 
+static const float3 BILLBOARD[] =
+{
+    float3(-1, -1, 0), // 0
+	float3(-1, 1, 0), // 2
+	float3(1, -1, 0), // 1
+	float3(1, 1, 0), // 3
+};
+
 StructuredBuffer<Particle> particles : register(t0);
 
 [maxvertexcount(4)]
@@ -33,37 +41,32 @@ void main(
     
     float rotation = lifeLerp * particle.rotationalVelocity;
     float2x2 rot = float2x2(cos(rotation), -sin(rotation), sin(rotation), cos(rotation));
-    
-    float hw = particleSize / 2.0f;
-    float3 up = float3(0.0f, 1.0f, 0.0f);
-    float3 right = float3(1.0f, 0.0f, 0.0f);
-    
-    up.xy = mul(up.xy, rot);
-    right.xy = mul(right.xy, rot);
-    
+        
     GeoOut gout;
     gout.pos.w = 1;
     gout.color = gin[0].color;
     
-    gout.pos.xyz = gin[0].position.xyz - hw * right - hw * up;
-    gout.texCoord = float2(0.0, 1.0);
-    gout.primID = primID;
-    triStream.Append(gout);
-    
-    gout.pos.xyz = gin[0].position.xyz - hw * right + hw * up;
-    gout.texCoord = float2(0.0, 0.0);
-    gout.primID = primID;
-    triStream.Append(gout);
-    
-    gout.pos.xyz = gin[0].position.xyz + hw * right - hw * up;
-    gout.texCoord = float2(1.0, 1.0);
-    gout.primID = primID;
-    triStream.Append(gout);
-    
-    gout.pos.xyz = gin[0].position.xyz + hw * right + hw * up;
-    gout.texCoord = float2(1.0, 0.0);
-    gout.primID = primID;
-    triStream.Append(gout);
+    for (uint i = 0; i < 4; i++)
+    {
+        // expand the point into a billboard in view space:
+        float3 quadPos = BILLBOARD[i];
+        float2 uv = quadPos.xy * float2(0.5f, -0.5f) + 0.5f;
+        
+        // rotate the billboard:
+        quadPos.xy = mul(quadPos.xy, rot);
+        
+        // scale the billboard:
+        quadPos.xy *= particleSize;
+        
+        // rotate the billboard to face the camera:
+        quadPos = mul((float3x3) matWS2CS, quadPos); // reversed mul for inverse camera rotation!
+        
+        gout.pos.xyz = gin[0].position.xyz + quadPos;
+        gout.texCoord = uv;
+        gout.primID = primID;
+        
+        triStream.Append(gout);
+    }
     
     triStream.RestartStrip();
 }

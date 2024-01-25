@@ -252,7 +252,7 @@ int main(int, char**) {
         emitter->color = ImGui::ColorConvertFloat4ToU32(color);
 
         ImGui::SliderFloat("Emit", &emitter->count, 0, 10000);
-        ImGui::SliderFloat("Size", &emitter->size, 0.01f, 10.0f);
+        ImGui::SliderFloat("Size", &emitter->size, 0.001f, 10.0f);
         ImGui::SliderFloat("Rotation", &emitter->rotation, 0.0f, 1.0f);
         ImGui::SliderFloat("Normal factor", &emitter->normal_factor, 0.0f,
                            100.0f);

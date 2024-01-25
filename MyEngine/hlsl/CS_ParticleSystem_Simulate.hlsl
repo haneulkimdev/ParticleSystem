@@ -35,18 +35,13 @@ void main(uint3 DTid : SV_DispatchThreadID)
     if (particle.life > 0)
     {
         // floor collision:
-        if (particle.position.y < floorHeight)
+        if (particle.position.y - particleSize < floorHeight)
         {
+            particle.position.y = particleSize + floorHeight;
             particle.velocity.y *= -xEmitterRestitution;
         }
         
         particle.life -= dt;
-        
-        float opacity = saturate(lerp(1, 0, lifeLerp));
-        float4 particleColor = unpack_rgba(particle.color);
-        particleColor.a *= opacity;
-        
-        particle.color = pack_rgba(particleColor);
         
         // write back simulated particle:
         particleBuffer[particleIndex] = particle;

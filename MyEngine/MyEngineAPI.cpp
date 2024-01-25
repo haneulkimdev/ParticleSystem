@@ -455,6 +455,7 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   if (FAILED(hr)) FailRet("CreateRasterizerState Failed.");
 
   rasterizerDesc.FillMode = D3D11_FILL_WIREFRAME;
+  rasterizerDesc.CullMode = D3D11_CULL_NONE;
 
   hr = g_device->CreateRasterizerState(&rasterizerDesc,
                                        g_wireframeRS.ReleaseAndGetAddressOf());
@@ -633,6 +634,7 @@ void Update(float dt) {
     quadRenderer.lightColor = pointLight.color;
     quadRenderer.posLight = pointLight.position;
     quadRenderer.lightIntensity = pointLight.intensity;
+    quadRenderer.matWS2CS = camera.View().Transpose();
     quadRenderer.matWS2PS = camera.ViewProj().Transpose();
     quadRenderer.matPS2WS = camera.ViewProj().Invert().Transpose();
     quadRenderer.rtSize = Vector2(static_cast<float>(renderTargetWidth),

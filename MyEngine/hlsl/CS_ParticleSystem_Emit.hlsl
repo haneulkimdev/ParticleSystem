@@ -21,6 +21,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     RNG rng;
     rng.init(uint2(xEmitterRandomness, DTid.x), frame_count);
     
+    const float4x4 worldMatrix = xEmitterWorld;
     float3 emitPos = 0;
     float3 nor = 0;
     float3 velocity = xParticleVelocity;
@@ -32,10 +33,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
     const uint tri = rng.next_uint(triangleCount);
 
 	// load indices of triangle from index buffer
-    const uint emitterMeshIndexStride = 4;
-    uint i0 = meshIndexBuffer.Load(tri * 3 * emitterMeshIndexStride);
-    uint i1 = meshIndexBuffer.Load(tri * 3 * emitterMeshIndexStride + emitterMeshIndexStride);
-    uint i2 = meshIndexBuffer.Load(tri * 3 * emitterMeshIndexStride + emitterMeshIndexStride * 2);
+    const uint stride = 4;
+    uint i0 = meshIndexBuffer.Load(tri * 3 * stride);
+    uint i1 = meshIndexBuffer.Load(tri * 3 * stride + stride);
+    uint i2 = meshIndexBuffer.Load(tri * 3 * stride + stride * 2);
 
 	// load vertices of triangle from vertex buffer:
     float3 pos0 = asfloat(meshVertexBuffer.Load3(i0 * xEmitterMeshVertexPositionStride));
@@ -55,22 +56,21 @@ void main(uint3 DTid : SV_DispatchThreadID)
 
 	// compute final surface position on triangle from barycentric coords:
     emitPos = attribute_at_bary(pos0, pos1, pos2, bary);
-    emitPos /= 10;
     nor = normalize(cross(pos1 - pos0, pos2 - pos0));
-    nor = normalize(mul(nor, (float3x3) xEmitterWorld));
+    nor = normalize(mul(nor, (float3x3) worldMatrix));
     
 #else
     // Just emit from center point:
     emitPos = 0;
 #endif // EMIT_FROM_MESH
     
-    float3 pos = mul(float4(emitPos, 1), xEmitterWorld).xyz;
+    float3 pos = mul(float4(emitPos, 1), worldMatrix).xyz;
     
     float particleStartingSize = xParticleSize + xParticleSize * (rng.next_float() - 0.5f) * xParticleRandomFactor;
     
     // create new particle:
     Particle particle;
-    particle.position = mul(float4(pos, 1), matWS2PS).xyz;
+    particle.position = pos;
     particle.force = 0;
     particle.mass = xParticleMass;
     particle.velocity = velocity + (nor + (float3(rng.next_float(), rng.next_float(), rng.next_float()) - 0.5f) * xParticleRandomFactor) * xParticleNormalFactor;

@@ -54,7 +54,7 @@ struct ParticleEmitter {
   Matrix transform;
   uint color = 0xffffffff;
 
-  float size = 0.01f;
+  float size = 0.001f;
   float random_factor = 1.0f;
   float normal_factor = 1.0f;
   float count = 1000.0f;
@@ -156,6 +156,7 @@ struct alignas(16) PostRenderer {
   float3 posLight;  // WS
   float lightIntensity;
 
+  float4x4 matWS2CS;
   float4x4 matWS2PS;
   float4x4 matPS2WS;
 
