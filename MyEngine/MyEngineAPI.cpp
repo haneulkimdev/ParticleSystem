@@ -45,7 +45,7 @@ Camera camera;
 
 float smoothingCoefficient = 10.0f;
 
-float floorHeight = -1.0f;
+float floorHeight = -3.5f;
 
 Vector3 distBoxCenter;
 float distBoxSize;
@@ -569,14 +569,14 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   BuildGeometryBuffers();
 
   // Build the view matrix.
-  Vector3 pos(0.0f, 0.0f, -3.0f);
-  Vector3 forward(0.0f, 0.0f, 1.0f);
+  Vector3 pos(0.0f, 2.0f, -15.0f);
+  Vector3 target(0.0f, 0.0f, 0.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
-  camera.LookAt(pos, pos + forward, up);
+  camera.LookAt(pos, target, up);
   camera.UpdateViewMatrix();
 
-  pointLight.position = camera.GetPosition();
+  pointLight.position = Vector3(0.0f, 10.0f, 0.0f);
   pointLight.color = 0xffffffff;
   pointLight.intensity = 1.0f;
 

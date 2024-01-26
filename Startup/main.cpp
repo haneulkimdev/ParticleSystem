@@ -243,7 +243,7 @@ int main(int, char**) {
 
         Vector3 translation = emitter->transform.Translation();
         float position[3] = {translation.x, translation.y, translation.z};
-        ImGui::SliderFloat3("Position", position, -10.0f, 10.0f);
+        ImGui::InputFloat3("Particle Position", position);
         emitter->transform =
             Matrix::CreateTranslation(position[0], position[1], position[2]);
 
@@ -252,7 +252,7 @@ int main(int, char**) {
         emitter->color = ImGui::ColorConvertFloat4ToU32(color);
 
         ImGui::SliderFloat("Emit", &emitter->count, 0, 10000);
-        ImGui::SliderFloat("Size", &emitter->size, 0.001f, 10.0f);
+        ImGui::SliderFloat("Size", &emitter->size, 0.01f, 10.0f);
         ImGui::SliderFloat("Rotation", &emitter->rotation, 0.0f, 1.0f);
         ImGui::SliderFloat("Normal factor", &emitter->normal_factor, 0.0f,
                            100.0f);
@@ -275,15 +275,19 @@ int main(int, char**) {
         auto camera = my::GetCamera();
         Vector3 cameraPos = camera->GetPosition();
         float position[3] = {cameraPos.x, cameraPos.y, cameraPos.z};
-        ImGui::SliderFloat3("Camera Position", position, -10.0f, 10.0f);
+        ImGui::InputFloat3("Camera Position", position);
 
-        camera->LookAt(Vector3(position[0], position[1], position[2]),
-                       Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));
+        // Build the view matrix.
+        Vector3 pos(position[0], position[1], position[2]);
+        Vector3 target(0.0f, 0.0f, 0.0f);
+        Vector3 up(0.0f, 1.0f, 0.0f);
+
+        camera->LookAt(pos, target, up);
         camera->UpdateViewMatrix();
 
         ImGui::SeparatorText("Floor");
         float floorHeight = my::GetFloorHeight();
-        ImGui::SliderFloat("Floor Height", &floorHeight, -10.0f, 0.0f);
+        ImGui::InputFloat("Floor Height", &floorHeight);
         my::SetFloorHeight(floorHeight);
       }
 

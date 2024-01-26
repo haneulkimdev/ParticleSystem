@@ -54,10 +54,10 @@ struct ParticleEmitter {
   Matrix transform;
   uint color = 0xffffffff;
 
-  float size = 0.001f;
+  float size = 1.0f;
   float random_factor = 1.0f;
   float normal_factor = 1.0f;
-  float count = 1000.0f;
+  float count = 10.0f;
   float life = 1.0f;
   float random_life = 1.0f;
   float scale = 1.0f;
