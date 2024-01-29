@@ -14,7 +14,7 @@
 #include "Camera.h"
 #include "GeometryGenerator.h"
 #include "Helper.h"
-#include "Mesh.h"
+#include "Model.h"
 #include "SimpleMath.h"
 #include "spdlog/spdlog.h"
 
@@ -214,7 +214,7 @@ void CreateSelfBuffers();
 
 void UpdateCPU(float dt);
 
-void UpdateGPU(const std::shared_ptr<Mesh>& mesh);
+void UpdateGPU(uint32_t instanceIndex, const std::shared_ptr<Mesh>& mesh);
 void Draw();
 
 extern "C" MY_API ParticleEmitter* GetParticleEmitter();
@@ -244,8 +244,4 @@ extern "C" MY_API void DeinitEngine();
 extern "C" MY_API bool LoadShaders();
 
 static void GPUBarrier();
-
-void DrawScene();
-
-void BuildGeometryBuffers();
 }  // namespace my

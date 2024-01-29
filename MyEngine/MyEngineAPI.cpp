@@ -50,7 +50,7 @@ float floorHeight = -3.5f;
 Vector3 distBoxCenter;
 float distBoxSize;
 
-std::unordered_map<std::string, std::shared_ptr<Mesh>> meshes;
+std::unordered_map<std::string, std::shared_ptr<Model>> models;
 
 D3D11_VIEWPORT viewport;
 
@@ -314,7 +314,11 @@ void CreateSelfBuffers() {
   }
 }
 
-void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
+void UpdateGPU(uint32_t instanceIndex, const std::shared_ptr<Model>& model) {
+  Mesh* mesh = nullptr;
+  if (model != nullptr && model->m_meshes.size() > 0)
+    mesh = model->m_meshes[0].get();
+
   // Update emitter properties constant buffer.
   {
     std::random_device rd;
@@ -600,9 +604,14 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
 
   LoadShaders();
 
-  ParticleSystem::CreateSelfBuffers();
+  auto model = GeometryGenerator::LoadModel(
+      "../assets/models/free_-_tire_001_r17/scene.gltf");
 
-  BuildGeometryBuffers();
+  Model tire;
+  tire.Initialize(g_device, g_context, model);
+  models["tire"] = std::make_shared<Model>(tire);
+
+  ParticleSystem::CreateSelfBuffers();
 
   // Build the view matrix.
   Vector3 pos(0.0f, 2.0f, -15.0f);
@@ -712,6 +721,13 @@ bool SetRenderTargetSize(int w, int h) {
 }
 
 void Update(float dt) {
+  for (auto& model : models) {
+    if (model.second == nullptr) continue;
+    if (model.first == ParticleSystem::emitter.meshName)
+      model.second->m_transform = ParticleSystem::emitter.transform;
+    model.second->Update(g_device, g_context);
+  }
+
   dt *= 0.5f;
 
   ParticleSystem::UpdateCPU(dt);
@@ -777,10 +793,20 @@ bool DoTest() {
     g_context->RSSetState(g_rasterizerState.Get());
 
   g_context->OMSetDepthStencilState(g_depthStencilState.Get(), 0);
+  g_context->OMSetBlendState(g_blendState.Get(), nullptr, 0xffffffff);
 
-  DrawScene();
+  g_context->IASetInputLayout(g_inputLayout.Get());
 
-  ParticleSystem::UpdateGPU(meshes[ParticleSystem::emitter.meshName]);
+  g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
+  g_context->GSSetShader(nullptr, nullptr, 0);
+  g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
+
+  g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+  if (models[ParticleSystem::emitter.meshName] != nullptr)
+    models[ParticleSystem::emitter.meshName]->Draw(g_context);
+
+  ParticleSystem::UpdateGPU(0, models[ParticleSystem::emitter.meshName]);
   ParticleSystem::Draw();
 
   return true;
@@ -875,13 +901,7 @@ void DeinitEngine() {
   ParticleSystem::emitCS_FROMMESH.Reset();
   ParticleSystem::simulateCS.Reset();
 
-  for (auto& mesh : meshes) {
-    if (mesh.second == nullptr) continue;
-    mesh.second->vertexBuffer.Reset();
-    mesh.second->indexBuffer.Reset();
-    mesh.second->vertexBufferSRV.Reset();
-    mesh.second->indexBufferSRV.Reset();
-  }
+  models.clear();
 
   // Input Layouts
   g_inputLayout.Reset();
@@ -1020,258 +1040,5 @@ void GPUBarrier() {
   const uint32_t numUAVs = D3D11_PS_CS_UAV_REGISTER_COUNT;
   ID3D11UnorderedAccessView* nullUAV[numUAVs] = {nullptr};
   g_context->CSSetUnorderedAccessViews(0, numUAVs, nullUAV, nullptr);
-}
-
-void DrawScene() {
-  g_context->IASetInputLayout(g_inputLayout.Get());
-  g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-  g_context->VSSetShader(g_vertexShader.Get(), nullptr, 0);
-  g_context->GSSetShader(nullptr, nullptr, 0);
-  g_context->PSSetShader(g_pixelShader.Get(), nullptr, 0);
-
-  auto& mesh = meshes[ParticleSystem::emitter.meshName];
-
-  if (mesh == nullptr) return;
-
-  g_context->IASetVertexBuffers(0, 1, mesh->vertexBuffer.GetAddressOf(),
-                                &mesh->stride, &mesh->offset);
-  g_context->IASetIndexBuffer(mesh->indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-  g_context->DrawIndexed(mesh->indexCount, 0, 0);
-}
-
-void BuildGeometryBuffers() {
-  GeometryGenerator geoGen;
-
-  {
-    auto model =
-        geoGen.LoadModel("../assets/models/free_-_tire_001_r17/scene.gltf");
-
-    Mesh tire;
-    tire.stride = sizeof(Vector3);
-    tire.offset = 0;
-
-    std::vector<Vector3> vertices;
-    std::vector<uint32_t> indices;
-    for (auto& x : model) {
-      tire.vertexCount += static_cast<uint32_t>(x.vertices.size());
-      for (size_t i = 0; i < x.vertices.size(); i++) {
-        vertices.push_back(x.vertices[i].position);
-      }
-
-      tire.indexCount += static_cast<uint32_t>(x.indices.size());
-      for (size_t i = 0; i < x.indices.size(); i++) {
-        indices.push_back(x.indices[i]);
-      }
-    }
-
-    {
-      D3D11_BUFFER_DESC vbd = {};
-      vbd.Usage = D3D11_USAGE_IMMUTABLE;
-      vbd.ByteWidth = sizeof(Vector3) * tire.vertexCount;
-      vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-      vbd.CPUAccessFlags = 0;
-      vbd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-      D3D11_SUBRESOURCE_DATA vinitData = {};
-      vinitData.pSysMem = &vertices[0];
-
-      HRESULT hr = g_device->CreateBuffer(
-          &vbd, &vinitData, tire.vertexBuffer.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-      srvDesc.BufferEx.FirstElement = 0;
-      srvDesc.BufferEx.NumElements =
-          tire.vertexCount * (sizeof(Vector3) / sizeof(float));
-      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
-
-      hr = g_device->CreateShaderResourceView(
-          tire.vertexBuffer.Get(), &srvDesc,
-          tire.vertexBufferSRV.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-
-    {
-      D3D11_BUFFER_DESC ibd = {};
-      ibd.Usage = D3D11_USAGE_IMMUTABLE;
-      ibd.ByteWidth = sizeof(uint32_t) * tire.indexCount;
-      ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-      ibd.CPUAccessFlags = 0;
-      ibd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-      D3D11_SUBRESOURCE_DATA iinitData = {};
-      iinitData.pSysMem = &indices[0];
-
-      HRESULT hr = g_device->CreateBuffer(
-          &ibd, &iinitData, tire.indexBuffer.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-      srvDesc.BufferEx.FirstElement = 0;
-      srvDesc.BufferEx.NumElements = tire.indexCount;
-      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
-
-      hr = g_device->CreateShaderResourceView(
-          tire.indexBuffer.Get(), &srvDesc,
-          tire.indexBufferSRV.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-
-    meshes["tire"] = std::make_shared<Mesh>(tire);
-  }
-
-  {
-    auto meshData = geoGen.CreateSphere(0.5f, 20, 20);
-
-    Mesh sphere;
-    sphere.indexCount = static_cast<uint32_t>(meshData.indices.size());
-    sphere.vertexCount = static_cast<uint32_t>(meshData.vertices.size());
-    sphere.stride = sizeof(Vector3);
-    sphere.offset = 0;
-
-    std::vector<Vector3> vertices(meshData.vertices.size());
-    for (size_t i = 0; i < meshData.vertices.size(); i++) {
-      vertices[i] = meshData.vertices[i].position;
-    }
-
-    {
-      D3D11_BUFFER_DESC vbd = {};
-      vbd.Usage = D3D11_USAGE_IMMUTABLE;
-      vbd.ByteWidth = sizeof(Vector3) * sphere.vertexCount;
-      vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-      vbd.CPUAccessFlags = 0;
-      vbd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-      D3D11_SUBRESOURCE_DATA vinitData = {};
-      vinitData.pSysMem = &vertices[0];
-
-      HRESULT hr = g_device->CreateBuffer(
-          &vbd, &vinitData, sphere.vertexBuffer.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-      srvDesc.BufferEx.FirstElement = 0;
-      srvDesc.BufferEx.NumElements =
-          sphere.vertexCount * (sizeof(Vector3) / sizeof(float));
-      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
-
-      hr = g_device->CreateShaderResourceView(
-          sphere.vertexBuffer.Get(), &srvDesc,
-          sphere.vertexBufferSRV.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-
-    {
-      D3D11_BUFFER_DESC ibd = {};
-      ibd.Usage = D3D11_USAGE_IMMUTABLE;
-      ibd.ByteWidth = sizeof(uint32_t) * sphere.indexCount;
-      ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-      ibd.CPUAccessFlags = 0;
-      ibd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-      D3D11_SUBRESOURCE_DATA iinitData = {};
-      iinitData.pSysMem = &meshData.indices[0];
-
-      HRESULT hr = g_device->CreateBuffer(
-          &ibd, &iinitData, sphere.indexBuffer.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-      srvDesc.BufferEx.FirstElement = 0;
-      srvDesc.BufferEx.NumElements = sphere.indexCount;
-      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
-
-      hr = g_device->CreateShaderResourceView(
-          sphere.indexBuffer.Get(), &srvDesc,
-          sphere.indexBufferSRV.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-
-    meshes["sphere"] = std::make_shared<Mesh>(sphere);
-  }
-
-  {
-    auto meshData = geoGen.CreateBox(1.0f, 1.0f, 1.0f);
-
-    Mesh box;
-    box.indexCount = static_cast<uint32_t>(meshData.indices.size());
-    box.vertexCount = static_cast<uint32_t>(meshData.vertices.size());
-    box.stride = sizeof(Vector3);
-    box.offset = 0;
-
-    std::vector<Vector3> vertices(meshData.vertices.size());
-    for (size_t i = 0; i < meshData.vertices.size(); i++) {
-      vertices[i] = meshData.vertices[i].position;
-    }
-
-    {
-      D3D11_BUFFER_DESC vbd = {};
-      vbd.Usage = D3D11_USAGE_IMMUTABLE;
-      vbd.ByteWidth = sizeof(Vector3) * box.vertexCount;
-      vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-      vbd.CPUAccessFlags = 0;
-      vbd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-      D3D11_SUBRESOURCE_DATA vinitData = {};
-      vinitData.pSysMem = &vertices[0];
-
-      HRESULT hr = g_device->CreateBuffer(
-          &vbd, &vinitData, box.vertexBuffer.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-      srvDesc.BufferEx.FirstElement = 0;
-      srvDesc.BufferEx.NumElements =
-          box.vertexCount * (sizeof(Vector3) / sizeof(float));
-      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
-
-      hr = g_device->CreateShaderResourceView(
-          box.vertexBuffer.Get(), &srvDesc,
-          box.vertexBufferSRV.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-
-    {
-      D3D11_BUFFER_DESC ibd = {};
-      ibd.Usage = D3D11_USAGE_IMMUTABLE;
-      ibd.ByteWidth = sizeof(uint32_t) * box.indexCount;
-      ibd.BindFlags = D3D11_BIND_INDEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
-      ibd.CPUAccessFlags = 0;
-      ibd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-      D3D11_SUBRESOURCE_DATA iinitData = {};
-      iinitData.pSysMem = &meshData.indices[0];
-
-      HRESULT hr = g_device->CreateBuffer(
-          &ibd, &iinitData, box.indexBuffer.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
-      srvDesc.BufferEx.FirstElement = 0;
-      srvDesc.BufferEx.NumElements = box.indexCount;
-      srvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
-
-      hr = g_device->CreateShaderResourceView(
-          box.indexBuffer.Get(), &srvDesc,
-          box.indexBufferSRV.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-
-    meshes["box"] = std::make_shared<Mesh>(box);
-  }
 }
 }  // namespace my

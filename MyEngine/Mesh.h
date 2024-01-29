@@ -6,7 +6,15 @@
 using Microsoft::WRL::ComPtr;
 
 namespace my {
-struct Mesh {
+class Mesh {
+ public:
+  ~Mesh() {
+    vertexBuffer.Reset();
+    indexBuffer.Reset();
+    vertexBufferSRV.Reset();
+    indexBufferSRV.Reset();
+  }
+
   ComPtr<ID3D11Buffer> vertexBuffer;
   ComPtr<ID3D11Buffer> indexBuffer;
 

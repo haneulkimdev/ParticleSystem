@@ -241,11 +241,32 @@ int main(int, char**) {
         ImGui::InputText("Mesh", meshName, IM_ARRAYSIZE(meshName));
         emitter->meshName = meshName;
 
-        Vector3 translation = emitter->transform.Translation();
-        float position[3] = {translation.x, translation.y, translation.z};
-        ImGui::InputFloat3("Emitter Position", position);
-        emitter->transform =
-            Matrix::CreateTranslation(position[0], position[1], position[2]);
+        ImGui::SeparatorText("Transform");
+
+        Vector3 s;
+        Quaternion r;
+        Vector3 t;
+        emitter->transform.Decompose(s, r, t);
+
+        float translation[3] = {t.x, t.y, t.z};
+        ImGui::InputFloat3("Translation", translation);
+
+        Vector3 euler = r.ToEuler();
+        euler *= 180.0f / XM_PI;
+        float rotation[3] = {euler.x, euler.y, euler.z};
+        ImGui::InputFloat3("Rotation", rotation);
+
+        float scale[3] = {s.x, s.y, s.z};
+        ImGui::InputFloat3("Scale", scale);
+
+        emitter->transform = Matrix::CreateScale(scale[0], scale[1], scale[2]);
+        emitter->transform *= Matrix::CreateFromYawPitchRoll(
+            rotation[1] * XM_PI / 180.0f, rotation[0] * XM_PI / 180.0f,
+            rotation[2] * XM_PI / 180.0f);
+        emitter->transform *= Matrix::CreateTranslation(
+            translation[0], translation[1], translation[2]);
+
+        ImGui::Separator();
 
         ImVec4 color = ImGui::ColorConvertU32ToFloat4(emitter->color);
         ImGui::ColorEdit3("Color", (float*)&color);
