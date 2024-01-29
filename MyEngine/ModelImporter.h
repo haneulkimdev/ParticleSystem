@@ -13,6 +13,6 @@ class ModelImporter {
   std::vector<MeshData> m_meshData;
 
   // Transform the data from glTF space to engine-space:
-  bool transformToLH = true;
+  bool m_transformToLH = true;
 };
 }  // namespace my
