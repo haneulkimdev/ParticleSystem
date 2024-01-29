@@ -45,7 +45,7 @@ Camera camera;
 
 float smoothingCoefficient = 10.0f;
 
-float floorHeight = -3.5f;
+float floorHeight = -3.0f;
 
 Vector3 distBoxCenter;
 float distBoxSize;
@@ -611,10 +611,14 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   tire.Initialize(g_device, g_context, model);
   models["tire"] = std::make_shared<Model>(tire);
 
+  Matrix m = Matrix::CreateScale(10.0f);
+  m *= Matrix::CreateRotationY(XM_PI / 2);
+  models["tire"]->m_transform = m;
+
   ParticleSystem::CreateSelfBuffers();
 
   // Build the view matrix.
-  Vector3 pos(0.0f, 2.0f, -15.0f);
+  Vector3 pos(0.0f, 0.0f, -15.0f);
   Vector3 target(0.0f, 0.0f, 0.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
@@ -721,14 +725,11 @@ bool SetRenderTargetSize(int w, int h) {
 }
 
 void Update(float dt) {
+  models["tire"]->m_transform *= Matrix::CreateRotationZ(dt * -XM_PI * 0.5f);
   for (auto& model : models) {
     if (model.second == nullptr) continue;
-    if (model.first == ParticleSystem::emitter.meshName)
-      model.second->m_transform = ParticleSystem::emitter.transform;
     model.second->Update(g_device, g_context);
   }
-
-  dt *= 0.5f;
 
   ParticleSystem::UpdateCPU(dt);
 

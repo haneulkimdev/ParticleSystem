@@ -59,6 +59,9 @@ void main(uint3 DTid : SV_DispatchThreadID)
     nor = normalize(cross(pos1 - pos0, pos2 - pos0));
     nor = normalize(mul(nor, (float3x3) worldMatrix));
     
+    if (length(velocity) > 0 && abs(dot(nor, normalize(velocity))) < 0.9f)
+        return;
+    
 #else
     // Just emit from center point:
     emitPos = 0;
