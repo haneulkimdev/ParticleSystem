@@ -6,8 +6,10 @@ RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
 RWStructuredBuffer<uint> deadBuffer : register(u3);
 RWByteAddressBuffer counterBuffer : register(u4);
 RWByteAddressBuffer vertexBuffer_POS : register(u5);
-RWBuffer<float4> vertexBuffer_NOR : register(u6);
+RWByteAddressBuffer vertexBuffer_NOR : register(u6);
 RWBuffer<float4> vertexBuffer_COL : register(u7);
+
+static const uint VERTEXBUFFER_POS_STRIDE = 12;
 
 [numthreads(1, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
@@ -59,8 +61,9 @@ void main(uint3 DTid : SV_DispatchThreadID)
         float4 particleColor = unpack_rgba(particle.color);
         particleColor.a *= opacity;
         
-        vertexBuffer_POSCOL[particleIndex] = float4(particle.position, pack_rgba(particleColor));
-        vertexBuffer_NOR[particleIndex] = float4(normalize(-camDir), 0);
+        vertexBuffer_POS.Store3(particleIndex * VERTEXBUFFER_POS_STRIDE, particle.position);
+        vertexBuffer_NOR.Store3(particleIndex * VERTEXBUFFER_POS_STRIDE, normalize(-camDir));
+        vertexBuffer_COL[particleIndex] = particleColor;
     }
     else
     {
@@ -69,6 +72,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
         counterBuffer.InterlockedAdd(PARTICLECOUNTER_OFFSET_DEADCOUNT, 1, deadIndex);
         deadBuffer[deadIndex] = particleIndex;
         
-        vertexBuffer_POSCOL[particleIndex] = 0;
+        vertexBuffer_POS.Store3(particleIndex * VERTEXBUFFER_POS_STRIDE, 0);
     }
 }

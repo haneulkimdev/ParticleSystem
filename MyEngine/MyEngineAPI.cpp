@@ -192,28 +192,77 @@ void CreateSelfBuffers() {
       D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
       srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
       srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = 0;
-      srvDesc.Buffer.NumElements = vb_pos_size / sizeof(Vector3);
+      srvDesc.Buffer.FirstElement = UINT(vb_pos_offset / sizeof(Vector3));
+      srvDesc.Buffer.NumElements = UINT(vb_pos_size / sizeof(Vector3));
 
       hr = g_device->CreateShaderResourceView(
           generalBuffer.Get(), &srvDesc, vbSRV_pos.ReleaseAndGetAddressOf());
       if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
     }
-
     {
       D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
       uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
       uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
       uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
-      uavDesc.Buffer.FirstElement = vb_pos_offset / sizeof(uint32_t);
-      uavDesc.Buffer.NumElements =
-          (vb_pos_size - vb_pos_offset) / sizeof(uint32_t);
+      uavDesc.Buffer.FirstElement = UINT(vb_pos_offset / sizeof(uint32_t));
+      uavDesc.Buffer.NumElements = UINT(vb_pos_size / sizeof(uint32_t));
 
       hr = g_device->CreateUnorderedAccessView(
           generalBuffer.Get(), &uavDesc, vbUAV_pos.ReleaseAndGetAddressOf());
       if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
     }
     buffer_offset += vb_pos_size;
+
+    uint64_t vb_nor_offset = buffer_offset;
+    {
+      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+      srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+      srvDesc.Buffer.FirstElement = UINT(vb_nor_offset / sizeof(Vector3));
+      srvDesc.Buffer.NumElements = UINT(vb_nor_size / sizeof(Vector3));
+
+      hr = g_device->CreateShaderResourceView(
+          generalBuffer.Get(), &srvDesc, vbSRV_nor.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+    }
+    {
+      D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+      uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+      uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+      uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+      uavDesc.Buffer.FirstElement = UINT(vb_nor_offset / sizeof(uint32_t));
+      uavDesc.Buffer.NumElements = UINT(vb_nor_size / sizeof(uint32_t));
+
+      hr = g_device->CreateUnorderedAccessView(
+          generalBuffer.Get(), &uavDesc, vbUAV_nor.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+    }
+    buffer_offset += vb_nor_size;
+
+    uint64_t vb_col_offset = buffer_offset;
+    {
+      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+      srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+      srvDesc.Buffer.FirstElement = UINT(vb_col_offset / sizeof(uint32_t));
+      srvDesc.Buffer.NumElements = UINT(vb_col_size / sizeof(uint32_t));
+
+      hr = g_device->CreateShaderResourceView(
+          generalBuffer.Get(), &srvDesc, vbSRV_col.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
+    }
+    {
+      D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+      uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+      uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+      uavDesc.Buffer.FirstElement = UINT(vb_col_offset / sizeof(uint32_t));
+      uavDesc.Buffer.NumElements = UINT(vb_col_size / sizeof(uint32_t));
+
+      hr = g_device->CreateUnorderedAccessView(
+          generalBuffer.Get(), &uavDesc, vbUAV_col.ReleaseAndGetAddressOf());
+      if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
+    }
+    buffer_offset += vb_col_size;
   }
 
   // Particle System statistics:
@@ -327,12 +376,12 @@ void UpdateGPU(const std::shared_ptr<Mesh>& mesh) {
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(4, 1, counterBufferUAV.GetAddressOf(),
                                          nullptr);
-    g_context->CSSetUnorderedAccessViews(5, 1, vbUAV_pos.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(6, 1, vbUAV_nor.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(7, 1, vbUAV_col.GetAddressOf(),
-                                         nullptr);
+    // g_context->CSSetUnorderedAccessViews(5, 1, vbUAV_pos.GetAddressOf(),
+    //                                      nullptr);
+    // g_context->CSSetUnorderedAccessViews(6, 1, vbUAV_nor.GetAddressOf(),
+    //                                      nullptr);
+    // g_context->CSSetUnorderedAccessViews(7, 1, vbUAV_col.GetAddressOf(),
+    //                                      nullptr);
 
     if (mesh != nullptr) {
       g_context->CSSetShaderResources(0, 1,
@@ -538,8 +587,8 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
   blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
   blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-  blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-  blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+  blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+  blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
   blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
   blendDesc.RenderTarget[0].RenderTargetWriteMask =
       D3D11_COLOR_WRITE_ENABLE_ALL;
