@@ -243,7 +243,7 @@ int main(int, char**) {
 
         Vector3 translation = emitter->transform.Translation();
         float position[3] = {translation.x, translation.y, translation.z};
-        ImGui::InputFloat3("Particle Position", position);
+        ImGui::InputFloat3("Emitter Position", position);
         emitter->transform =
             Matrix::CreateTranslation(position[0], position[1], position[2]);
 
