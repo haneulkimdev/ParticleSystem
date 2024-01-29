@@ -5,8 +5,9 @@ RWStructuredBuffer<uint> aliveBuffer_CURRENT : register(u1);
 RWStructuredBuffer<uint> aliveBuffer_NEW : register(u2);
 RWStructuredBuffer<uint> deadBuffer : register(u3);
 RWByteAddressBuffer counterBuffer : register(u4);
-RWBuffer<float4> vertexBuffer_POSCOL : register(u5);
+RWByteAddressBuffer vertexBuffer_POS : register(u5);
 RWBuffer<float4> vertexBuffer_NOR : register(u6);
+RWBuffer<float4> vertexBuffer_COL : register(u7);
 
 [numthreads(1, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)

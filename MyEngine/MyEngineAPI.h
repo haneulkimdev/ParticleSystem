@@ -189,10 +189,12 @@ ComPtr<ID3D11ShaderResourceView> aliveListSRV[2];
 ComPtr<ID3D11UnorderedAccessView> aliveListUAV[2];
 ComPtr<ID3D11UnorderedAccessView> deadListUAV;
 ComPtr<ID3D11UnorderedAccessView> counterBufferUAV;
-ComPtr<ID3D11ShaderResourceView> vbSRV_posCol;
-ComPtr<ID3D11UnorderedAccessView> vbUAV_posCol;
+ComPtr<ID3D11ShaderResourceView> vbSRV_pos;
+ComPtr<ID3D11UnorderedAccessView> vbUAV_pos;
 ComPtr<ID3D11ShaderResourceView> vbSRV_nor;
 ComPtr<ID3D11UnorderedAccessView> vbUAV_nor;
+ComPtr<ID3D11ShaderResourceView> vbSRV_col;
+ComPtr<ID3D11UnorderedAccessView> vbUAV_col;
 
 ComPtr<ID3D11VertexShader> vertexShader;
 ComPtr<ID3D11GeometryShader> geometryShader;
