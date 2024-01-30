@@ -190,10 +190,11 @@ void CreateSelfBuffers() {
     uint64_t vb_pos_offset = buffer_offset;
     {
       D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+      uint32_t stride = sizeof(Vector3);
       srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
       srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = UINT(vb_pos_offset / sizeof(Vector3));
-      srvDesc.Buffer.NumElements = UINT(vb_pos_size / sizeof(Vector3));
+      srvDesc.Buffer.FirstElement = UINT(vb_pos_offset / stride);
+      srvDesc.Buffer.NumElements = UINT(vb_pos_size / stride);
 
       hr = g_device->CreateShaderResourceView(
           generalBuffer.Get(), &srvDesc, vbSRV_pos.ReleaseAndGetAddressOf());
@@ -216,10 +217,11 @@ void CreateSelfBuffers() {
     uint64_t vb_nor_offset = buffer_offset;
     {
       D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+      uint32_t stride = sizeof(Vector3);
       srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
       srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = UINT(vb_nor_offset / sizeof(Vector3));
-      srvDesc.Buffer.NumElements = UINT(vb_nor_size / sizeof(Vector3));
+      srvDesc.Buffer.FirstElement = UINT(vb_nor_offset / stride);
+      srvDesc.Buffer.NumElements = UINT(vb_nor_size / stride);
 
       hr = g_device->CreateShaderResourceView(
           generalBuffer.Get(), &srvDesc, vbSRV_nor.ReleaseAndGetAddressOf());
@@ -242,10 +244,11 @@ void CreateSelfBuffers() {
     uint64_t vb_col_offset = buffer_offset;
     {
       D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+      uint32_t stride = sizeof(uint32_t);
       srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
       srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = UINT(vb_col_offset / sizeof(uint32_t));
-      srvDesc.Buffer.NumElements = UINT(vb_col_size / sizeof(uint32_t));
+      srvDesc.Buffer.FirstElement = UINT(vb_col_offset / stride);
+      srvDesc.Buffer.NumElements = UINT(vb_col_size / stride);
 
       hr = g_device->CreateShaderResourceView(
           generalBuffer.Get(), &srvDesc, vbSRV_col.ReleaseAndGetAddressOf());
