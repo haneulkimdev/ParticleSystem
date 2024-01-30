@@ -383,12 +383,12 @@ void UpdateGPU(uint32_t instanceIndex, const std::shared_ptr<Model>& model) {
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(4, 1, counterBufferUAV.GetAddressOf(),
                                          nullptr);
-    // g_context->CSSetUnorderedAccessViews(5, 1, vbUAV_pos.GetAddressOf(),
-    //                                      nullptr);
-    // g_context->CSSetUnorderedAccessViews(6, 1, vbUAV_nor.GetAddressOf(),
-    //                                      nullptr);
-    // g_context->CSSetUnorderedAccessViews(7, 1, vbUAV_col.GetAddressOf(),
-    //                                      nullptr);
+    g_context->CSSetUnorderedAccessViews(5, 1, vbUAV_pos.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(6, 1, vbUAV_nor.GetAddressOf(),
+                                         nullptr);
+    g_context->CSSetUnorderedAccessViews(7, 1, vbUAV_col.GetAddressOf(),
+                                         nullptr);
 
     if (mesh != nullptr) {
       g_context->CSSetShaderResources(0, 1,
