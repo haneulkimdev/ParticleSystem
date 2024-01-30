@@ -206,7 +206,7 @@ ComPtr<ID3D11ComputeShader> simulateCS;
 
 float emit = 0.0f;
 
-const uint32_t MAX_PARTICLES = 10000;
+const uint32_t MAX_PARTICLES = 1000;
 
 ParticleEmitter emitter;
 
