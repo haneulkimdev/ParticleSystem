@@ -168,106 +168,6 @@ void CreateSelfBuffers() {
     if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
   }
 
-  {
-    D3D11_BUFFER_DESC bd = {};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-    bd.CPUAccessFlags = 0;
-    bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-
-    uint64_t vb_pos_size = sizeof(Vector3) * MAX_PARTICLES;
-    uint64_t vb_nor_size = sizeof(Vector3) * MAX_PARTICLES;
-    uint64_t vb_col_size = sizeof(uint32_t) * MAX_PARTICLES;
-
-    bd.ByteWidth = vb_pos_size + vb_nor_size + vb_col_size;
-
-    HRESULT hr = g_device->CreateBuffer(&bd, nullptr,
-                                        generalBuffer.ReleaseAndGetAddressOf());
-    if (FAILED(hr)) FailRet("CreateBuffer Failed.");
-
-    uint64_t buffer_offset = 0ull;
-
-    uint64_t vb_pos_offset = buffer_offset;
-    {
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      uint32_t stride = sizeof(Vector3);
-      srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = UINT(vb_pos_offset / stride);
-      srvDesc.Buffer.NumElements = UINT(vb_pos_size / stride);
-
-      hr = g_device->CreateShaderResourceView(
-          generalBuffer.Get(), &srvDesc, vbSRV_pos.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-    {
-      D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-      uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-      uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
-      uavDesc.Buffer.FirstElement = UINT(vb_pos_offset / sizeof(uint32_t));
-      uavDesc.Buffer.NumElements = UINT(vb_pos_size / sizeof(uint32_t));
-
-      hr = g_device->CreateUnorderedAccessView(
-          generalBuffer.Get(), &uavDesc, vbUAV_pos.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-    }
-    buffer_offset += vb_pos_size;
-
-    uint64_t vb_nor_offset = buffer_offset;
-    {
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      uint32_t stride = sizeof(Vector3);
-      srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = UINT(vb_nor_offset / stride);
-      srvDesc.Buffer.NumElements = UINT(vb_nor_size / stride);
-
-      hr = g_device->CreateShaderResourceView(
-          generalBuffer.Get(), &srvDesc, vbSRV_nor.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-    {
-      D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-      uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-      uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-      uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
-      uavDesc.Buffer.FirstElement = UINT(vb_nor_offset / sizeof(uint32_t));
-      uavDesc.Buffer.NumElements = UINT(vb_nor_size / sizeof(uint32_t));
-
-      hr = g_device->CreateUnorderedAccessView(
-          generalBuffer.Get(), &uavDesc, vbUAV_nor.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-    }
-    buffer_offset += vb_nor_size;
-
-    uint64_t vb_col_offset = buffer_offset;
-    {
-      D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-      uint32_t stride = sizeof(uint32_t);
-      srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-      srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-      srvDesc.Buffer.FirstElement = UINT(vb_col_offset / stride);
-      srvDesc.Buffer.NumElements = UINT(vb_col_size / stride);
-
-      hr = g_device->CreateShaderResourceView(
-          generalBuffer.Get(), &srvDesc, vbSRV_col.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateShaderResourceView Failed.");
-    }
-    {
-      D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-      uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-      uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-      uavDesc.Buffer.FirstElement = UINT(vb_col_offset / sizeof(uint32_t));
-      uavDesc.Buffer.NumElements = UINT(vb_col_size / sizeof(uint32_t));
-
-      hr = g_device->CreateUnorderedAccessView(
-          generalBuffer.Get(), &uavDesc, vbUAV_col.ReleaseAndGetAddressOf());
-      if (FAILED(hr)) FailRet("CreateUnorderedAccessView Failed.");
-    }
-    buffer_offset += vb_col_size;
-  }
-
   // Particle System statistics:
   {
     ParticleCounters counters = {};
@@ -383,12 +283,6 @@ void UpdateGPU(uint32_t instanceIndex, const std::shared_ptr<Model>& model) {
                                          nullptr);
     g_context->CSSetUnorderedAccessViews(4, 1, counterBufferUAV.GetAddressOf(),
                                          nullptr);
-    g_context->CSSetUnorderedAccessViews(5, 1, vbUAV_pos.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(6, 1, vbUAV_nor.GetAddressOf(),
-                                         nullptr);
-    g_context->CSSetUnorderedAccessViews(7, 1, vbUAV_col.GetAddressOf(),
-                                         nullptr);
 
     if (mesh != nullptr) {
       g_context->CSSetShaderResources(0, 1,
@@ -456,9 +350,6 @@ void Draw() {
   g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
   g_context->VSSetShaderResources(0, 1, particleBufferSRV.GetAddressOf());
   g_context->VSSetShaderResources(1, 1, aliveListSRV[0].GetAddressOf());
-  g_context->VSSetShaderResources(2, 1, vbSRV_pos.GetAddressOf());
-  g_context->VSSetShaderResources(3, 1, vbSRV_nor.GetAddressOf());
-  g_context->VSSetShaderResources(4, 1, vbSRV_col.GetAddressOf());
   g_context->GSSetShaderResources(0, 1, particleBufferSRV.GetAddressOf());
   g_context->Draw(MAX_PARTICLES, 0);
 
@@ -881,7 +772,6 @@ void DeinitEngine() {
   ParticleSystem::deadList.Reset();
   ParticleSystem::counterBuffer.Reset();
   ParticleSystem::constantBuffer.Reset();
-  ParticleSystem::generalBuffer.Reset();
   ParticleSystem::particleBufferSRV.Reset();
   ParticleSystem::particleBufferUAV.Reset();
   ParticleSystem::aliveListSRV[0].Reset();
@@ -890,12 +780,6 @@ void DeinitEngine() {
   ParticleSystem::aliveListUAV[1].Reset();
   ParticleSystem::deadListUAV.Reset();
   ParticleSystem::counterBufferUAV.Reset();
-  ParticleSystem::vbSRV_pos.Reset();
-  ParticleSystem::vbUAV_pos.Reset();
-  ParticleSystem::vbSRV_nor.Reset();
-  ParticleSystem::vbUAV_nor.Reset();
-  ParticleSystem::vbSRV_col.Reset();
-  ParticleSystem::vbUAV_col.Reset();
 
   ParticleSystem::vertexShader.Reset();
   ParticleSystem::geometryShader.Reset();
