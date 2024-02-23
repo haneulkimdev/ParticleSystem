@@ -18,10 +18,41 @@
 #  include <io.h>
 #endif
 
-#include "chrono.h"  // formatbuf
+#include "format.h"
 
 FMT_BEGIN_NAMESPACE
 namespace detail {
+
+template <typename Streambuf> class formatbuf : public Streambuf {
+ private:
+  using char_type = typename Streambuf::char_type;
+  using streamsize = decltype(std::declval<Streambuf>().sputn(nullptr, 0));
+  using int_type = typename Streambuf::int_type;
+  using traits_type = typename Streambuf::traits_type;
+
+  buffer<char_type>& buffer_;
+
+ public:
+  explicit formatbuf(buffer<char_type>& buf) : buffer_(buf) {}
+
+ protected:
+  // The put area is always empty. This makes the implementation simpler and has
+  // the advantage that the streambuf and the buffer are always in sync and
+  // sputc never writes into uninitialized memory. A disadvantage is that each
+  // call to sputc always results in a (virtual) call to overflow. There is no
+  // disadvantage here for sputn since this always results in a call to xsputn.
+
+  auto overflow(int_type ch) -> int_type override {
+    if (!traits_type::eq_int_type(ch, traits_type::eof()))
+      buffer_.push_back(static_cast<char_type>(ch));
+    return ch;
+  }
+
+  auto xsputn(const char_type* s, streamsize count) -> streamsize override {
+    buffer_.append(s, s + count);
+    return count;
+  }
+};
 
 // Generate a unique explicit instantion in every translation unit using a tag
 // type in an anonymous namespace.
@@ -112,8 +143,9 @@ template <typename Char>
 struct basic_ostream_formatter : formatter<basic_string_view<Char>, Char> {
   void set_debug_format() = delete;
 
-  template <typename T, typename Context>
-  auto format(const T& value, Context& ctx) const -> decltype(ctx.out()) {
+  template <typename T, typename OutputIt>
+  auto format(const T& value, basic_format_context<OutputIt, Char>& ctx) const
+      -> OutputIt {
     auto buffer = basic_memory_buffer<Char>();
     detail::format_value(buffer, value);
     return formatter<basic_string_view<Char>, Char>::format(
@@ -126,9 +158,9 @@ using ostream_formatter = basic_ostream_formatter<char>;
 template <typename T, typename Char>
 struct formatter<detail::streamed_view<T>, Char>
     : basic_ostream_formatter<Char> {
-  template <typename Context>
-  auto format(detail::streamed_view<T> view, Context& ctx) const
-      -> decltype(ctx.out()) {
+  template <typename OutputIt>
+  auto format(detail::streamed_view<T> view,
+              basic_format_context<OutputIt, Char>& ctx) const -> OutputIt {
     return basic_ostream_formatter<Char>::format(view.value, ctx);
   }
 };
@@ -162,7 +194,7 @@ inline void vprint_directly(std::ostream& os, string_view format_str,
 FMT_EXPORT template <typename Char>
 void vprint(std::basic_ostream<Char>& os,
             basic_string_view<type_identity_t<Char>> format_str,
-            typename detail::vformat_args<Char>::type args) {
+            basic_format_args<buffer_context<type_identity_t<Char>>> args) {
   auto buffer = basic_memory_buffer<Char>();
   detail::vformat_to(buffer, format_str, args);
   if (detail::write_ostream_unicode(os, {buffer.data(), buffer.size()})) return;
@@ -192,7 +224,7 @@ template <typename... Args>
 void print(std::wostream& os,
            basic_format_string<wchar_t, type_identity_t<Args>...> fmt,
            Args&&... args) {
-  vprint(os, fmt, fmt::make_format_args<buffered_context<wchar_t>>(args...));
+  vprint(os, fmt, fmt::make_format_args<buffer_context<wchar_t>>(args...));
 }
 
 FMT_EXPORT template <typename... T>

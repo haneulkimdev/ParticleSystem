@@ -239,7 +239,7 @@ class text_style {
       foreground_color = rhs.foreground_color;
     } else if (rhs.set_foreground_color) {
       if (!foreground_color.is_rgb || !rhs.foreground_color.is_rgb)
-        report_error("can't OR a terminal color");
+        FMT_THROW(format_error("can't OR a terminal color"));
       foreground_color.value.rgb_color |= rhs.foreground_color.value.rgb_color;
     }
 
@@ -248,7 +248,7 @@ class text_style {
       background_color = rhs.background_color;
     } else if (rhs.set_background_color) {
       if (!background_color.is_rgb || !rhs.background_color.is_rgb)
-        report_error("can't OR a terminal color");
+        FMT_THROW(format_error("can't OR a terminal color"));
       background_color.value.rgb_color |= rhs.background_color.value.rgb_color;
     }
 
@@ -390,8 +390,8 @@ template <typename Char> struct ansi_color_escape {
   FMT_CONSTEXPR operator const Char*() const noexcept { return buffer; }
 
   FMT_CONSTEXPR auto begin() const noexcept -> const Char* { return buffer; }
-  FMT_CONSTEXPR20 auto end() const noexcept -> const Char* {
-    return buffer + basic_string_view<Char>(buffer).size();
+  FMT_CONSTEXPR_CHAR_TRAITS auto end() const noexcept -> const Char* {
+    return buffer + std::char_traits<Char>::length(buffer);
   }
 
  private:
@@ -441,9 +441,9 @@ template <typename T> struct styled_arg : detail::view {
 };
 
 template <typename Char>
-void vformat_to(
-    buffer<Char>& buf, const text_style& ts, basic_string_view<Char> format_str,
-    basic_format_args<buffered_context<type_identity_t<Char>>> args) {
+void vformat_to(buffer<Char>& buf, const text_style& ts,
+                basic_string_view<Char> format_str,
+                basic_format_args<buffer_context<type_identity_t<Char>>> args) {
   bool has_style = false;
   if (ts.has_emphasis()) {
     has_style = true;
@@ -466,11 +466,19 @@ void vformat_to(
 
 }  // namespace detail
 
-inline void vprint(FILE* f, const text_style& ts, string_view fmt,
+inline void vprint(std::FILE* f, const text_style& ts, string_view fmt,
                    format_args args) {
+  // Legacy wide streams are not supported.
   auto buf = memory_buffer();
   detail::vformat_to(buf, ts, fmt, args);
-  print(f, FMT_STRING("{}"), string_view(buf.begin(), buf.size()));
+  if (detail::is_utf8()) {
+    detail::print(f, string_view(buf.begin(), buf.size()));
+    return;
+  }
+  buf.push_back('\0');
+  int result = std::fputs(buf.data(), f);
+  if (result < 0)
+    FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
 }
 
 /**
@@ -484,10 +492,12 @@ inline void vprint(FILE* f, const text_style& ts, string_view fmt,
                "Elapsed time: {0:.2f} seconds", 1.23);
   \endrst
  */
-template <typename... T>
-void print(FILE* f, const text_style& ts, format_string<T...> fmt,
-           T&&... args) {
-  vprint(f, ts, fmt, fmt::make_format_args(args...));
+template <typename S, typename... Args,
+          FMT_ENABLE_IF(detail::is_string<S>::value)>
+void print(std::FILE* f, const text_style& ts, const S& format_str,
+           const Args&... args) {
+  vprint(f, ts, format_str,
+         fmt::make_format_args<buffer_context<char_t<S>>>(args...));
 }
 
 /**
@@ -501,15 +511,19 @@ void print(FILE* f, const text_style& ts, format_string<T...> fmt,
                "Elapsed time: {0:.2f} seconds", 1.23);
   \endrst
  */
-template <typename... T>
-void print(const text_style& ts, format_string<T...> fmt, T&&... args) {
-  return print(stdout, ts, fmt, std::forward<T>(args)...);
+template <typename S, typename... Args,
+          FMT_ENABLE_IF(detail::is_string<S>::value)>
+void print(const text_style& ts, const S& format_str, const Args&... args) {
+  return print(stdout, ts, format_str, args...);
 }
 
-inline auto vformat(const text_style& ts, string_view fmt, format_args args)
-    -> std::string {
-  auto buf = memory_buffer();
-  detail::vformat_to(buf, ts, fmt, args);
+template <typename S, typename Char = char_t<S>>
+inline auto vformat(
+    const text_style& ts, const S& format_str,
+    basic_format_args<buffer_context<type_identity_t<Char>>> args)
+    -> std::basic_string<Char> {
+  basic_memory_buffer<Char> buf;
+  detail::vformat_to(buf, ts, detail::to_string_view(format_str), args);
   return fmt::to_string(buf);
 }
 
@@ -525,21 +539,24 @@ inline auto vformat(const text_style& ts, string_view fmt, format_args args)
                                       "The answer is {}", 42);
   \endrst
 */
-template <typename... T>
-inline auto format(const text_style& ts, format_string<T...> fmt, T&&... args)
-    -> std::string {
-  return fmt::vformat(ts, fmt, fmt::make_format_args(args...));
+template <typename S, typename... Args, typename Char = char_t<S>>
+inline auto format(const text_style& ts, const S& format_str,
+                   const Args&... args) -> std::basic_string<Char> {
+  return fmt::vformat(ts, detail::to_string_view(format_str),
+                      fmt::make_format_args<buffer_context<Char>>(args...));
 }
 
 /**
   Formats a string with the given text_style and writes the output to ``out``.
  */
-template <typename OutputIt,
-          FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, char>::value)>
-auto vformat_to(OutputIt out, const text_style& ts, string_view fmt,
-                format_args args) -> OutputIt {
-  auto&& buf = detail::get_buffer<char>(out);
-  detail::vformat_to(buf, ts, fmt, args);
+template <typename OutputIt, typename Char,
+          FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, Char>::value)>
+auto vformat_to(OutputIt out, const text_style& ts,
+                basic_string_view<Char> format_str,
+                basic_format_args<buffer_context<type_identity_t<Char>>> args)
+    -> OutputIt {
+  auto&& buf = detail::get_buffer<Char>(out);
+  detail::vformat_to(buf, ts, format_str, args);
   return detail::get_iterator(buf, out);
 }
 
@@ -555,11 +572,15 @@ auto vformat_to(OutputIt out, const text_style& ts, string_view fmt,
                    fmt::emphasis::bold | fg(fmt::color::red), "{}", 42);
   \endrst
 */
-template <typename OutputIt, typename... T,
-          FMT_ENABLE_IF(detail::is_output_iterator<OutputIt, char>::value)>
-inline auto format_to(OutputIt out, const text_style& ts,
-                      format_string<T...> fmt, T&&... args) -> OutputIt {
-  return vformat_to(out, ts, fmt, fmt::make_format_args(args...));
+template <
+    typename OutputIt, typename S, typename... Args,
+    bool enable = detail::is_output_iterator<OutputIt, char_t<S>>::value &&
+                  detail::is_string<S>::value>
+inline auto format_to(OutputIt out, const text_style& ts, const S& format_str,
+                      Args&&... args) ->
+    typename std::enable_if<enable, OutputIt>::type {
+  return vformat_to(out, ts, detail::to_string_view(format_str),
+                    fmt::make_format_args<buffer_context<char_t<S>>>(args...));
 }
 
 template <typename T, typename Char>

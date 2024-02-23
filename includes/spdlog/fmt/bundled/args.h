@@ -12,7 +12,7 @@
 #include <memory>      // std::unique_ptr
 #include <vector>
 
-#include "format.h"  // std_string_view
+#include "core.h"
 
 FMT_BEGIN_NAMESPACE
 

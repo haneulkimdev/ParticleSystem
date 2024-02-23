@@ -18,7 +18,7 @@
 #include <ostream>
 #include <type_traits>
 
-#include "format.h"
+#include "ostream.h"  // formatbuf
 
 FMT_BEGIN_NAMESPACE
 
@@ -329,39 +329,6 @@ inline auto localtime_s(...) -> null<> { return null<>(); }
 inline auto gmtime_r(...) -> null<> { return null<>(); }
 inline auto gmtime_s(...) -> null<> { return null<>(); }
 
-// It is defined here and not in ostream.h because the latter has expensive
-// includes.
-template <typename Streambuf> class formatbuf : public Streambuf {
- private:
-  using char_type = typename Streambuf::char_type;
-  using streamsize = decltype(std::declval<Streambuf>().sputn(nullptr, 0));
-  using int_type = typename Streambuf::int_type;
-  using traits_type = typename Streambuf::traits_type;
-
-  buffer<char_type>& buffer_;
-
- public:
-  explicit formatbuf(buffer<char_type>& buf) : buffer_(buf) {}
-
- protected:
-  // The put area is always empty. This makes the implementation simpler and has
-  // the advantage that the streambuf and the buffer are always in sync and
-  // sputc never writes into uninitialized memory. A disadvantage is that each
-  // call to sputc always results in a (virtual) call to overflow. There is no
-  // disadvantage here for sputn since this always results in a call to xsputn.
-
-  auto overflow(int_type ch) -> int_type override {
-    if (!traits_type::eq_int_type(ch, traits_type::eof()))
-      buffer_.push_back(static_cast<char_type>(ch));
-    return ch;
-  }
-
-  auto xsputn(const char_type* s, streamsize count) -> streamsize override {
-    buffer_.append(s, s + count);
-    return count;
-  }
-};
-
 inline auto get_classic_locale() -> const std::locale& {
   static const auto& locale = std::locale::classic();
   return locale;
@@ -415,9 +382,9 @@ auto write_encoded_tm_str(OutputIt out, string_view in, const std::locale& loc)
         to_utf8<code_unit, basic_memory_buffer<char, unit_t::max_size * 4>>();
     if (!u.convert({unit.buf, to_unsigned(unit.end - unit.buf)}))
       FMT_THROW(format_error("failed to format time"));
-    return copy<char>(u.c_str(), u.c_str() + u.size(), out);
+    return copy_str<char>(u.c_str(), u.c_str() + u.size(), out);
   }
-  return copy<char>(in.data(), in.data() + in.size(), out);
+  return copy_str<char>(in.data(), in.data() + in.size(), out);
 }
 
 template <typename Char, typename OutputIt,
@@ -426,7 +393,7 @@ auto write_tm_str(OutputIt out, string_view sv, const std::locale& loc)
     -> OutputIt {
   codecvt_result<Char> unit;
   write_codecvt(unit, sv, loc);
-  return copy<Char>(unit.buf, unit.end, out);
+  return copy_str<Char>(unit.buf, unit.end, out);
 }
 
 template <typename Char, typename OutputIt,
@@ -708,8 +675,8 @@ FMT_CONSTEXPR auto parse_chrono_format(const Char* begin, const Char* end,
   if (begin == end || *begin == '}') return begin;
   if (*begin != '%') FMT_THROW(format_error("invalid format"));
   auto ptr = begin;
+  pad_type pad = pad_type::unspecified;
   while (ptr != end) {
-    pad_type pad = pad_type::unspecified;
     auto c = *ptr;
     if (c == '}') break;
     if (c != '%') {
@@ -1151,23 +1118,18 @@ void write_fractional_seconds(OutputIt& out, Duration d, int precision = -1) {
       out = std::fill_n(out, leading_zeroes, '0');
       out = format_decimal<Char>(out, n, num_digits).end;
     }
-  } else if (precision > 0) {
+  } else {
     *out++ = '.';
     leading_zeroes = (std::min)(leading_zeroes, precision);
-    int remaining = precision - leading_zeroes;
     out = std::fill_n(out, leading_zeroes, '0');
-    if (remaining < num_digits) {
-      int num_truncated_digits = num_digits - remaining;
-      n /= to_unsigned(detail::pow10(to_unsigned(num_truncated_digits)));
-      if (n) {
-        out = format_decimal<Char>(out, n, remaining).end;
-      }
+    int remaining = precision - leading_zeroes;
+    if (remaining != 0 && remaining < num_digits) {
+      n /= to_unsigned(detail::pow10(to_unsigned(num_digits - remaining)));
+      out = format_decimal<Char>(out, n, remaining).end;
       return;
     }
-    if (n) {
-      out = format_decimal<Char>(out, n, num_digits).end;
-      remaining -= num_digits;
-    }
+    out = format_decimal<Char>(out, n, num_digits).end;
+    remaining -= num_digits;
     out = std::fill_n(out, remaining, '0');
   }
 }
@@ -1402,7 +1364,7 @@ class tm_writer {
   auto out() const -> OutputIt { return out_; }
 
   FMT_CONSTEXPR void on_text(const Char* begin, const Char* end) {
-    out_ = copy<Char>(begin, end, out_);
+    out_ = copy_str<Char>(begin, end, out_);
   }
 
   void on_abbr_weekday() {
@@ -1475,7 +1437,7 @@ class tm_writer {
     write_digit2_separated(buf, to_unsigned(tm_mon() + 1),
                            to_unsigned(tm_mday()),
                            to_unsigned(split_year_lower(tm_year())), '/');
-    out_ = copy<Char>(std::begin(buf), std::end(buf), out_);
+    out_ = copy_str<Char>(std::begin(buf), std::end(buf), out_);
   }
   void on_iso_date() {
     auto year = tm_year();
@@ -1491,7 +1453,7 @@ class tm_writer {
     write_digit2_separated(buf + 2, static_cast<unsigned>(year % 100),
                            to_unsigned(tm_mon() + 1), to_unsigned(tm_mday()),
                            '-');
-    out_ = copy<Char>(std::begin(buf) + offset, std::end(buf), out_);
+    out_ = copy_str<Char>(std::begin(buf) + offset, std::end(buf), out_);
   }
 
   void on_utc_offset(numeric_system ns) { format_utc_offset_impl(tm_, ns); }
@@ -1624,7 +1586,7 @@ class tm_writer {
       char buf[8];
       write_digit2_separated(buf, to_unsigned(tm_hour12()),
                              to_unsigned(tm_min()), to_unsigned(tm_sec()), ':');
-      out_ = copy<Char>(std::begin(buf), std::end(buf), out_);
+      out_ = copy_str<Char>(std::begin(buf), std::end(buf), out_);
       *out_++ = ' ';
       on_am_pm();
     } else {
@@ -1738,10 +1700,10 @@ auto format_duration_value(OutputIt out, Rep val, int) -> OutputIt {
 template <typename Char, typename Rep, typename OutputIt,
           FMT_ENABLE_IF(std::is_floating_point<Rep>::value)>
 auto format_duration_value(OutputIt out, Rep val, int precision) -> OutputIt {
-  auto specs = format_specs();
+  auto specs = format_specs<Char>();
   specs.precision = precision;
-  specs.type =
-      precision >= 0 ? presentation_type::fixed : presentation_type::general;
+  specs.type = precision >= 0 ? presentation_type::fixed_lower
+                              : presentation_type::general_lower;
   return write<Char>(out, val, specs);
 }
 
@@ -2081,7 +2043,7 @@ template <typename Char> struct formatter<weekday, Char> {
 template <typename Rep, typename Period, typename Char>
 struct formatter<std::chrono::duration<Rep, Period>, Char> {
  private:
-  format_specs specs_;
+  format_specs<Char> specs_;
   detail::arg_ref<Char> width_ref_;
   detail::arg_ref<Char> precision_ref_;
   bool localized_ = false;
@@ -2155,26 +2117,27 @@ struct formatter<std::chrono::time_point<std::chrono::system_clock, Duration>,
   template <typename FormatContext>
   auto format(std::chrono::time_point<std::chrono::system_clock, Duration> val,
               FormatContext& ctx) const -> decltype(ctx.out()) {
-    std::tm tm = gmtime(val);
     using period = typename Duration::period;
     if (detail::const_check(
-            period::num == 1 && period::den == 1 &&
-            !std::is_floating_point<typename Duration::rep>::value)) {
-      return formatter<std::tm, Char>::format(tm, ctx);
+            period::num != 1 || period::den != 1 ||
+            std::is_floating_point<typename Duration::rep>::value)) {
+      const auto epoch = val.time_since_epoch();
+      auto subsecs = detail::fmt_duration_cast<Duration>(
+          epoch - detail::fmt_duration_cast<std::chrono::seconds>(epoch));
+
+      if (subsecs.count() < 0) {
+        auto second =
+            detail::fmt_duration_cast<Duration>(std::chrono::seconds(1));
+        if (epoch.count() < ((Duration::min)() + second).count())
+          FMT_THROW(format_error("duration is too small"));
+        subsecs += second;
+        val -= second;
+      }
+
+      return formatter<std::tm, Char>::do_format(gmtime(val), ctx, &subsecs);
     }
-    Duration epoch = val.time_since_epoch();
-    Duration subsecs = detail::fmt_duration_cast<Duration>(
-        epoch - detail::fmt_duration_cast<std::chrono::seconds>(epoch));
-    if (subsecs.count() < 0) {
-      auto second =
-          detail::fmt_duration_cast<Duration>(std::chrono::seconds(1));
-      if (tm.tm_sec != 0)
-        --tm.tm_sec;
-      else
-        tm = gmtime(val - second);
-      subsecs += detail::fmt_duration_cast<Duration>(std::chrono::seconds(1));
-    }
-    return formatter<std::tm, Char>::do_format(tm, ctx, &subsecs);
+
+    return formatter<std::tm, Char>::format(gmtime(val), ctx);
   }
 };
 
@@ -2222,7 +2185,7 @@ struct formatter<std::chrono::time_point<std::chrono::utc_clock, Duration>,
 
 template <typename Char> struct formatter<std::tm, Char> {
  private:
-  format_specs specs_;
+  format_specs<Char> specs_;
   detail::arg_ref<Char> width_ref_;
 
  protected:

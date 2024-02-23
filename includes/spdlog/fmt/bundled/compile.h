@@ -8,16 +8,14 @@
 #ifndef FMT_COMPILE_H_
 #define FMT_COMPILE_H_
 
-#include <iterator>  // std::back_inserter
-
 #include "format.h"
 
 FMT_BEGIN_NAMESPACE
 namespace detail {
 
-template <typename T, typename InputIt>
-FMT_CONSTEXPR inline auto copy(InputIt begin, InputIt end, counting_iterator it)
-    -> counting_iterator {
+template <typename Char, typename InputIt>
+FMT_CONSTEXPR inline auto copy_str(InputIt begin, InputIt end,
+                                   counting_iterator it) -> counting_iterator {
   return it + (end - begin);
 }
 
@@ -148,7 +146,7 @@ template <typename Char, typename T, int N> struct field {
     const T& arg = get_arg_checked<T, N>(args...);
     if constexpr (std::is_convertible_v<T, basic_string_view<Char>>) {
       auto s = basic_string_view<Char>(arg);
-      return copy<Char>(s.begin(), s.end(), out);
+      return copy_str<Char>(s.begin(), s.end(), out);
     }
     return write<Char>(out, arg);
   }

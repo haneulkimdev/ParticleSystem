@@ -238,7 +238,6 @@ class buffered_file {
 };
 
 #if FMT_USE_FCNTL
-
 // A file. Closed file is represented by a file object with descriptor -1.
 // Methods that are not declared with noexcept may throw
 // fmt::system_error in case of failure. Note that some errors such as
@@ -251,8 +250,6 @@ class FMT_API file {
 
   // Constructs a file object with a given descriptor.
   explicit file(int fd) : fd_(fd) {}
-
-  friend struct pipe;
 
  public:
   // Possible values for the oflag argument to the constructor.
@@ -316,6 +313,11 @@ class FMT_API file {
   // necessary.
   void dup2(int fd, std::error_code& ec) noexcept;
 
+  // Creates a pipe setting up read_end and write_end file objects for reading
+  // and writing respectively.
+  // DEPRECATED! Taking files as out parameters is deprecated.
+  static void pipe(file& read_end, file& write_end);
+
   // Creates a buffered_file object associated with this file and detaches
   // this file object from the file.
   auto fdopen(const char* mode) -> buffered_file;
@@ -325,15 +327,6 @@ class FMT_API file {
   // wcstring_view filename. Windows only.
   static file open_windows_file(wcstring_view path, int oflag);
 #  endif
-};
-
-struct FMT_API pipe {
-  file read_end;
-  file write_end;
-
-  // Creates a pipe setting up read_end and write_end file objects for reading
-  // and writing respectively.
-  pipe();
 };
 
 // Returns the memory page size.
@@ -377,10 +370,9 @@ struct ostream_params {
 };
 
 class file_buffer final : public buffer<char> {
- private:
   file file_;
 
-  FMT_API static void grow(buffer<char>& buf, size_t);
+  FMT_API void grow(size_t) override;
 
  public:
   FMT_API file_buffer(cstring_view path, const ostream_params& params);
@@ -431,7 +423,8 @@ class FMT_API ostream {
     output to the file.
    */
   template <typename... T> void print(format_string<T...> fmt, T&&... args) {
-    vformat_to(appender(buffer_), fmt, fmt::make_format_args(args...));
+    vformat_to(std::back_inserter(buffer_), fmt,
+               fmt::make_format_args(args...));
   }
 };
 
