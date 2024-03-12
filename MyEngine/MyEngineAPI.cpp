@@ -512,7 +512,7 @@ bool InitEngine(const std::shared_ptr<spdlog::logger>& spdlogPtr) {
   ParticleSystem::CreateSelfBuffers();
 
   // Build the view matrix.
-  Vector3 pos(0.0f, 0.0f, -15.0f);
+  Vector3 pos(0.0f, 0.0f, -5.0f);
   Vector3 target(0.0f, 0.0f, 0.0f);
   Vector3 up(0.0f, 1.0f, 0.0f);
 
