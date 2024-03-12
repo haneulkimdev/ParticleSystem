@@ -16,6 +16,60 @@ struct Particle {
   uint color = my::ColorConvertFloat4ToU32(Color(1.0f, 1.0f, 1.0f, 1.0f));
 };
 
+struct Emitter {
+  uint xEmitCount;
+  float xEmitterRandomness;
+  float xParticleRandomColorFactor;
+  float xParticleSize;
+
+  float xParticleScaling;
+  float xParticleRotation;
+  float xParticleRandomFactor;
+  float xParticleNormalFactor;
+
+  float xParticleLifeSpan;
+  float xParticleLifeSpanRandomness;
+  float xParticleMass;
+  float xParticleMotionBlurAmount;
+
+  uint xEmitterMaxParticleCount;
+  uint xEmitterInstanceIndex;
+  uint xEmitterMeshGeometryOffset;
+  uint xEmitterMeshGeometryCount;
+
+  uint xEmitterFramesX;
+  uint xEmitterFramesY;
+  uint xEmitterFrameCount;
+  uint xEmitterFrameStart;
+
+  float2 xEmitterTexMul;
+  float xEmitterFrameRate;
+  uint xEmitterLayerMask;
+
+  float xSPH_h;      // smoothing radius
+  float xSPH_h_rcp;  // 1.0f / smoothing radius
+  float xSPH_h2;     // smoothing radius ^ 2
+  float xSPH_h3;     // smoothing radius ^ 3
+
+  float xSPH_poly6_constant;  // precomputed Poly6 kernel constant term
+  float xSPH_spiky_constant;  // precomputed Spiky kernel function constant term
+  float xSPH_visc_constant;   // precomputed viscosity kernel function constant
+                              // term
+  float xSPH_K;               // pressure constant
+
+  float xSPH_e;   // viscosity constant
+  float xSPH_p0;  // reference density
+  uint xEmitterOptions;
+  float xEmitterFixedTimestep;  // we can force a fixed timestep (>0) onto the
+                                // simulation to avoid blowing up
+
+  float3 xParticleGravity;
+  float xEmitterRestitution;
+
+  float3 xParticleVelocity;
+  float xParticleDrag;
+};
+
 struct PointLight {
   float3 position;
   float intensity;
@@ -93,7 +147,86 @@ auto FailRet = [](const std::string& msg) {
   return false;
 };
 
-bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
+namespace my {
+namespace particles {
+
+UINT GetMaxParticleCount() { return MAX_PARTICLES; }
+
+float GetParticleSize(int index) { return g_particles[index].sizeBeginEnd.x; }
+
+Color GetParticleColor(int index) {
+  return ColorConvertU32ToFloat4(g_particles[index].color);
+}
+
+Vector3 GetLightPosition() { return g_pointLight.position; }
+
+float GetLightIntensity() { return g_pointLight.intensity; }
+
+Color GetLightColor() { return ColorConvertU32ToFloat4(g_pointLight.color); }
+
+Vector3 GetDistBoxCenter() { return g_distBoxCenter; }
+
+float GetDistBoxSize() { return g_distBoxSize; }
+
+float GetSmoothingCoefficient() { return g_smoothingCoefficient; }
+
+void SetParticleSize(int index, float size) {
+  g_particles[index].sizeBeginEnd = Vector2(size);
+}
+
+void SetParticleColor(int index, const Color& color) {
+  g_particles[index].color = ColorConvertFloat4ToU32(color);
+}
+
+void SetLightPosition(const Vector3& position) {
+  g_pointLight.position = position;
+}
+
+void SetLightIntensity(float intensity) { g_pointLight.intensity = intensity; }
+
+void SetLightColor(const Color& color) {
+  g_pointLight.color = ColorConvertFloat4ToU32(color);
+}
+
+void SetDistBoxCenter(const Vector3& center) { g_distBoxCenter = center; }
+
+void SetDistBoxSize(float size) { g_distBoxSize = size; }
+
+void SetSmoothingCoefficient(float smoothingCoefficient) {
+  g_smoothingCoefficient = smoothingCoefficient;
+}
+
+void Init() {
+  particles::SetParticleSize(0, 1.0f);
+  particles::SetParticleSize(1, 0.4f);
+  particles::SetParticleSize(2, 0.7f);
+  particles::SetParticleSize(3, 0.4f);
+
+  particles::SetParticleColor(0, Color(0.0f, 1.0f, 0.0f, 1.0f));
+  particles::SetParticleColor(1, Color(0.0f, 0.5f, 1.0f, 1.0f));
+  particles::SetParticleColor(2, Color(1.0f, 0.2f, 0.0f, 1.0f));
+  particles::SetParticleColor(3, Color(1.0f, 1.0f, 0.0f, 1.0f));
+}
+
+void Aniamte(float dt) {
+  static float t = 0;
+
+  // Accumulate time.
+  t += dt;
+
+  g_particles[0].position = Vector3(
+      cosf(t * 1.1f) * 0.5f, cosf(t * 1.3f) * 0.5f, cosf(t * 1.7f) * 0.5f);
+  g_particles[1].position = Vector3(
+      cosf(t * 0.7f) * 0.5f, cosf(t * 1.9f) * 0.5f, cosf(t * 2.3f) * 0.5f);
+  g_particles[2].position = Vector3(
+      cosf(t * 0.3f) * 0.5f, cosf(t * 2.9f) * 0.5f, sinf(t * 1.1f) * 0.5f);
+  g_particles[3].position = Vector3(
+      sinf(t * 1.3f) * 0.5f, sinf(t * 1.7f) * 0.5f, sinf(t * 0.7f) * 0.5f);
+}
+
+}  // namespace particles
+
+bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   g_apiLogger = spdlogPtr;
 
   // Create the device and device context.
@@ -182,19 +315,11 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
 
   if (FAILED(hr)) FailRet("CreateDepthStencilState Failed.");
 
-  my::BuildScreenQuadGeometryBuffers();
+  BuildScreenQuadGeometryBuffers();
 
-  my::LoadShaders();
+  LoadShaders();
 
-  my::SetParticleSize(0, 1.0f);
-  my::SetParticleSize(1, 0.4f);
-  my::SetParticleSize(2, 0.7f);
-  my::SetParticleSize(3, 0.4f);
-
-  my::SetParticleColor(0, Color(0.0f, 1.0f, 0.0f, 1.0f));
-  my::SetParticleColor(1, Color(0.0f, 0.5f, 1.0f, 1.0f));
-  my::SetParticleColor(2, Color(1.0f, 0.2f, 0.0f, 1.0f));
-  my::SetParticleColor(3, Color(1.0f, 1.0f, 0.0f, 1.0f));
+  particles::Init();
 
   // Build the view matrix.
   Vector3 pos(0.0f, 0.0f, -5.0f);
@@ -214,7 +339,7 @@ bool my::InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr) {
   return true;
 }
 
-bool my::SetRenderTargetSize(int w, int h) {
+bool SetRenderTargetSize(int w, int h) {
   g_renderTargetWidth = w;
   g_renderTargetHeight = h;
 
@@ -302,72 +427,8 @@ bool my::SetRenderTargetSize(int w, int h) {
   return true;
 }
 
-UINT my::GetMaxParticleCount() { return MAX_PARTICLES; }
-
-float my::GetParticleSize(int index) {
-  return g_particles[index].sizeBeginEnd.x;
-}
-
-Color my::GetParticleColor(int index) {
-  return my::ColorConvertU32ToFloat4(g_particles[index].color);
-}
-
-Vector3 my::GetLightPosition() { return g_pointLight.position; }
-
-float my::GetLightIntensity() { return g_pointLight.intensity; }
-
-Color my::GetLightColor() {
-  return my::ColorConvertU32ToFloat4(g_pointLight.color);
-}
-
-Vector3 my::GetDistBoxCenter() { return g_distBoxCenter; }
-
-float my::GetDistBoxSize() { return g_distBoxSize; }
-
-float my::GetSmoothingCoefficient() { return g_smoothingCoefficient; }
-
-void my::SetParticleSize(int index, float size) {
-  g_particles[index].sizeBeginEnd = Vector2(size);
-}
-
-void my::SetParticleColor(int index, const Color& color) {
-  g_particles[index].color = my::ColorConvertFloat4ToU32(color);
-}
-
-void my::SetLightPosition(const Vector3& position) {
-  g_pointLight.position = position;
-}
-
-void my::SetLightIntensity(float intensity) {
-  g_pointLight.intensity = intensity;
-}
-
-void my::SetLightColor(const Color& color) {
-  g_pointLight.color = my::ColorConvertFloat4ToU32(color);
-}
-
-void my::SetDistBoxCenter(const Vector3& center) { g_distBoxCenter = center; }
-
-void my::SetDistBoxSize(float size) { g_distBoxSize = size; }
-
-void my::SetSmoothingCoefficient(float smoothingCoefficient) {
-  g_smoothingCoefficient = smoothingCoefficient;
-}
-
-void my::UpdateParticles(float dt) {
-  static float t = 0;
-
-  // Accumulate time.
-  t += dt;
-
-  g_particles[0].position = Vector3(
-      cosf(t * 1.1f) * 0.5f, cosf(t * 1.3f) * 0.5f, cosf(t * 1.7f) * 0.5f);
-  g_particles[1].position = Vector3(
-      cosf(t * 0.7f) * 0.5f, cosf(t * 1.9f) * 0.5f, cosf(t * 2.3f) * 0.5f);
-  g_particles[2].position = Vector3(
-      cosf(t * 0.3f) * 0.5f, cosf(t * 2.9f) * 0.5f, sinf(t * 1.1f) * 0.5f);
-  g_particles[3].position = Vector3(
-      sinf(t * 1.3f) * 0.5f, sinf(t * 1.7f) * 0.5f, sinf(t * 0.7f) * 0.5f);
+void Update(float dt) {
+  particles::Aniamte(dt);
 
   D3D11_MAPPED_SUBRESOURCE mappedResource = {};
   g_context->Map(g_particleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0,
@@ -376,7 +437,7 @@ void my::UpdateParticles(float dt) {
   g_context->Unmap(g_particleBuffer.Get(), 0);
 }
 
-bool my::DoTest() {
+bool Draw() {
   PostRenderer quadPostRenderer = {};
   quadPostRenderer.posCam = g_camera.GetPosition();
   quadPostRenderer.lightColor = g_pointLight.color;
@@ -416,9 +477,9 @@ bool my::DoTest() {
   return true;
 }
 
-bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
-                                   ID3D11ShaderResourceView** sharedSRV, int& w,
-                                   int& h) {
+bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
+                               ID3D11ShaderResourceView** sharedSRV, int& w,
+                               int& h) {
   w = g_renderTargetWidth;
   h = g_renderTargetHeight;
 
@@ -472,7 +533,7 @@ bool my::GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
   return true;
 }
 
-void my::DeinitEngine() {
+void DeinitEngine() {
   // States
   g_rasterizerState.Reset();
   g_depthStencilState.Reset();
@@ -503,7 +564,7 @@ void my::DeinitEngine() {
   g_device.Reset();
 }
 
-bool my::LoadShaders() {
+bool LoadShaders() {
   std::string enginePath;
   if (!GetEnginePath(enginePath))
     return FailRet("Failure to Read Engine Path.");
@@ -513,7 +574,7 @@ bool my::LoadShaders() {
                                    const std::string& shaderProfile,
                                    ID3D11DeviceChild** deviceChild) -> bool {
     std::vector<BYTE> byteCode;
-    my::ReadData(enginePath + "/hlsl/objs/" + shaderObjFileName, byteCode);
+    ReadData(enginePath + "/hlsl/objs/" + shaderObjFileName, byteCode);
 
     if (shaderProfile == "VS") {
       HRESULT hr = g_device->CreateVertexShader(
@@ -554,7 +615,7 @@ bool my::LoadShaders() {
   return true;
 }
 
-bool my::GetEnginePath(std::string& enginePath) {
+bool GetEnginePath(std::string& enginePath) {
   char ownPth[2048];
   GetModuleFileNameA(nullptr, ownPth, sizeof(ownPth));
   std::string exe_path = ownPth;
@@ -581,7 +642,7 @@ bool my::GetEnginePath(std::string& enginePath) {
   return true;
 }
 
-bool my::ReadData(const std::string& name, std::vector<BYTE>& blob) {
+bool ReadData(const std::string& name, std::vector<BYTE>& blob) {
   std::ifstream fin(name, std::ios::binary);
 
   if (!fin) FailRet("File not found.");
@@ -594,7 +655,7 @@ bool my::ReadData(const std::string& name, std::vector<BYTE>& blob) {
   return true;
 }
 
-bool my::BuildScreenQuadGeometryBuffers() {
+bool BuildScreenQuadGeometryBuffers() {
   Vector3 vertices[4] = {
       Vector3(-1.0f, 1.0f, 0.0f),
       Vector3(1.0f, 1.0f, 0.0f),
@@ -622,15 +683,17 @@ bool my::BuildScreenQuadGeometryBuffers() {
   return true;
 }
 
-Color my::ColorConvertU32ToFloat4(UINT color) {
+Color ColorConvertU32ToFloat4(UINT color) {
   float s = 1.0f / 255.0f;
-  return Vector4(((color)&0xFF) * s, ((color >> 8) & 0xFF) * s,
+  return Vector4(((color) & 0xFF) * s, ((color >> 8) & 0xFF) * s,
                  ((color >> 16) & 0xFF) * s, ((color >> 24) & 0xFF) * s);
 }
 
-UINT my::ColorConvertFloat4ToU32(const Color& color) {
+UINT ColorConvertFloat4ToU32(const Color& color) {
   return static_cast<UINT>(color.R() * 255.0f + 0.5f) |
          (static_cast<UINT>(color.G() * 255.0f + 0.5f) << 8) |
          (static_cast<UINT>(color.B() * 255.0f + 0.5f) << 16) |
          (static_cast<UINT>(color.A() * 255.0f + 0.5f) << 24);
 }
+
+}  // namespace my

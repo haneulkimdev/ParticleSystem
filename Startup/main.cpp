@@ -230,8 +230,8 @@ int main(int, char**) {
           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
       ImGui::SetItemAllowOverlap();
 
-      my::UpdateParticles(io.DeltaTime);
-      my::DoTest();
+      my::Update(io.DeltaTime);
+      my::Draw();
 
       ID3D11ShaderResourceView* textureView = nullptr;
       int w, h;
@@ -276,13 +276,14 @@ int main(int, char**) {
             ImGui::SeparatorText("Size");
 
             {
-              const UINT maxParticleCount = my::GetMaxParticleCount();
+              const UINT maxParticleCount =
+                  my::particles::GetMaxParticleCount();
               for (int i = 0; i < maxParticleCount; i++) {
-                float particleSize = my::GetParticleSize(i);
+                float particleSize = my::particles::GetParticleSize(i);
                 if (ImGui::SliderFloat(
                         ("Particle Size " + std::to_string(i)).c_str(),
                         &particleSize, 0.0f, 1.0f)) {
-                  my::SetParticleSize(i, particleSize);
+                  my::particles::SetParticleSize(i, particleSize);
                 }
               }
             }
@@ -290,13 +291,14 @@ int main(int, char**) {
             ImGui::SeparatorText("Color");
 
             {
-              const UINT maxParticleCount = my::GetMaxParticleCount();
+              const UINT maxParticleCount =
+                  my::particles::GetMaxParticleCount();
               for (int i = 0; i < maxParticleCount; i++) {
-                Color particleColor = my::GetParticleColor(i);
+                Color particleColor = my::particles::GetParticleColor(i);
                 if (ImGui::ColorEdit3(
                         ("Particle Color " + std::to_string(i)).c_str(),
                         (float*)&particleColor)) {
-                  my::SetParticleColor(i, particleColor);
+                  my::particles::SetParticleColor(i, particleColor);
                 }
               }
             }
@@ -316,21 +318,21 @@ int main(int, char**) {
         if (ImGui::TreeNode("Render")) {
           if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
           if (ImGui::TreeNode("Light")) {
-            Vector3 lightPosition = my::GetLightPosition();
+            Vector3 lightPosition = my::particles::GetLightPosition();
             if (ImGui::SliderFloat3("Light Position", (float*)&lightPosition,
                                     -10.0f, 10.0f)) {
-              my::SetLightPosition(lightPosition);
+              my::particles::SetLightPosition(lightPosition);
             }
 
-            float lightIntensity = my::GetLightIntensity();
+            float lightIntensity = my::particles::GetLightIntensity();
             if (ImGui::SliderFloat("Light Intensity", &lightIntensity, 0.0f,
                                    1.0f)) {
-              my::SetLightIntensity(lightIntensity);
+              my::particles::SetLightIntensity(lightIntensity);
             }
 
-            Color lightColor = my::GetLightColor();
+            Color lightColor = my::particles::GetLightColor();
             if (ImGui::ColorEdit3("Light Color", (float*)&lightColor)) {
-              my::SetLightColor(lightColor);
+              my::particles::SetLightColor(lightColor);
             }
 
             ImGui::TreePop();
@@ -338,22 +340,23 @@ int main(int, char**) {
 
           if (open_action != -1) ImGui::SetNextItemOpen(open_action != 0);
           if (ImGui::TreeNode("Ray Marching")) {
-            Vector3 distBoxCenter = my::GetDistBoxCenter();
+            Vector3 distBoxCenter = my::particles::GetDistBoxCenter();
             if (ImGui::SliderFloat3("Dist Box Center", (float*)&distBoxCenter,
                                     -10.0f, 10.0f)) {
-              my::SetDistBoxCenter(distBoxCenter);
+              my::particles::SetDistBoxCenter(distBoxCenter);
             }
 
-            float distBoxSize = my::GetDistBoxSize();
+            float distBoxSize = my::particles::GetDistBoxSize();
             if (ImGui::SliderFloat("Dist Box Size", &distBoxSize, 0.0f,
                                    10.0f)) {
-              my::SetDistBoxSize(distBoxSize);
+              my::particles::SetDistBoxSize(distBoxSize);
             }
 
-            static float smoothingCoefficient = my::GetSmoothingCoefficient();
+            static float smoothingCoefficient =
+                my::particles::GetSmoothingCoefficient();
             if (ImGui::SliderFloat("Smoothing Coefficient",
                                    &smoothingCoefficient, 1.0f, 10.0f)) {
-              my::SetSmoothingCoefficient(smoothingCoefficient);
+              my::particles::SetSmoothingCoefficient(smoothingCoefficient);
             }
 
             ImGui::TreePop();
@@ -367,7 +370,7 @@ int main(int, char**) {
         ImGui::SeparatorText("Shaders");
         if (ImGui::Button("Reload Shaders")) {
           my::LoadShaders();
-          my::DoTest();
+          my::Draw();
         }
       }
 

@@ -14,9 +14,7 @@
 #define MY_API extern "C" __declspec(dllexport)
 
 namespace my {
-MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
-
-MY_API bool SetRenderTargetSize(int w, int h);
+namespace particles {
 
 MY_API UINT GetMaxParticleCount();
 
@@ -44,9 +42,17 @@ MY_API void SetDistBoxSize(float size);
 
 MY_API void SetSmoothingCoefficient(float smoothingCoefficient);
 
-MY_API void UpdateParticles(float dt);
+void Init();
+void Aniamte(float dt);
 
-MY_API bool DoTest();
+}  // namespace particles
+
+MY_API bool InitEngine(std::shared_ptr<spdlog::logger> spdlogPtr);
+
+MY_API bool SetRenderTargetSize(int w, int h);
+
+MY_API void Update(float dt);
+MY_API bool Draw();
 MY_API bool GetDX11SharedRenderTarget(ID3D11Device* dx11ImGuiDevice,
                                       ID3D11ShaderResourceView** sharedSRV,
                                       int& w, int& h);
