@@ -29,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\Header.hlsli" />
+    <None Include="ShaderCompile.bat" />
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\PS_RayMARCH.hlsl">

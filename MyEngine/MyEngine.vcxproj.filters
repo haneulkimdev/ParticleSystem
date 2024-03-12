@@ -24,5 +24,6 @@
     <None Include="hlsl\VS_QUAD.hlsl">
       <Filter>hlsl</Filter>
     </None>
+    <None Include="ShaderCompile.bat" />
   </ItemGroup>
 </Project>
